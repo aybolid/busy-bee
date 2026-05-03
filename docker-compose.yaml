@@ -1,0 +1,5 @@
+services:
+  redis:
+    image: docker.io/redis:8.6.2-alpine
+    ports:
+      - 6379:6379
