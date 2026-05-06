@@ -14,3 +14,5 @@ dom_smoothie = "0.17.0"
 reqwest = "0.13.3"
 rss = "2.0.12"
 serde = { version = "1.0.228", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive", "string"] }
+toml = "1.1.2"

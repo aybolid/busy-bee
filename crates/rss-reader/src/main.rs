@@ -1,18 +1,25 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    fs::{self, File},
+    io::Write,
+    sync::Arc,
+    time::Duration,
+};
 
-use dom_smoothie::{Article, Config, Readability, ReadabilityError};
+use clap::Parser;
+use dom_smoothie::{Article, Readability, ReadabilityError};
 use redis::{
     AsyncTypedCommands, ExistenceCheck, RedisResult, SetOptions, aio::MultiplexedConnection,
 };
 use tokio::{sync::Semaphore, task::JoinSet};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(Debug)]
-struct FeedConfig {
-    url: String,
-    interval: Duration,
-    max_concurrent_requests: usize,
-}
+use crate::{
+    cli::{Args, Command},
+    config::{Config, FeedConfig},
+};
+
+mod cli;
+mod config;
 
 #[tracing::instrument(level = "trace", skip_all, fields(url = config.url))]
 async fn rss_worker(
@@ -108,39 +115,42 @@ impl From<Article> for ParsedArticle {
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(item_title = item.title, item_link = item.link), ret, err)]
+#[tracing::instrument(level = "trace", skip_all, fields(item_title = item.title, item_link = item.link), err)]
 async fn process_rss_feed_item(
     client: reqwest::Client,
     item: rss::Item,
     semaphore: Arc<Semaphore>,
     redis: Arc<MultiplexedConnection>,
 ) -> anyhow::Result<()> {
-    if let Some(link) = item.link() {
-        let was_set = cache_rss_item(&redis, link).await?;
-        if !was_set {
-            tracing::trace!("skipping already seen article");
-            return Ok(());
-        }
+    let Some(link) = item.link() else {
+        tracing::warn!("no article link found");
+        return Ok(());
+    };
 
-        // Acquire a permit to limit a number of concurrent requests.
-        let permit = semaphore.acquire().await?;
-        let response = client.get(link).send().await?;
-        let text = response.text().await?;
-        drop(permit);
-
-        // Parsing HTML to get article text is a CPU-bound job that will block thread.
-        // Using dedicated thread were blocking is acceptable.
-        let article = tokio::task::spawn_blocking(|| -> Result<ParsedArticle, ReadabilityError> {
-            let mut readability = Readability::new(text, None, Some(Config::default()))?;
-            let article = readability.parse()?;
-            // NOTE: `Article` cannot be safely shared between threads so we use `ParsedArticle` instead.
-            Ok(article.into())
-        })
-        .await??;
-        tracing::trace!(?article);
-    } else {
-        tracing::warn!("no article link found")
+    let was_set = cache_rss_item(&redis, link).await?;
+    if !was_set {
+        tracing::trace!("skipping already seen article");
+        return Ok(());
     }
+
+    // Acquire a permit to limit a number of concurrent requests.
+    let permit = semaphore.acquire().await?;
+    let response = client.get(link).send().await?;
+    let text = response.text().await?;
+    drop(permit);
+
+    // Parsing HTML to get article text is a CPU-bound job that will block thread.
+    // Using dedicated thread were blocking is acceptable.
+    let article = tokio::task::spawn_blocking(|| -> Result<ParsedArticle, ReadabilityError> {
+        let mut readability = Readability::new(text, None, Some(dom_smoothie::Config::default()))?;
+        let article = readability.parse()?;
+        // NOTE: `Article` cannot be safely shared between threads so we use `ParsedArticle` instead.
+        Ok(article.into())
+    })
+    .await??;
+    tracing::trace!(?article);
+
+    // TODO: Do smth with article
 
     Ok(())
 }
@@ -151,7 +161,7 @@ async fn cache_rss_item(redis: &MultiplexedConnection, link: &str) -> RedisResul
 
     conn.set_options(
         link,
-        "1",
+        "1", // Dummy value
         SetOptions::default()
             .conditional_set(ExistenceCheck::NX)
             .with_expiration(redis::SetExpiry::EX(24 * 7 * 3600)),
@@ -162,30 +172,30 @@ async fn cache_rss_item(redis: &MultiplexedConnection, link: &str) -> RedisResul
 
 fn init_tracing_subscriber() {
     tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            format!("{}=trace,redising=trace", env!("CARGO_CRATE_NAME")).into()
-        }))
+        .with(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{}=trace", env!("CARGO_CRATE_NAME")).into()),
+        )
         .with(fmt::layer().with_target(false).compact())
         .init();
+
+    tracing::info!("{} {}", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    init_tracing_subscriber();
-
-    let feeds = vec![FeedConfig {
-        url: "https://news.ycombinator.com/rss".to_owned(),
-        interval: Duration::from_secs(60),
-        max_concurrent_requests: 5,
-    }];
+#[tracing::instrument(level = "trace", skip_all, err)]
+async fn run_rss_reader(args: Args) -> anyhow::Result<()> {
+    let config_file_data = fs::read(args.config)?;
+    let config = toml::from_slice::<Config>(&config_file_data)?;
+    tracing::trace!(?config);
 
     let client = reqwest::Client::builder().build()?;
 
-    let redis = redis::Client::open("redis://127.0.0.1:6379")?;
+    let redis = redis::Client::open(config.redis)?;
     let redis_conn = Arc::new(redis.get_multiplexed_async_connection().await?);
 
     let rss_tasks = JoinSet::from_iter(
-        feeds
+        config
+            .feeds
             .into_iter()
             .map(|config| rss_worker(client.clone(), config, redis_conn.clone())),
     );
@@ -193,4 +203,36 @@ async fn main() -> anyhow::Result<()> {
     rss_tasks.join_all().await;
 
     Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip_all, err)]
+fn init_rss_reader(args: Args) -> anyhow::Result<()> {
+    let mut config_file = File::create_new(&args.config)?;
+
+    let rss_config = Config {
+        feeds: vec![FeedConfig {
+            url: "https://news.ycombinator.com/rss".to_owned(),
+            interval: Duration::from_secs(60),
+            max_concurrent_requests: 5,
+        }],
+        redis: "redis://127.0.0.1:6379".to_owned(),
+    };
+    let config_toml = toml::to_string_pretty(&rss_config)?;
+
+    config_file.write_all(config_toml.as_bytes())?;
+
+    tracing::info!("created config file in {}", args.config.display());
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    init_tracing_subscriber();
+    let args = Args::parse();
+    tracing::debug!(?args);
+
+    match args.command.unwrap_or_default() {
+        Command::Run => run_rss_reader(args).await,
+        Command::Init => init_rss_reader(args),
+    }
 }
