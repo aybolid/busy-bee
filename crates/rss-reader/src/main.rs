@@ -11,6 +11,7 @@ use redis::{
     AsyncTypedCommands, ExistenceCheck, RedisResult, SetOptions, aio::MultiplexedConnection,
 };
 use tokio::{sync::Semaphore, task::JoinSet};
+use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
@@ -26,14 +27,28 @@ async fn rss_worker(
     client: reqwest::Client,
     config: FeedConfig,
     redis: Arc<MultiplexedConnection>,
+    cancel_token: CancellationToken,
 ) {
     tracing::info!("started");
     let config = Arc::new(config);
     loop {
         // NOTE: Error is logged by `tracing::instrument`
         _ = process_rss_feed(&client, &config, redis.clone()).await;
-        tracing::trace!("sleeping for {:?}", config.interval);
-        tokio::time::sleep(config.interval).await;
+
+        let sleep = async {
+            if !cancel_token.is_cancelled() {
+                tracing::trace!("sleeping for {:?}", config.interval);
+            }
+            tokio::time::sleep(config.interval).await
+        };
+
+        tokio::select! {
+            _ = sleep => {}
+            _ = cancel_token.cancelled() => {
+                tracing::trace!("shutdown signal received. exiting");
+                break;
+            }
+        }
     }
 }
 
@@ -188,20 +203,54 @@ async fn run_rss_reader(args: Args) -> anyhow::Result<()> {
     let config = toml::from_slice::<Config>(&config_file_data)?;
     tracing::trace!(?config);
 
+    let cancel_token = CancellationToken::new();
+
+    let token_clone = cancel_token.clone();
+    tokio::spawn(async move {
+        let ctrl_c = async {
+            tokio::signal::ctrl_c()
+                .await
+                .inspect_err(|error| tracing::error!(%error))
+                .unwrap();
+        };
+
+        #[cfg(unix)]
+        let terminate = async {
+            use tokio::signal::unix::SignalKind;
+            tokio::signal::unix::signal(SignalKind::terminate())
+                .inspect_err(|error| tracing::error!(%error))
+                .unwrap()
+                .recv()
+                .await;
+        };
+        #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+
+        tokio::select! {
+            _ = ctrl_c => tracing::trace!("ctrl + c"),
+            _ = terminate => tracing::trace!("SIGTERM")
+        }
+
+        token_clone.cancel();
+    });
+
     let client = reqwest::Client::builder().build()?;
 
     let redis = redis::Client::open(config.redis)?;
     let redis_conn = Arc::new(redis.get_multiplexed_async_connection().await?);
 
-    let rss_tasks = JoinSet::from_iter(
-        config
-            .feeds
-            .into_iter()
-            .map(|config| rss_worker(client.clone(), config, redis_conn.clone())),
-    );
+    let rss_tasks = JoinSet::from_iter(config.feeds.into_iter().map(|config| {
+        rss_worker(
+            client.clone(),
+            config,
+            redis_conn.clone(),
+            cancel_token.clone(),
+        )
+    }));
 
     rss_tasks.join_all().await;
 
+    tracing::info!("bye!");
     Ok(())
 }
 
