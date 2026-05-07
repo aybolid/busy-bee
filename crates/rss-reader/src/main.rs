@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use clap::Parser;
+use lapin::{options::QueueDeclareOptions, types::FieldTable};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{
@@ -8,22 +11,23 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
-use crate::{
+use crate::internal::{
     cli::{Args, Command},
     config::{WriteConfigError, load_config_from_file, new_default_config, write_config_into_file},
     worker::{FeedWorkerContext, rss_worker},
 };
 
-mod cli;
-mod config;
-mod worker;
+mod internal;
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::enum_variant_names)]
 enum RunError {
     #[error(transparent)]
-    LoadConfigError(#[from] config::LoadConfigError),
+    LoadConfigError(#[from] internal::config::LoadConfigError),
     #[error(transparent)]
     RedisError(#[from] redis::RedisError),
+    #[error(transparent)]
+    AmqpError(#[from] lapin::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
@@ -37,15 +41,41 @@ async fn run_rss_reader(args: Args) -> Result<(), RunError> {
 
     let redis = redis::Client::open(config.redis().url())?;
     let redis_connection = redis.get_multiplexed_async_connection().await?;
+    tracing::info!("redis connected");
 
-    let workers = config.into_feeds().into_iter().map(|config| {
-        rss_worker(FeedWorkerContext::new(
+    let amqp_connection =
+        lapin::Connection::connect(config.amqp().url(), lapin::ConnectionProperties::default())
+            .await?;
+    tracing::info!("amqp server connected");
+
+    let setup_channel = amqp_connection.create_channel().await?;
+    tracing::info!("amqp setup channel created");
+    let queue = setup_channel
+        .queue_declare(
+            config.amqp().queue().into(),
+            QueueDeclareOptions::durable(),
+            FieldTable::default(),
+        )
+        .await?;
+    tracing::info!(?queue, "amqp queue declared");
+    drop(setup_channel);
+
+    let amqp_queue = Arc::new(config.amqp().queue().to_owned());
+
+    let mut worker_contexts = vec![];
+    for config in config.into_feeds() {
+        worker_contexts.push(FeedWorkerContext::new(
             config,
             http_client.clone(),
             redis_connection.clone(),
+            amqp_connection.create_channel().await?,
+            amqp_queue.clone(),
             cancel_token.clone(),
-        ))
-    });
+        ));
+    }
+    tracing::info!("rss worker contexts prepared");
+
+    let workers = worker_contexts.into_iter().map(rss_worker);
 
     tracing::info!("starting {} workers", workers.len());
     JoinSet::from_iter(workers).join_all().await;

@@ -10,6 +10,8 @@ use std::{
 pub struct Config {
     /// Redis configuration.
     redis: RedisConfig,
+    /// AMQP configuration.
+    amqp: AmqpConfig,
     /// RSS feed configurations.
     feeds: Vec<FeedConfig>,
 }
@@ -23,6 +25,32 @@ impl Config {
     /// Consumes `self` and returns an owned [`Vec`] of [`FeedConfig`]s.
     pub fn into_feeds(self) -> Vec<FeedConfig> {
         self.feeds
+    }
+
+    /// Returns the AMQP configuration.
+    pub fn amqp(&self) -> &AmqpConfig {
+        &self.amqp
+    }
+}
+
+/// AMQP configuration.
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct AmqpConfig {
+    /// AMQP server URL.
+    url: String,
+    /// AMQP queue name.
+    queue: String,
+}
+
+impl AmqpConfig {
+    /// AMQP server URL.
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    /// AMQP queue name.
+    pub fn queue(&self) -> &str {
+        &self.queue
     }
 }
 
@@ -123,6 +151,10 @@ pub fn new_default_config() -> Config {
     Config {
         redis: RedisConfig {
             url: "redis://127.0.0.1:6379".to_owned(),
+        },
+        amqp: AmqpConfig {
+            url: "amqp://user:password@127.0.0.1:5672".to_owned(),
+            queue: "rss_articles".to_owned(),
         },
         feeds: vec![FeedConfig {
             url: "https://news.ycombinator.com/rss".to_owned(),

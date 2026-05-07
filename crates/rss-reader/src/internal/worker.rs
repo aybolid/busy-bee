@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use dom_smoothie::Readability;
+use lapin::{BasicProperties, Channel, Confirmation, options::BasicPublishOptions};
 use redis::{
     AsyncTypedCommands, ExistenceCheck, RedisResult, SetExpiry, SetOptions,
     aio::MultiplexedConnection,
@@ -9,7 +10,7 @@ use reqwest::Client;
 use tokio::{sync::Semaphore, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
-use crate::config::FeedConfig;
+use crate::internal::config::FeedConfig;
 
 /// A context expected by [`rss_worker`].
 pub struct FeedWorkerContext {
@@ -20,6 +21,9 @@ pub struct FeedWorkerContext {
     http_client: Client,
     /// Redis connection.
     redis_connection: MultiplexedConnection,
+    /// AMQP channel.
+    amqp_channel: Channel,
+    amqp_queue: Arc<String>,
 
     /// Token to signal a worker when it must exit.
     cancel_token: CancellationToken,
@@ -32,6 +36,8 @@ impl FeedWorkerContext {
         config: FeedConfig,
         http_client: Client,
         redis_connection: MultiplexedConnection,
+        amqp_channel: Channel,
+        amqp_queue: Arc<String>,
         cancel_token: CancellationToken,
     ) -> Self {
         let request_semaphore = Semaphore::new(config.max_concurrent_requests());
@@ -40,6 +46,8 @@ impl FeedWorkerContext {
             config,
             http_client,
             redis_connection,
+            amqp_channel,
+            amqp_queue,
             cancel_token,
             request_semaphore,
         }
@@ -116,6 +124,10 @@ enum ProcessFeedItemError {
     TaskError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     RedisError(#[from] redis::RedisError),
+    #[error(transparent)]
+    AmqpError(#[from] lapin::Error),
+    #[error(transparent)]
+    JsonError(#[from] serde_json::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(link = item.link), err)]
@@ -148,6 +160,35 @@ async fn process_rss_feed_item(
     tracing::trace!("article parsed");
 
     tracing::trace!(article_title = article.title, article_len = article.length);
+
+    tracing::trace!("serializing article json");
+    let article_json_bytes = serde_json::to_vec(&article)?;
+    tracing::trace!("json serialized");
+
+    publish_article(
+        &context.amqp_channel,
+        &context.amqp_queue,
+        &article_json_bytes,
+    )
+    .await?;
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip_all, fields(queue), err)]
+async fn publish_article(channel: &Channel, queue: &str, payload: &[u8]) -> lapin::Result<()> {
+    let confirmation = channel
+        .basic_publish(
+            "".into(), // Default exchange
+            queue.into(),
+            BasicPublishOptions::default(),
+            payload,
+            BasicProperties::default(),
+        )
+        .await?
+        .await?;
+    tracing::trace!(?confirmation, "article message sent");
+    assert_eq!(confirmation, Confirmation::NotRequested);
 
     Ok(())
 }
@@ -184,66 +225,11 @@ async fn cache_rss_item_by_link(
         })
 }
 
-/// Represnts a parsed article from RSS feed.
-///
-/// It contains the same fields as [`dom_smoothie::Article`] but can be safely
-/// shared between threads.
-#[derive(Debug, serde::Serialize)]
-struct ParsedArticle {
-    /// The title
-    title: String,
-    /// The author
-    byline: Option<String>,
-    /// The relevant HTML content
-    content: String,
-    /// The relevant text content
-    text_content: String,
-    /// The text length
-    length: usize,
-    /// The excerpt
-    excerpt: Option<String>,
-    /// The name of the site
-    site_name: Option<String>,
-    /// The text direction
-    dir: Option<String>,
-    /// The document language
-    lang: Option<String>,
-    /// The published time of the document
-    published_time: Option<String>,
-    /// The modified time of the document
-    modified_time: Option<String>,
-    /// The image of the document
-    image: Option<String>,
-    /// The favicon of the document
-    favicon: Option<String>,
-    /// The metadata's url
-    url: Option<String>,
-}
-
-impl From<dom_smoothie::Article> for ParsedArticle {
-    fn from(value: dom_smoothie::Article) -> Self {
-        Self {
-            title: value.title,
-            byline: value.byline,
-            content: value.content.to_string(),
-            length: value.length,
-            dir: value.dir,
-            excerpt: value.excerpt,
-            favicon: value.favicon,
-            image: value.image,
-            lang: value.lang,
-            modified_time: value.modified_time,
-            published_time: value.published_time,
-            site_name: value.site_name,
-            text_content: value.text_content.to_string(),
-            url: value.url,
-        }
-    }
-}
-
 /// A **CPU-bound** function that returns a [`ParsedArticle`] parsed from the `html` string.
 #[tracing::instrument(level = "trace", skip_all, err)]
-fn parse_article(html: String) -> Result<ParsedArticle, dom_smoothie::ReadabilityError> {
+fn parse_article(
+    html: String,
+) -> Result<rss_reader::ParsedArticle, dom_smoothie::ReadabilityError> {
     let mut readability = Readability::new(html, None, None)?;
     readability.parse().map(Into::into)
 }
