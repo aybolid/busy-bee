@@ -12,22 +12,15 @@ use tokio_util::sync::CancellationToken;
 
 use crate::internal::config::FeedConfig;
 
-/// A context expected by [`rss_worker`].
 pub struct FeedWorkerContext {
-    /// RSS feed configuration.
     config: FeedConfig,
 
-    /// Client to make HTTP requests.
     http_client: Client,
-    /// Redis connection.
     redis_connection: MultiplexedConnection,
-    /// AMQP channel.
     amqp_channel: Channel,
     amqp_queue: Arc<String>,
 
-    /// Token to signal a worker when it must exit.
     cancel_token: CancellationToken,
-    /// Semaphore to rate limit requests to the RSS feed articles.
     request_semaphore: Semaphore,
 }
 
@@ -225,7 +218,6 @@ async fn cache_rss_item_by_link(
         })
 }
 
-/// A **CPU-bound** function that returns a [`ParsedArticle`] parsed from the `html` string.
 #[tracing::instrument(level = "trace", skip_all, err)]
 fn parse_article(
     html: String,

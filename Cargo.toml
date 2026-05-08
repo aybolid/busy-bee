@@ -1,9 +1,15 @@
 [workspace]
 resolver = "3"
-members = ["crates/rss-reader"]
+members = ["crates/api", "crates/rss-reader"]
 
 [workspace.dependencies]
+rss-reader = { path = "./crates/rss-reader" }
+
 redis = { version = "1.2.1", features = ["tokio-rustls-comp"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "signal"] }
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.18"
+serde_json = "1.0.149"
+lapin = "4.7.1"
