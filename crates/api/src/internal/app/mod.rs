@@ -4,7 +4,10 @@ use tokio_util::sync::CancellationToken;
 use crate::internal::{
     api::{ApiContext, run_api_server},
     app::config::load_config,
-    infra::amqp::{amqp_connect, amqp_success_close},
+    infra::{
+        amqp::{amqp_connect, amqp_success_close},
+        db::{database_close, database_connect},
+    },
     rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
 };
 
@@ -23,6 +26,8 @@ pub enum RunError {
     RssArtcilesConsumerError(#[from] crate::internal::rss_consumer::RssArticlesConsumerError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
 }
 
 #[tracing::instrument(level = "trace", err)]
@@ -34,6 +39,8 @@ pub async fn run() -> Result<(), RunError> {
 
     let amqp_connection = amqp_connect(&config).await?;
     let channel = amqp_connection.create_channel().await?;
+
+    let db_pool = database_connect(config.database_url()).await?;
 
     let rss_consumer = run_rss_articles_consumer(RssArticlesConsumerContext::new(
         channel,
@@ -60,6 +67,7 @@ pub async fn run() -> Result<(), RunError> {
     _ = amqp_success_close(amqp_connection)
         .await
         .inspect_err(|error| tracing::error!(%error));
+    database_close(db_pool).await;
 
     tracing::info!("bye!");
     Ok(())

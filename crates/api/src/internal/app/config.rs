@@ -13,6 +13,7 @@ pub struct Config {
     api_addr: SocketAddr,
     amqp_url: Url,
     rss_articles_queue: ShortString,
+    database_url: String,
 }
 
 impl Debug for Config {
@@ -21,6 +22,7 @@ impl Debug for Config {
             .field("api_addr", &self.api_addr)
             .field("amqp_url", &self.amqp_url.as_str())
             .field("rss_articles_queue", &self.rss_articles_queue)
+            .field("database_url", &self.database_url.as_str())
             .finish()
     }
 }
@@ -36,6 +38,10 @@ impl Config {
 
     pub fn rss_articles_queue(&self) -> &ShortString {
         &self.rss_articles_queue
+    }
+
+    pub fn database_url(&self) -> &str {
+        self.database_url.as_ref()
     }
 }
 
@@ -58,10 +64,13 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     });
     let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", "rss_articles"))?;
 
+    let database_url = get_or("DB_URL", "data.db");
+
     Ok(Config {
         api_addr,
         amqp_url,
         rss_articles_queue,
+        database_url,
     })
 }
 
