@@ -12,10 +12,10 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
 lapin = { workspace = true }
+tokio-util = { workspace = true }
 
 dom_smoothie = "0.17.0"
 reqwest = "0.13.3"
 rss = "2.0.12"
 clap = { version = "4.6.1", features = ["derive", "string"] }
 toml = "1.1.2"
-tokio-util = "0.7.18"

@@ -13,3 +13,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
 serde_json = "1.0.149"
 lapin = "4.7.1"
+tokio-util = "0.7.18"
