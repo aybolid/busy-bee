@@ -2,6 +2,7 @@ use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use crate::internal::{
+    api::{ApiContext, run_api_server},
     app::config::load_config,
     infra::amqp::{amqp_connect, amqp_success_close},
     rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
@@ -20,8 +21,11 @@ pub enum RunError {
     TaskError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     RssArtcilesConsumerError(#[from] crate::internal::rss_consumer::RssArticlesConsumerError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }
 
+#[tracing::instrument(level = "trace", err)]
 pub async fn run() -> Result<(), RunError> {
     let config = load_config()?;
 
@@ -31,14 +35,27 @@ pub async fn run() -> Result<(), RunError> {
     let amqp_connection = amqp_connect(&config).await?;
     let channel = amqp_connection.create_channel().await?;
 
-    tracing::info!("running tasks");
-    let run_tasks =
-        JoinSet::from_iter([run_rss_articles_consumer(RssArticlesConsumerContext::new(
-            channel,
-            config.rss_articles_queue().clone(),
-            cancel_token.clone(),
-        ))]);
-    run_tasks.join_all().await;
+    let rss_consumer = run_rss_articles_consumer(RssArticlesConsumerContext::new(
+        channel,
+        config.rss_articles_queue().clone(),
+        cancel_token.clone(),
+    ));
+
+    let api_server = run_api_server(ApiContext {
+        config,
+        cancel_token: cancel_token.clone(),
+    });
+
+    let mut run_tasks = JoinSet::new();
+
+    run_tasks.spawn(async move { api_server.await.map_err(RunError::from) });
+    tracing::info!("api server task spawned");
+    run_tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
+    tracing::info!("rss consumer task spawned");
+
+    while let Some(result) = run_tasks.join_next().await {
+        result??
+    }
 
     _ = amqp_success_close(amqp_connection)
         .await
