@@ -11,7 +11,7 @@ fn init_tracing_subscriber() {
         .with(fmt::layer().with_target(false))
         .init();
 
-    tracing::info!("{} {}", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
+    tracing::info!("{} {}", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"));
 }
 
 #[tokio::main]

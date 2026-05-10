@@ -52,17 +52,14 @@ pub async fn run_rss_articles_consumer(
     loop {
         tokio::select! {
             delivery = consumer.next() => {
-                match delivery {
-                    Some(delivery) => {
-                        _ = process_rss_delivery(delivery).await;
-                    }
-                    None => {
-                        tracing::error!("consumer stream ended unexpectedly");
-                        break;
-                    }
+                if let Some(delivery) = delivery {
+                    _ = process_rss_delivery(delivery).await;
+                } else {
+                    tracing::error!("consumer stream ended unexpectedly");
+                    break;
                 }
             }
-            _ = context.cancel_token.cancelled() => {
+            () = context.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }

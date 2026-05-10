@@ -126,7 +126,7 @@ pub fn new_default_config() -> Config {
         },
         feeds: vec![FeedConfig {
             url: "https://news.ycombinator.com/rss".to_owned(),
-            interval: Duration::from_secs(60),
+            interval: Duration::from_mins(1),
             max_concurrent_requests: 15,
         }],
     }

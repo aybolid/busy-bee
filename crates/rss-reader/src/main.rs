@@ -70,10 +70,13 @@ async fn run_rss_reader(args: Args) -> Result<(), RunError> {
     }
     tracing::info!("rss worker contexts prepared");
 
-    let workers = worker_contexts.into_iter().map(rss_worker);
+    let workers = worker_contexts
+        .into_iter()
+        .map(rss_worker)
+        .collect::<JoinSet<_>>();
 
     tracing::info!("starting {} workers", workers.len());
-    JoinSet::from_iter(workers).join_all().await;
+    workers.join_all().await;
 
     tracing::info!("bye!");
     Ok(())
@@ -105,8 +108,8 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => tracing::trace!("ctrl + c"),
-        _ = terminate => tracing::trace!("SIGTERM")
+        () = ctrl_c => tracing::trace!("ctrl + c"),
+        () = terminate => tracing::trace!("SIGTERM")
     }
 
     cancel_token.cancel();
@@ -130,7 +133,7 @@ fn init_tracing_subscriber() {
         .with(fmt::layer().with_target(false))
         .init();
 
-    tracing::info!("{} {}", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
+    tracing::info!("{} {}", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"));
 }
 
 #[tokio::main]
@@ -147,5 +150,5 @@ async fn main() {
         Command::Init => init_rss_reader(args)
             .inspect_err(|error| tracing::error!(%error))
             .unwrap(),
-    };
+    }
 }

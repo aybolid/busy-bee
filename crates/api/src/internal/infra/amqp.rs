@@ -19,7 +19,7 @@ pub async fn amqp_close(amqp_connection: Connection) -> lapin::Result<()> {
     amqp_connection
         .close(REPLY_SUCCESS, "bye".into())
         .await
-        .inspect(|_| tracing::info!("amqp connection closed"))
+        .inspect(|()| tracing::info!("amqp connection closed"))
 }
 
 #[tracing::instrument(level = "trace", skip(channel), err)]

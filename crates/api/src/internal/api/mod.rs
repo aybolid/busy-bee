@@ -21,7 +21,7 @@ pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) ->
         .with_graceful_shutdown(
             async move {
                 cancel_token.cancelled().await;
-                tracing::trace!("got shutdown signal")
+                tracing::trace!("got shutdown signal");
             }
             .instrument(tracing::Span::current()),
         )

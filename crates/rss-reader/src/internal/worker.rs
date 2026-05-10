@@ -59,15 +59,15 @@ pub async fn rss_worker(context: FeedWorkerContext) {
         let sleep = async {
             let interval = context.config.interval();
             if !context.cancel_token.is_cancelled() {
-                tracing::info!("sleeping for {interval:?}")
+                tracing::info!("sleeping for {interval:?}");
             }
 
-            tokio::time::sleep(interval).await
+            tokio::time::sleep(interval).await;
         };
 
         tokio::select! {
-            _ = sleep => {},
-            _ = context.cancel_token.cancelled() => {
+            () = sleep => {},
+            () = context.cancel_token.cancelled() => {
                 tracing::trace!("shutdown signal received");
                 break;
             }
@@ -95,10 +95,11 @@ async fn process_rss_feed(context: &Arc<FeedWorkerContext>) -> Result<(), Proces
     let tasks = channel
         .items
         .into_iter()
-        .map(|item| process_rss_feed_item(item, context.clone()));
+        .map(|item| process_rss_feed_item(item, context.clone()))
+        .collect::<JoinSet<_>>();
 
     tracing::info!("starting {} subtasks", tasks.len());
-    JoinSet::from_iter(tasks).join_all().await;
+    tasks.join_all().await;
     tracing::info!("all subtasks finished");
 
     Ok(())

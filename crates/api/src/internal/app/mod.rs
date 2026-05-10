@@ -58,7 +58,7 @@ pub async fn run() -> Result<(), RunError> {
     tracing::info!("rss consumer task spawned");
 
     while let Some(result) = tasks.join_next().await {
-        result??
+        result??;
     }
 
     _ = amqp_close(amqp_connection)
@@ -96,8 +96,8 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => tracing::trace!("ctrl + c"),
-        _ = terminate => tracing::trace!("SIGTERM")
+        () = ctrl_c => tracing::trace!("ctrl + c"),
+        () = terminate => tracing::trace!("SIGTERM")
     }
 
     cancel_token.cancel();

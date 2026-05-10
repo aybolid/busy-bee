@@ -62,7 +62,7 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     let amqp_url = parse_or_else::<Url>("AMQP_URL", || {
         Url::parse("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
     });
-    let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", "rss_articles"))?;
+    let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", &"rss_articles"))?;
 
     let database_url = parse_or_else("DB_URL", || {
         Url::parse("sqlite://data.db").expect("default database url must parse")
@@ -78,20 +78,21 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
 
 #[tracing::instrument(level = "trace")]
 fn load_dotenv() {
-    match dotenvy::dotenv() {
-        Ok(env_file) => tracing::info!(env_file = %env_file.display(), "loaded env file"),
-        Err(_) => tracing::warn!("env file not found. using existing environment"),
+    if let Ok(env_file) = dotenvy::dotenv() {
+        tracing::info!(env_file = %env_file.display(), "loaded env file");
+    } else {
+        tracing::warn!("env file not found. using existing environment");
     }
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
-fn get_or(key: impl AsRef<OsStr>, default: impl ToString) -> String {
+fn get_or(key: impl AsRef<OsStr>, default: &impl ToString) -> String {
     env::var(key).unwrap_or_else(|error| {
         if matches!(error, VarError::NotUnicode(_)) {
             tracing::error!(%error);
         } else {
             tracing::warn!("not found");
-        };
+        }
 
         let default = default.to_string();
         tracing::warn!(default, "using default value");
@@ -110,7 +111,7 @@ where
     env::var(key)
         .inspect_err(|error| {
             if matches!(error, VarError::NotUnicode(_)) {
-                tracing::error!(%error)
+                tracing::error!(%error);
             } else {
                 tracing::warn!("not found");
             }
