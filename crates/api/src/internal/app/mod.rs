@@ -2,10 +2,10 @@ use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use crate::internal::{
-    api::{ApiContext, run_api_server},
+    api::{run_api_server, state::ApiState},
     app::config::load_config,
     infra::{
-        amqp::{amqp_connect, amqp_success_close},
+        amqp::{amqp_close, amqp_connect},
         db::{database_close, database_connect},
     },
     rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
@@ -48,23 +48,20 @@ pub async fn run() -> Result<(), RunError> {
         cancel_token.clone(),
     ));
 
-    let api_server = run_api_server(ApiContext {
-        config,
-        cancel_token: cancel_token.clone(),
-    });
+    let api_server = run_api_server(ApiState::new(config), cancel_token);
 
-    let mut run_tasks = JoinSet::new();
+    let mut tasks = JoinSet::new();
 
-    run_tasks.spawn(async move { api_server.await.map_err(RunError::from) });
+    tasks.spawn(async move { api_server.await.map_err(RunError::from) });
     tracing::info!("api server task spawned");
-    run_tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
+    tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
     tracing::info!("rss consumer task spawned");
 
-    while let Some(result) = run_tasks.join_next().await {
+    while let Some(result) = tasks.join_next().await {
         result??
     }
 
-    _ = amqp_success_close(amqp_connection)
+    _ = amqp_close(amqp_connection)
         .await
         .inspect_err(|error| tracing::error!(%error));
     database_close(db_pool).await;

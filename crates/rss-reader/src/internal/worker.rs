@@ -141,7 +141,12 @@ async fn process_rss_feed_item(
 
     tracing::trace!("fetching article html");
     let permit = context.request_semaphore.acquire().await?;
-    let link_response = context.http_client.get(link).send().await?;
+    let link_response = context
+        .http_client
+        .get(link)
+        .send()
+        .await?
+        .error_for_status()?;
     let html = link_response.text().await?;
     drop(permit);
     tracing::trace!("html fetched");

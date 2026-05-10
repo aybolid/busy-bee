@@ -13,7 +13,7 @@ pub struct Config {
     api_addr: SocketAddr,
     amqp_url: Url,
     rss_articles_queue: ShortString,
-    database_url: String,
+    database_url: Url,
 }
 
 impl Debug for Config {
@@ -64,7 +64,9 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     });
     let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", "rss_articles"))?;
 
-    let database_url = get_or("DB_URL", "data.db");
+    let database_url = parse_or_else("DB_URL", || {
+        Url::parse("sqlite://data.db").expect("default database url must parse")
+    });
 
     Ok(Config {
         api_addr,
@@ -95,33 +97,6 @@ fn get_or(key: impl AsRef<OsStr>, default: impl ToString) -> String {
         tracing::warn!(default, "using default value");
         default
     })
-}
-
-#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
-#[allow(dead_code)]
-fn parse_or<T: FromStr + Debug + Display>(key: impl AsRef<OsStr>, default: impl Into<T>) -> T
-where
-    <T as FromStr>::Err: std::error::Error,
-{
-    env::var(key)
-        .inspect_err(|error| {
-            if matches!(error, VarError::NotUnicode(_)) {
-                tracing::error!(%error)
-            } else {
-                tracing::warn!("not found");
-            }
-        })
-        .ok()
-        .and_then(|val| {
-            val.parse()
-                .inspect_err(|error| tracing::error!(%error))
-                .ok()
-        })
-        .unwrap_or_else(|| {
-            let default = default.into();
-            tracing::warn!(%default, "using default value");
-            default
-        })
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]

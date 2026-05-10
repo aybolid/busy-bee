@@ -5,26 +5,16 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
-use crate::internal::{
-    api::state::{AppState, SharedAppState},
-    app::config::Config,
-};
+use crate::internal::api::state::{ApiState, SharedApiState};
 
-mod state;
-
-pub struct ApiContext {
-    pub config: Config,
-    pub cancel_token: CancellationToken,
-}
+pub mod state;
 
 #[tracing::instrument(level = "trace", skip_all, err)]
-pub async fn run_api_server(context: ApiContext) -> io::Result<()> {
-    let listener = TcpListener::bind(context.config.api_addr()).await?;
-    tracing::info!("listening on {}", context.config.api_addr());
+pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) -> io::Result<()> {
+    let listener = TcpListener::bind(state.config().api_addr()).await?;
+    tracing::info!("listening on {}", state.config().api_addr());
 
-    let cancel_token = context.cancel_token.clone();
-
-    let router = create_api_router(context.into());
+    let router = create_api_router(state);
 
     // Will never actually return an error
     _ = axum::serve(listener, router)
@@ -40,8 +30,8 @@ pub async fn run_api_server(context: ApiContext) -> io::Result<()> {
     Ok(())
 }
 
-fn create_api_router(state: AppState) -> Router {
-    let state = SharedAppState::new(state);
+fn create_api_router(state: ApiState) -> Router {
+    let state = SharedApiState::new(state);
 
     Router::new().with_state(state)
 }

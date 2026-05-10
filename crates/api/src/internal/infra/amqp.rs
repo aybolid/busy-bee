@@ -15,7 +15,7 @@ pub async fn amqp_connect(config: &Config) -> lapin::Result<Connection> {
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
-pub async fn amqp_success_close(amqp_connection: Connection) -> lapin::Result<()> {
+pub async fn amqp_close(amqp_connection: Connection) -> lapin::Result<()> {
     amqp_connection
         .close(REPLY_SUCCESS, "bye".into())
         .await

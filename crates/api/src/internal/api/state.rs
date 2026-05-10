@@ -1,23 +1,19 @@
 use std::sync::Arc;
 
-use crate::internal::{api::ApiContext, app::config::Config};
+use crate::internal::app::config::Config;
 
-pub type SharedAppState = Arc<AppState>;
+pub type SharedApiState = Arc<ApiState>;
 
-pub(super) struct AppState {
+pub struct ApiState {
     config: Config,
 }
 
-impl AppState {
-    pub(super) fn config(&self) -> &Config {
-        &self.config
+impl ApiState {
+    pub fn new(config: Config) -> Self {
+        Self { config }
     }
-}
 
-impl From<ApiContext> for AppState {
-    fn from(value: ApiContext) -> Self {
-        Self {
-            config: value.config,
-        }
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 }
