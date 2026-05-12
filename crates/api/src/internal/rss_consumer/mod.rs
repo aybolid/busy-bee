@@ -7,17 +7,27 @@ use lapin::{
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::internal::infra::amqp::declare_durable_queue;
+use crate::internal::{
+    infra::{amqp::declare_durable_queue, db::DatabasePool},
+    repos::articles::{self, Article, FromParsedArticeError},
+};
 
 pub struct RssArticlesConsumerContext {
+    db_pool: DatabasePool,
     channel: Channel,
     queue: ShortString,
     cancel_token: CancellationToken,
 }
 
 impl RssArticlesConsumerContext {
-    pub fn new(channel: Channel, queue: ShortString, cancel_token: CancellationToken) -> Self {
+    pub fn new(
+        db_pool: DatabasePool,
+        channel: Channel,
+        queue: ShortString,
+        cancel_token: CancellationToken,
+    ) -> Self {
         Self {
+            db_pool,
             channel,
             queue,
             cancel_token,
@@ -53,7 +63,7 @@ pub async fn run_rss_articles_consumer(
         tokio::select! {
             delivery = consumer.next() => {
                 if let Some(delivery) = delivery {
-                    _ = process_rss_delivery(delivery).await;
+                    _ = process_rss_delivery(&context.db_pool, delivery).await;
                 } else {
                     tracing::error!("consumer stream ended unexpectedly");
                     break;
@@ -70,22 +80,32 @@ pub async fn run_rss_articles_consumer(
 }
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::enum_variant_names)]
 enum ProcessRssDeliveryError {
     #[error(transparent)]
     AmqpError(#[from] lapin::Error),
     #[error(transparent)]
     JsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    ConvertError(#[from] FromParsedArticeError),
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_rss_delivery(
+    db_pool: &DatabasePool,
     delivery: lapin::Result<Delivery>,
 ) -> Result<(), ProcessRssDeliveryError> {
     let delivery = delivery?;
     delivery.ack(BasicAckOptions::default()).await?;
 
-    let article = serde_json::from_slice::<rss_reader::ParsedArticle>(&delivery.data)?;
-    tracing::trace!(article_title = article.title, "got article");
+    let parsed_article = serde_json::from_slice::<rss_reader::ParsedArticle>(&delivery.data)?;
+    tracing::trace!(article_title = parsed_article.title, "got article");
+
+    let article = Article::try_from(parsed_article)?;
+
+    articles::create_article(db_pool, &article).await?;
 
     Ok(())
 }

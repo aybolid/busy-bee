@@ -1,12 +1,19 @@
-use std::str::FromStr;
+use std::{ops::Deref, str::FromStr};
 
 use sqlx::{
-    Pool, Sqlite, SqlitePool,
-    sqlite::{SqliteConnectOptions, SqliteJournalMode},
+    Acquire, Executor, Pool, Sqlite, SqlitePool,
+    migrate::Migrate,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteQueryResult},
 };
 
 pub type Database = Sqlite;
 pub type DatabasePool = Pool<Database>;
+
+pub trait DatabaseExecutor<'c>: Executor<'c, Database = Database> {}
+
+impl<'c, T: Executor<'c, Database = Database>> DatabaseExecutor<'c> for T {}
+
+pub type DatabaseQueryResult = SqliteQueryResult;
 
 #[tracing::instrument(level = "trace", err)]
 pub async fn database_connect(database_url: &str) -> sqlx::Result<DatabasePool> {
@@ -27,4 +34,16 @@ pub async fn database_close(pool: DatabasePool) {
     tracing::trace!(pool_size = pool.size(), num_idle = pool.num_idle());
     pool.close().await;
     tracing::info!("database connections pool closed");
+}
+
+#[tracing::instrument(level = "trace", skip_all, err)]
+pub async fn database_migrate<'a, A>(migrator: A) -> Result<(), sqlx::migrate::MigrateError>
+where
+    A: Acquire<'a>,
+    <A::Connection as Deref>::Target: Migrate,
+{
+    sqlx::migrate!("src/internal/infra/db/migrations")
+        .run(migrator)
+        .await
+        .inspect(|()| tracing::info!("database migrations applied"))
 }

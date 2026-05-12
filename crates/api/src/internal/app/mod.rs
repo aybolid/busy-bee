@@ -6,7 +6,7 @@ use crate::internal::{
     app::config::load_config,
     infra::{
         amqp::{amqp_close, amqp_connect},
-        db::{database_close, database_connect},
+        db::{database_close, database_connect, database_migrate},
     },
     rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
 };
@@ -28,6 +28,8 @@ pub enum RunError {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
+    #[error(transparent)]
+    MigrateError(#[from] sqlx::migrate::MigrateError),
 }
 
 #[tracing::instrument(level = "trace", err)]
@@ -41,8 +43,10 @@ pub async fn run() -> Result<(), RunError> {
     let channel = amqp_connection.create_channel().await?;
 
     let db_pool = database_connect(config.database_url()).await?;
+    database_migrate(&db_pool).await?;
 
     let rss_consumer = run_rss_articles_consumer(RssArticlesConsumerContext::new(
+        db_pool.clone(),
         channel,
         config.rss_articles_queue().clone(),
         cancel_token.clone(),
