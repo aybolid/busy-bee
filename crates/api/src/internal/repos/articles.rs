@@ -1,34 +1,102 @@
+use std::num::NonZeroUsize;
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::internal::infra::db::{DatabaseExecutor, DatabaseQueryResult};
+use crate::internal::{
+    infra::db::{DatabaseExecutor, DatabaseQueryResult},
+    repos::types::{non_empty::NonEmpty, trimmed_string::TrimmedString},
+};
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    sqlx::Type,
+)]
+#[sqlx(transparent)]
+pub struct ArticleId(Uuid);
+
+pub type ArticleTitle = NonEmpty<TrimmedString>;
+pub type ArticleByLine = NonEmpty<TrimmedString>;
+pub type ArticleContent = NonEmpty<TrimmedString>;
+pub type ArticleTextContent = NonEmpty<TrimmedString>;
+pub type ArticleExcerpt = NonEmpty<TrimmedString>;
+pub type ArticleSiteName = NonEmpty<TrimmedString>;
+pub type ArticleLang = NonEmpty<TrimmedString>;
+pub type ArticleImage = NonEmpty<TrimmedString>;
+pub type ArticleFavicon = NonEmpty<TrimmedString>;
+pub type ArticleUrl = NonEmpty<TrimmedString>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
+pub enum TextDirection {
+    Rtl,
+    Ltr,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("unknown text direction: {0}")]
+pub struct UnknownTextDirection(String);
+
+impl std::str::FromStr for TextDirection {
+    type Err = UnknownTextDirection;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "rtl" => Ok(Self::Rtl),
+            "ltr" => Ok(Self::Ltr),
+            s => Err(UnknownTextDirection(s.to_owned())),
+        }
+    }
+}
+
+impl ArticleId {
+    pub fn new() -> Self {
+        Self(Uuid::now_v7())
+    }
+}
 
 #[derive(Debug, serde::Serialize)]
 pub struct Article {
-    id: Uuid,
+    id: ArticleId,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 
-    title: String,
-    byline: Option<String>,
-    content: String,
-    text_content: String,
-    length: usize,
-    excerpt: Option<String>,
-    site_name: Option<String>,
-    dir: Option<String>,
-    lang: Option<String>,
+    title: ArticleTitle,
+    byline: Option<ArticleByLine>,
+    content: ArticleContent,
+    text_content: ArticleTextContent,
+    length: NonZeroUsize,
+    excerpt: Option<ArticleExcerpt>,
+    site_name: Option<ArticleSiteName>,
+    dir: Option<TextDirection>,
+    lang: Option<ArticleLang>,
     published_time: Option<DateTime<Utc>>,
     modified_time: Option<DateTime<Utc>>,
-    image: Option<String>,
-    favicon: Option<String>,
-    url: Option<String>,
+    image: Option<ArticleImage>,
+    favicon: Option<ArticleFavicon>,
+    url: Option<ArticleUrl>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum FromParsedArticeError {
     #[error(transparent)]
     DateParseError(#[from] chrono::ParseError),
+    #[error("got empty string for the \"0\" field")]
+    EmptyString(&'static str),
+    #[error("article text content is empty")]
+    TextContentCharLengthIsZero,
+    #[error(transparent)]
+    UnknownTextDirection(#[from] UnknownTextDirection),
 }
 
 impl TryFrom<rss_reader::ParsedArticle> for Article {
@@ -37,28 +105,70 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
     fn try_from(value: rss_reader::ParsedArticle) -> Result<Self, Self::Error> {
         let now = Utc::now();
 
+        let title = ArticleTitle::try_new(TrimmedString::new(value.title))
+            .map_err(|_| FromParsedArticeError::EmptyString("title"))?;
+
+        let byline = value
+            .byline
+            .and_then(|s| ArticleByLine::new(TrimmedString::new(s)));
+
+        let content = ArticleTitle::try_new(TrimmedString::new(value.content))
+            .map_err(|_| FromParsedArticeError::EmptyString("content"))?;
+        let text_content = ArticleTitle::try_new(TrimmedString::new(value.text_content))
+            .map_err(|_| FromParsedArticeError::EmptyString("text_content"))?;
+
+        let length = NonZeroUsize::new(text_content.chars().count())
+            // This should never happen. "Just-in-case" branch.
+            .ok_or(FromParsedArticeError::TextContentCharLengthIsZero)?;
+
+        let excerpt = value
+            .excerpt
+            .and_then(|s| ArticleExcerpt::new(TrimmedString::new(s)));
+
+        let site_name = value
+            .site_name
+            .and_then(|s| ArticleSiteName::new(TrimmedString::new(s)));
+
+        let dir = value.dir.map(|s| s.parse()).transpose()?;
+
+        let lang = value
+            .lang
+            .and_then(|s| ArticleLang::new(TrimmedString::new(s)));
+
         let published_time = value.published_time.map(|s| s.parse()).transpose()?;
         let modified_time = value.modified_time.map(|s| s.parse()).transpose()?;
 
+        let image = value
+            .image
+            .and_then(|s| ArticleImage::new(TrimmedString::new(s)));
+
+        let favicon = value
+            .favicon
+            .and_then(|s| ArticleFavicon::new(TrimmedString::new(s)));
+
+        let url = value
+            .url
+            .and_then(|s| ArticleUrl::new(TrimmedString::new(s)));
+
         Ok(Self {
-            id: Uuid::now_v7(),
+            id: ArticleId::new(),
             created_at: now,
             updated_at: now,
 
-            title: value.title,
-            byline: value.byline,
-            content: value.content,
-            text_content: value.text_content,
-            length: value.length,
-            excerpt: value.excerpt,
-            site_name: value.site_name,
-            dir: value.dir,
-            lang: value.lang,
+            title,
+            byline,
+            content,
+            text_content,
+            length,
+            excerpt,
+            site_name,
+            dir,
+            lang,
             published_time,
             modified_time,
-            image: value.image,
-            favicon: value.favicon,
-            url: value.url,
+            image,
+            favicon,
+            url,
         })
     }
 }
@@ -94,12 +204,12 @@ pub async fn create_article<'c>(
     .bind(
         #[allow(clippy::cast_possible_wrap)]
         {
-            article.length as i64
+            article.length.get() as i64
         },
     )
     .bind(&article.excerpt)
     .bind(&article.site_name)
-    .bind(&article.dir)
+    .bind(article.dir)
     .bind(&article.lang)
     .bind(article.published_time)
     .bind(article.modified_time)

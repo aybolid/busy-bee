@@ -155,7 +155,8 @@ async fn process_rss_feed_item(
     tracing::trace!("parsing article");
     // Article parsing is a CPU-bound task so we need to do it on seperate thread
     // where blocking is acceptable. Othewise, it will freeze async executor.
-    let article = tokio::task::spawn_blocking(|| parse_article(html)).await??;
+    let owned_link = link.to_owned();
+    let article = tokio::task::spawn_blocking(|| parse_article(html, owned_link)).await??;
     tracing::trace!("article parsed");
 
     tracing::trace!(article_title = article.title, article_len = article.length);
@@ -227,7 +228,8 @@ async fn cache_rss_item_by_link(
 #[tracing::instrument(level = "trace", skip_all, err)]
 fn parse_article(
     html: String,
+    link: String,
 ) -> Result<rss_reader::ParsedArticle, dom_smoothie::ReadabilityError> {
-    let mut readability = Readability::new(html, None, None)?;
+    let mut readability = Readability::new(html, Some(&link), None)?;
     readability.parse().map(Into::into)
 }
