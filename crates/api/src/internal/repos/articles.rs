@@ -1,5 +1,3 @@
-use std::num::NonZeroUsize;
-
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -65,7 +63,7 @@ impl ArticleId {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct Article {
     id: ArticleId,
     created_at: DateTime<Utc>,
@@ -75,7 +73,7 @@ pub struct Article {
     byline: Option<ArticleByLine>,
     content: ArticleContent,
     text_content: ArticleTextContent,
-    length: NonZeroUsize,
+    length: i64,
     excerpt: Option<ArticleExcerpt>,
     site_name: Option<ArticleSiteName>,
     dir: Option<TextDirection>,
@@ -91,10 +89,10 @@ pub struct Article {
 pub enum FromParsedArticeError {
     #[error(transparent)]
     DateParseError(#[from] chrono::ParseError),
-    #[error("got empty string for the \"0\" field")]
+    #[error("got empty string in the {0} field")]
     EmptyString(&'static str),
-    #[error("article text content is empty")]
-    TextContentCharLengthIsZero,
+    #[error(transparent)]
+    LengthError(#[from] std::num::TryFromIntError),
     #[error(transparent)]
     UnknownTextDirection(#[from] UnknownTextDirection),
 }
@@ -117,9 +115,7 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
         let text_content = ArticleTitle::try_new(TrimmedString::new(value.text_content))
             .map_err(|_| FromParsedArticeError::EmptyString("text_content"))?;
 
-        let length = NonZeroUsize::new(text_content.chars().count())
-            // This should never happen. "Just-in-case" branch.
-            .ok_or(FromParsedArticeError::TextContentCharLengthIsZero)?;
+        let length = i64::try_from(text_content.chars().count())?;
 
         let excerpt = value
             .excerpt
@@ -173,6 +169,12 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
     }
 }
 
+#[tracing::instrument(level = "trace", skip_all, err)]
+pub async fn get_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<Article>> {
+    let query = sqlx::query_as("SELECT * FROM articles;");
+    query.fetch_all(executor).await
+}
+
 #[tracing::instrument(level = "trace", skip_all, ret, err)]
 pub async fn create_article<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -201,12 +203,7 @@ pub async fn create_article<'c>(
     .bind(&article.byline)
     .bind(&article.content)
     .bind(&article.text_content)
-    .bind(
-        #[allow(clippy::cast_possible_wrap)]
-        {
-            article.length.get() as i64
-        },
-    )
+    .bind(article.length)
     .bind(&article.excerpt)
     .bind(&article.site_name)
     .bind(article.dir)

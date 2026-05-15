@@ -6,8 +6,8 @@ pub struct TrimmedString(String);
 
 impl TrimmedString {
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(string: String) -> Self {
-        Self(string.trim().to_owned())
+    pub fn new(string: impl AsRef<str>) -> Self {
+        Self(string.as_ref().trim().to_owned())
     }
 }
 

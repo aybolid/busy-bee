@@ -22,7 +22,6 @@ pub async fn database_connect(database_url: &str) -> sqlx::Result<DatabasePool> 
         .journal_mode(SqliteJournalMode::Wal)
         .foreign_keys(true)
         .optimize_on_close(true, None);
-    tracing::trace!(?options);
 
     SqlitePool::connect_with(options)
         .await

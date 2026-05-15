@@ -5,8 +5,13 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
-use crate::internal::api::state::{ApiState, SharedApiState};
+use crate::internal::api::{
+    routers::articles,
+    state::{ApiState, SharedApiState},
+};
 
+mod handlers;
+mod routers;
 pub mod state;
 
 #[tracing::instrument(level = "trace", skip_all, err)]
@@ -33,5 +38,7 @@ pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) ->
 fn create_api_router(state: ApiState) -> Router {
     let state = SharedApiState::new(state);
 
-    Router::new().with_state(state)
+    let router = Router::new().merge(articles::router());
+
+    Router::new().nest("/api", router).with_state(state)
 }

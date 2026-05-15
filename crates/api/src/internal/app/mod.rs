@@ -52,7 +52,7 @@ pub async fn run() -> Result<(), RunError> {
         cancel_token.clone(),
     ));
 
-    let api_server = run_api_server(ApiState::new(config), cancel_token);
+    let api_server = run_api_server(ApiState::new(config, db_pool.clone()), cancel_token);
 
     let mut tasks = JoinSet::new();
 
