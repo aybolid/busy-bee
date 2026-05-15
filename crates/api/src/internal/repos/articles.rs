@@ -73,7 +73,7 @@ pub struct Article {
     byline: Option<ArticleByLine>,
     content: ArticleContent,
     text_content: ArticleTextContent,
-    length: i64,
+    length: i64, // Using i64 so it can be stored in Sqlite
     excerpt: Option<ArticleExcerpt>,
     site_name: Option<ArticleSiteName>,
     dir: Option<TextDirection>,

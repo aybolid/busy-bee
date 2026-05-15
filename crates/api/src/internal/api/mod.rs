@@ -10,7 +10,10 @@ use crate::internal::api::{
     state::{ApiState, SharedApiState},
 };
 
+mod err;
 mod handlers;
+mod req;
+mod resp;
 mod routers;
 pub mod state;
 
