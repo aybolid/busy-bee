@@ -11,11 +11,11 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Web</title>
+	<title>Articles</title>
 </svelte:head>
 
 <QueryClientProvider client={data.queryClient}>
-	<main class="mx-auto max-w-7xl p-4">
+	<main class="mx-auto max-w-7xl px-4 py-16">
 		{@render children()}
 	</main>
 	<SvelteQueryDevtools />

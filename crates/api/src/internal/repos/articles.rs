@@ -175,6 +175,15 @@ pub async fn get_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Resu
     query.fetch_all(executor).await
 }
 
+#[tracing::instrument(level = "trace", skip(executor), err)]
+pub async fn get_article_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleId,
+) -> sqlx::Result<Option<Article>> {
+    let query = sqlx::query_as("SELECT * FROM articles WHERE id = ?;").bind(id);
+    query.fetch_optional(executor).await
+}
+
 #[tracing::instrument(level = "trace", skip_all, ret, err)]
 pub async fn create_article<'c>(
     executor: impl DatabaseExecutor<'c>,

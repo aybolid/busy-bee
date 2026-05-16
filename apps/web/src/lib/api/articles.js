@@ -35,11 +35,22 @@ const articleSchema = z
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
 /**
- * @param {typeof fetch} fetch
+ * @param {typeof fetch} fetch User-defined `fetch` function. Has to be fully compatible with the Fetch API standard.
  *
- * @returns {Promise<Array<Article>>} Array of articles
+ * @returns {Promise<Array<Article>>} Array of articles.
  */
 export async function getArticles(fetch) {
 	const json = await api.get('articles', { fetch }).json();
 	return unwrapData(z.array(articleSchema)).parse(json);
+}
+
+/**
+ * @param {typeof fetch} fetch User-defined `fetch` function. Has to be fully compatible with the Fetch API standard.
+ * @param {{ params: { id: ArticleId } }} payload Request payload.
+ *
+ * @returns {Promise<Article>} Article.
+ */
+export async function getArticle(fetch, payload) {
+	const json = await api.get(`articles/${payload.params.id}`, { fetch }).json();
+	return unwrapData(articleSchema).parse(json);
 }
