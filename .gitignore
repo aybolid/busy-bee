@@ -2,7 +2,7 @@
 /target
 
 # rss-reader
-/config.toml
+config.toml
 
 # Sqlite
 *.db*
@@ -10,6 +10,7 @@
 node_modules
 
 # Output
+.turbo
 .output
 .vercel
 .netlify

@@ -1,5 +1,6 @@
-import z, { coerce } from 'zod';
-import { api, unwrapData } from '.';
+import z from 'zod';
+import { unwrapData } from './common';
+import { browser } from '$app/environment';
 
 const articleIdSchema = z.uuidv7().brand('articleId');
 
@@ -35,22 +36,22 @@ const articleSchema = z
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
 /**
- * @param {typeof fetch} fetch User-defined `fetch` function. Has to be fully compatible with the Fetch API standard.
+ * @param {import('ky').KyInstance} ky
  *
  * @returns {Promise<Array<Article>>} Array of articles.
  */
-export async function getArticles(fetch) {
-	const json = await api.get('articles', { fetch }).json();
+export async function getArticles(ky) {
+	const json = await ky.get('articles').json();
 	return unwrapData(z.array(articleSchema)).parse(json);
 }
 
 /**
- * @param {typeof fetch} fetch User-defined `fetch` function. Has to be fully compatible with the Fetch API standard.
+ * @param {import('ky').KyInstance} ky
  * @param {{ params: { id: ArticleId } }} payload Request payload.
  *
  * @returns {Promise<Article>} Article.
  */
-export async function getArticle(fetch, payload) {
-	const json = await api.get(`articles/${payload.params.id}`, { fetch }).json();
-	return unwrapData(articleSchema).parse(json);
+export async function getArticle(ky, payload) {
+	const json = await ky.get(`articles/${payload.params.id}`).json();
+	return { ...unwrapData(articleSchema).parse(json) };
 }

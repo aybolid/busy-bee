@@ -1,0 +1,9 @@
+{
+	"name": "@busy-bee/api",
+	"private": true,
+	"scripts": {
+		"build": "cargo b -r",
+		"preview": "cargo r -r",
+		"dev": "cargo r"
+	}
+}

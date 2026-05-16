@@ -10,7 +10,9 @@
 		$derived(props.params.articleId)
 	);
 
-	const article = createQuery(() => getArticleQueryOptions(fetch, { params: { id: articleId } }));
+	const article = createQuery(() =>
+		getArticleQueryOptions(props.data.api, { params: { id: articleId } })
+	);
 </script>
 
 {#if article.isLoading}

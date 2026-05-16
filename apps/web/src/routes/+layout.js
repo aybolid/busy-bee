@@ -1,8 +1,9 @@
 import { browser } from '$app/environment';
 import { QueryClient } from '@tanstack/svelte-query';
+import ky from 'ky';
 
 /** @type {import('./$types').LayoutLoad} */
-export function load() {
+export function load({ url, fetch }) {
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -13,5 +14,7 @@ export function load() {
 		}
 	});
 
-	return { queryClient };
+	const api = ky.create({ baseUrl: `${url.origin}/api/`, retry: 0, fetch });
+
+	return { queryClient, api };
 }

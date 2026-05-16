@@ -4,7 +4,10 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { FlexRender, renderComponent, renderSnippet } from '@tanstack/svelte-table';
 
-	const articles = createQuery(() => getArticlesQueryOptions(fetch));
+	/** @type {import('./$types').PageProps} */
+	const props = $props();
+
+	const articles = createQuery(() => getArticlesQueryOptions(props.data.api));
 
 	/** @type {import('$lib/hooks/table').AppTableColumnHelper<import('$lib/api/articles').Article>} */
 	const helper = createAppColumnHelper();
