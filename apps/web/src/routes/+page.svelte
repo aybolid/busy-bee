@@ -1,2 +1,12 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script>
+	import { getArticlesQueryOptions } from '$lib/query/articles';
+	import { createQuery } from '@tanstack/svelte-query';
+
+	const articles = createQuery(() => getArticlesQueryOptions(fetch));
+</script>
+
+{#if articles.isLoading}
+	<p>Loading...</p>
+{:else if articles.isError}
+	<p>Error: {articles.error.message}</p>
+{:else if articles.isSuccess}{/if}
