@@ -7,7 +7,7 @@
 	/** @type {import('./$types').PageProps} */
 	const props = $props();
 
-	const articles = createQuery(() => getArticlesQueryOptions(props.data.api));
+	const articles = createQuery(() => getArticlesQueryOptions(props.data.ky));
 
 	/** @type {import('$lib/hooks/table').AppTableColumnHelper<import('$lib/api/articles').Article>} */
 	const helper = createAppColumnHelper();
@@ -21,12 +21,16 @@
 			header: 'Author',
 			cell: (ctx) => renderComponent(ctx.cell.TextCell)
 		}),
-		helper.accessor('excerpt', {
-			header: 'Description',
-			cell: (ctx) => renderComponent(ctx.cell.ParagraphCell)
-		}),
+		// helper.accessor('excerpt', {
+		// 	header: 'Description',
+		// 	cell: (ctx) => renderComponent(ctx.cell.ParagraphCell)
+		// }),
 		helper.accessor('published_time', {
 			header: 'Published',
+			cell: (ctx) => renderComponent(ctx.cell.DateCell)
+		}),
+		helper.accessor('created_at', {
+			header: 'Created',
 			cell: (ctx) => renderComponent(ctx.cell.DateCell)
 		}),
 		helper.display({
@@ -56,6 +60,9 @@
 		<div tabindex="0" role="button" class="btn btn-ghost btn-xs">...</div>
 		<ul tabindex="-1" class="dropdown-content menu z-1 w-52 menu-sm rounded-box bg-base-200 p-2">
 			<li><a href={`/${article.id}`}>View</a></li>
+			{#if article.url}
+				<li><a href={article.url} target="_blank">View external</a></li>
+			{/if}
 		</ul>
 	</div>
 {/snippet}
@@ -104,5 +111,6 @@
 				{/each}
 			</tbody>
 		</table>
+		<table.PaginationControls />
 	</table.AppTable>
 {/if}

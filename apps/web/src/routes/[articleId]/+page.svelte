@@ -11,7 +11,7 @@
 	);
 
 	const article = createQuery(() =>
-		getArticleQueryOptions(props.data.api, { params: { id: articleId } })
+		getArticleQueryOptions(props.data.ky, { params: { id: articleId } })
 	);
 </script>
 

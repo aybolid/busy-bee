@@ -1,6 +1,5 @@
 import z from 'zod';
 import { unwrapData } from './common';
-import { browser } from '$app/environment';
 
 const articleIdSchema = z.uuidv7().brand('articleId');
 
@@ -36,7 +35,7 @@ const articleSchema = z
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
 /**
- * @param {import('ky').KyInstance} ky
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
  *
  * @returns {Promise<Array<Article>>} Array of articles.
  */
@@ -46,7 +45,7 @@ export async function getArticles(ky) {
 }
 
 /**
- * @param {import('ky').KyInstance} ky
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
  * @param {{ params: { id: ArticleId } }} payload Request payload.
  *
  * @returns {Promise<Article>} Article.

@@ -2,7 +2,7 @@ import z from 'zod';
 
 /**
  * @template {z.ZodType} T
- * @param {T} type
+ * @param {T} type `zod` schema of the value to unwrap.
  */
 export function unwrapData(type) {
 	return (
