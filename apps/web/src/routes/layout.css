@@ -4,5 +4,5 @@
 @plugin 'daisyui' {
 	themes:
 		cmyk --default,
-		dim --prefersdark;
+		black --prefersdark;
 }

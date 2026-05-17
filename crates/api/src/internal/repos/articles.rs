@@ -171,7 +171,7 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 pub async fn get_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<Article>> {
-    let query = sqlx::query_as("SELECT * FROM articles;");
+    let query = sqlx::query_as("SELECT * FROM articles ORDER BY created_at DESC;");
     query.fetch_all(executor).await
 }
 

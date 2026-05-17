@@ -5,4 +5,4 @@
 	const cell = useCellContext();
 </script>
 
-<span class="line-clamp-1 font-medium">{cell.getValue()}</span>
+<span class="font-medium text-nowrap">{cell.getValue()}</span>

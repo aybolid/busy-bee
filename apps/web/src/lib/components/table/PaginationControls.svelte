@@ -4,7 +4,7 @@
 	const table = useTableContext();
 </script>
 
-<div class="flex w-full items-center justify-between gap-4 pt-4">
+<div class="flex w-full items-center justify-between gap-4 pt-8">
 	<div class="join">
 		<button
 			class="btn join-item btn-sm"
@@ -31,7 +31,7 @@
 			table.setPageSize(Number(e.currentTarget.value));
 		}}
 	>
-		{#each [10, 20, 30, 40, 50] as size}
+		{#each [10, 20, 30, 40, 50, 100] as size}
 			<option value={size}>Show {size}</option>
 		{/each}
 	</select>
