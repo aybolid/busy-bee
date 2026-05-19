@@ -5,6 +5,8 @@
     import { QueryClientProvider } from "@tanstack/svelte-query";
     import { SvelteQueryDevtools } from "@tanstack/svelte-query-devtools";
 
+    import Action from "$lib/components/ui/action.svelte";
+
     /** @type {import('./$types').LayoutProps} */
     let { children, data } = $props();
 </script>
@@ -17,11 +19,13 @@
 <QueryClientProvider client={data.queryClient}>
     <header class="mx-auto max-w-7xl px-4 py-8">
         <nav>
-            <a class="link" href="/">Articles</a>
+            <Action anchor href="/" variant="link">Articles</Action>
         </nav>
     </header>
+
     <main class="mx-auto max-w-7xl px-4 py-16">
         {@render children()}
     </main>
+
     <SvelteQueryDevtools />
 </QueryClientProvider>
