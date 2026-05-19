@@ -1,13 +1,14 @@
 import { getArticle, getArticles } from '$lib/api/articles';
-import { queryOptions } from '@tanstack/svelte-query';
+import { keepPreviousData, queryOptions } from '@tanstack/svelte-query';
 
 /**
  * @param {Parameters<typeof getArticles>} args `getArticles` function arguments.
  */
 export function getArticlesQueryOptions(...args) {
 	return queryOptions({
-		queryKey: ['articles'],
-		queryFn: () => getArticles(...args)
+		queryKey: ['articles', args[1]],
+		queryFn: () => getArticles(...args),
+		placeholderData: keepPreviousData,
 	});
 }
 
@@ -17,6 +18,6 @@ export function getArticlesQueryOptions(...args) {
 export function getArticleQueryOptions(...args) {
 	return queryOptions({
 		queryKey: ['articles', args[1]],
-		queryFn: () => getArticle(...args)
+		queryFn: () => getArticle(...args),
 	});
 }

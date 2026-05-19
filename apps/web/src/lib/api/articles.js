@@ -1,5 +1,5 @@
 import z from 'zod';
-import { unwrapData } from './common';
+import { dataWithPaginationMeta, paginationSchema, unwrapData } from './common';
 
 const articleIdSchema = z.uuidv7().brand('articleId');
 
@@ -28,20 +28,31 @@ const articleSchema = z
 		modified_time: z.coerce.date().nullable(),
 		image: z.string().nullable(),
 		favicon: z.string().nullable(),
-		url: z.string().nullable()
+		url: z.string().nullable(),
 	})
 	.strict();
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
+const getArticlesSearchParamsSchema = z.object({
+	...paginationSchema.shape,
+});
+
+/**
+ * @typedef {z.infer<typeof getArticlesSearchParamsSchema>} GetArticlesSearchParams
+ */
+
 /**
  * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ searchParams: GetArticlesSearchParams }} payload Request payload.
  *
- * @returns {Promise<Array<Article>>} Array of articles.
+ * @returns {Promise<{ data: Array<Article>, meta: import('./common').PaginationMeta }>} Array of articles and a pagination meta.
  */
-export async function getArticles(ky) {
-	const json = await ky.get('articles').json();
-	return unwrapData(z.array(articleSchema)).parse(json);
+export async function getArticles(ky, payload) {
+	const json = await ky
+		.get('articles', { searchParams: getArticlesSearchParamsSchema.parse(payload.searchParams) })
+		.json();
+	return dataWithPaginationMeta(z.array(articleSchema)).parse(json);
 }
 
 /**

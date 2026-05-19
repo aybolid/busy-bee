@@ -11,7 +11,7 @@
 	);
 
 	const article = createQuery(() =>
-		getArticleQueryOptions(props.data.ky, { params: { id: articleId } })
+		getArticleQueryOptions(props.data.ky, { params: { id: articleId } }),
 	);
 </script>
 
@@ -24,10 +24,10 @@
 		<h1 class="text-2xl font-bold">{article.data.title}</h1>
 		<div class="flex flex-wrap gap-2">
 			{#if article.data.byline}
-				<span class="badge badge-primary">{article.data.byline}</span>
+				<span>{article.data.byline}</span>
 			{/if}
 			{#if article.data.published_time}
-				<span class="badge badge-ghost">
+				<span>
 					{dayjs(article.data.published_time).format('MMM DD, YYYY, HH:mm')}
 				</span>
 			{/if}

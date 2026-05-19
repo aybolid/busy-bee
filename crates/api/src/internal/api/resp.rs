@@ -1,5 +1,7 @@
 #![allow(dead_code, clippy::needless_pass_by_value)]
 
+use std::num::NonZeroU8;
+
 use axum::{Json, http::StatusCode, response::IntoResponse};
 
 /// Creates a new [`HandlerOk`] with a simple message response.
@@ -18,6 +20,11 @@ pub fn message(s: impl ToString) -> HandlerOk<MessagePayload> {
 /// API handlers. The data is wrapped in a JSON object under the `data` key.
 pub const fn data<T>(data: T) -> HandlerOk<DataPayload<T>> {
     HandlerOk::new_ok(DataPayload { data })
+}
+
+/// Creates a new [`HandlerOk`] with a generic data payload and some metadata.
+pub const fn data_with_meta<T>(data: T, meta: Metadata) -> HandlerOk<DataWithMetaPayload<T>> {
+    HandlerOk::new_ok(DataWithMetaPayload { data, meta })
 }
 
 /// A generic successful response wrapper for Axum handlers.
@@ -75,4 +82,22 @@ pub struct MessagePayload {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DataPayload<T> {
     data: T,
+}
+
+/// A generic data response payload that includes some metadata.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DataWithMetaPayload<T> {
+    data: T,
+    meta: Metadata,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(untagged)]
+pub enum Metadata {
+    Pagination {
+        page_index: usize,
+        limit: NonZeroU8,
+        total_pages: usize,
+        total: usize,
+    },
 }

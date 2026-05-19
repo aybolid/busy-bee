@@ -1,19 +1,38 @@
-use axum::{extract::State, response::IntoResponse};
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+};
 
 use crate::internal::{
     api::{
         err::{HandlerError, HandlerResult},
-        req::ReqPath,
-        resp::data,
+        req::{Pagination, ReqPath},
+        resp::{Metadata, data, data_with_meta},
         state::SharedApiState,
     },
     repos::articles::{self, ArticleId},
 };
 
-#[tracing::instrument(level = "trace", skip_all)]
-pub async fn get_articles(State(state): State<SharedApiState>) -> HandlerResult<impl IntoResponse> {
-    let articles = articles::get_articles(state.db_pool()).await?;
-    Ok(data(articles))
+#[tracing::instrument(level = "trace", skip(state))]
+pub async fn get_articles(
+    State(state): State<SharedApiState>,
+    Query(pagination): Query<Pagination>,
+) -> HandlerResult<impl IntoResponse> {
+    let page_index = pagination.page_index();
+    let limit = pagination.limit();
+
+    let data = articles::get_articles(state.db_pool(), page_index, limit).await?;
+    let count = articles::count_articles(state.db_pool()).await?;
+
+    Ok(data_with_meta(
+        data,
+        Metadata::Pagination {
+            page_index,
+            limit,
+            total_pages: count.div_ceil(usize::from(limit.get())),
+            total: count,
+        },
+    ))
 }
 
 #[tracing::instrument(level = "trace", skip(state))]
