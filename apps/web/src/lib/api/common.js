@@ -14,7 +14,14 @@ export function unwrapData(type) {
     );
 }
 
-export const paginationMetaSchema = z.object({});
+export const paginationMetaSchema = z
+    .object({
+        page_index: z.int(),
+        limit: z.int(),
+        total_pages: z.int(),
+        total: z.int(),
+    })
+    .strict();
 
 /** @typedef {z.infer<typeof paginationMetaSchema>} PaginationMeta */
 

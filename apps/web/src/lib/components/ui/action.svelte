@@ -38,13 +38,15 @@
     );
 
     /** @typedef {import('class-variance-authority').VariantProps<typeof variants>} ActionVariants */
-</script>
 
-<script>
     /** @typedef {import('svelte/elements').HTMLAnchorAttributes & ActionVariants & { anchor: true, button?: never }} AnchorProps */
     /** @typedef {import('svelte/elements').HTMLButtonAttributes & ActionVariants & { anchor?: never, button: true }} ButtonProps */
 
-    /** @type {AnchorProps | ButtonProps} */
+    /** @typedef {AnchorProps | ButtonProps} ActionProps */
+</script>
+
+<script>
+    /** @type {ActionProps} */
     const props = $props();
 </script>
 
