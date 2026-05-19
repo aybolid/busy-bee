@@ -1,6 +1,10 @@
 <script>
     import Action from "$lib/components/ui/action.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
+    import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
+    import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
+    import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
+    import Empty from "$lib/components/ui/empty/empty.svelte";
     import PaginationAction from "$lib/components/ui/pagination/pagination-action.svelte";
     import PaginationContent from "$lib/components/ui/pagination/pagination-content.svelte";
     import PaginationEllipsis from "$lib/components/ui/pagination/pagination-ellipsis.svelte";
@@ -60,33 +64,34 @@
     });
 </script>
 
-<Table>
-    <TableHeader>
-        <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Published</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead></TableHead>
-        </TableRow>
-    </TableHeader>
-    <TableBody>
-        {#if articles.isLoading}
+{#if articles.isLoading}
+    <Empty class="animate-pulse">
+        <EmptyHeader>
+            <EmptyTitle>Loading articles...</EmptyTitle>
+            <EmptyDescription>This should not take long</EmptyDescription>
+        </EmptyHeader>
+    </Empty>
+{:else if articles.isError}
+    <p class="text-destructive">
+        Error: {articles.error.message}
+    </p>
+{:else if articles.isSuccess}
+    <Table>
+        <TableHeader>
             <TableRow>
-                <TableCell colspan={5} class="animate-pulse text-center">
-                    Loading articles...
-                </TableCell>
+                <TableHead>Title</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead></TableHead>
             </TableRow>
-        {:else if articles.isError}
-            <TableRow>
-                <TableCell colspan={5} class="text-center text-destructive">
-                    Error: {articles.error.message}
-                </TableCell>
-            </TableRow>
-        {:else if articles.isSuccess}
+        </TableHeader>
+        <TableBody>
             {#each articles.data.data as article (article.id)}
                 <TableRow class="group">
-                    <TableCell class="font-medium">{article.title}</TableCell>
+                    <TableCell class="max-w-80 truncate font-medium">
+                        {article.title}
+                    </TableCell>
                     <TableCell class="text-muted-foreground">
                         {article.byline ?? "--"}
                     </TableCell>
@@ -109,48 +114,48 @@
                     </TableCell>
                 </TableRow>
             {/each}
-        {/if}
-    </TableBody>
-</Table>
+        </TableBody>
+    </Table>
 
-<Pagination class="pt-8">
-    <PaginationContent>
-        <PaginationItem>
-            <PaginationPrevious
-                anchor
-                class={[isFirstPage && "pointer-events-none opacity-50"]}
-                aria-disabled={isFirstPage}
-                href="/?page_index={!isFirstPage ? getArticlesSearchParams.page_index - 1 : 0}"
-            />
-        </PaginationItem>
+    <Pagination class="pt-8">
+        <PaginationContent>
+            <PaginationItem>
+                <PaginationPrevious
+                    anchor
+                    class={[isFirstPage && "pointer-events-none opacity-50"]}
+                    aria-disabled={isFirstPage}
+                    href="/?page_index={!isFirstPage ? getArticlesSearchParams.page_index - 1 : 0}"
+                />
+            </PaginationItem>
 
-        {#each visiblePages as page (page)}
-            {#if typeof page === "string" && page.startsWith("ellipsis")}
-                <PaginationItem>
-                    <PaginationEllipsis />
-                </PaginationItem>
-            {:else}
-                <PaginationItem>
-                    <PaginationAction
-                        anchor
-                        href="/?page_index={page}"
-                        isActive={page === getArticlesSearchParams.page_index}
-                    >
-                        {Number(page) + 1}
-                    </PaginationAction>
-                </PaginationItem>
-            {/if}
-        {/each}
+            {#each visiblePages as page (page)}
+                {#if typeof page === "string" && page.startsWith("ellipsis")}
+                    <PaginationItem>
+                        <PaginationEllipsis />
+                    </PaginationItem>
+                {:else}
+                    <PaginationItem>
+                        <PaginationAction
+                            anchor
+                            href="/?page_index={page}"
+                            isActive={page === getArticlesSearchParams.page_index}
+                        >
+                            {Number(page) + 1}
+                        </PaginationAction>
+                    </PaginationItem>
+                {/if}
+            {/each}
 
-        <PaginationItem>
-            <PaginationNext
-                anchor
-                class={[isLastPage && "pointer-events-none opacity-50"]}
-                aria-disabled={isLastPage}
-                href="/?page_index={!isLastPage
-                    ? getArticlesSearchParams.page_index + 1
-                    : getArticlesSearchParams.page_index}"
-            />
-        </PaginationItem>
-    </PaginationContent>
-</Pagination>
+            <PaginationItem>
+                <PaginationNext
+                    anchor
+                    class={[isLastPage && "pointer-events-none opacity-50"]}
+                    aria-disabled={isLastPage}
+                    href="/?page_index={!isLastPage
+                        ? getArticlesSearchParams.page_index + 1
+                        : getArticlesSearchParams.page_index}"
+                />
+            </PaginationItem>
+        </PaginationContent>
+    </Pagination>
+{/if}
