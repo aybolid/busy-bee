@@ -1,50 +1,59 @@
 <script>
-	import { getArticlesQueryOptions } from '$lib/query/articles';
-	import { createQuery } from '@tanstack/svelte-query';
+    import Button from "$lib/components/ui/button.svelte";
+    import TableBody from "$lib/components/ui/table/table-body.svelte";
+    import TableCell from "$lib/components/ui/table/table-cell.svelte";
+    import TableHead from "$lib/components/ui/table/table-head.svelte";
+    import TableHeader from "$lib/components/ui/table/table-header.svelte";
+    import TableRow from "$lib/components/ui/table/table-row.svelte";
+    import Table from "$lib/components/ui/table/table.svelte";
+    import { getArticlesQueryOptions } from "$lib/query/articles";
+    import { createQuery } from "@tanstack/svelte-query";
 
-	/** @type {import('./$types').PageProps} */
-	const props = $props();
+    /** @type {import('./$types').PageProps} */
+    const props = $props();
 
-	/** @type {import('$lib/api/articles').GetArticlesSearchParams} */
-	const getArticlesSearchParams = $derived({
-		page_index: props.data.searchParams.page_index,
-		limit: props.data.searchParams.limit,
-	});
+    /** @type {import('$lib/api/articles').GetArticlesSearchParams} */
+    const getArticlesSearchParams = $derived({
+        page_index: props.data.searchParams.page_index,
+        limit: props.data.searchParams.limit,
+    });
 
-	const articles = createQuery(() =>
-		getArticlesQueryOptions(props.data.ky, { searchParams: getArticlesSearchParams }),
-	);
+    const articles = createQuery(() =>
+        getArticlesQueryOptions(props.data.ky, { searchParams: getArticlesSearchParams }),
+    );
 </script>
 
-<div class="flex justify-between gap-4 pb-8">
-	<h1 class="text-2xl font-bold">Artciles</h1>
-</div>
-
-{#if articles.isLoading}
-	<p>Loading...</p>
-{:else if articles.isError}
-	<p>Error: {articles.error.message}</p>
-{:else if articles.isSuccess}
-	<section class="grid grid-cols-2 gap-4">
-		{#each articles.data.data as article (article.id)}
-			<div>
-				{#if article.image && article.image.startsWith('http')}
-					<figure>
-						<img src={article.image} alt="Shoes" />
-					</figure>
-				{/if}
-				<div>
-					<h2>{article.title}</h2>
-					{#if article.excerpt}
-						<p class="line-clamp-3">
-							{article.excerpt}
-						</p>
-					{/if}
-					<div class="flex flex-wrap items-center justify-end">
-						<a href="/articles/{article.id}">View</a>
-					</div>
-				</div>
-			</div>
-		{/each}
-	</section>
-{/if}
+<Table>
+    <TableHeader>
+        <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Author</TableHead>
+            <TableHead></TableHead>
+        </TableRow>
+    </TableHeader>
+    <TableBody>
+        {#if articles.isLoading}
+            <TableRow>
+                <TableCell colspan={3} class="animate-pulse text-center">
+                    Loading articles...
+                </TableCell>
+            </TableRow>
+        {:else if articles.isError}
+            <TableRow>
+                <TableCell colspan={3} class="text-center text-destructive">
+                    Error: {articles.error.message}
+                </TableCell>
+            </TableRow>
+        {:else if articles.isSuccess}
+            {#each articles.data.data as article (article.id)}
+                <TableRow class="group">
+                    <TableCell class="font-medium">{article.title}</TableCell>
+                    <TableCell class="text-muted-foreground">{article.byline}</TableCell>
+                    <TableCell>
+                        <Button link href="/articles/{article.id}" size="xs">View</Button>
+                    </TableCell>
+                </TableRow>
+            {/each}
+        {/if}
+    </TableBody>
+</Table>

@@ -1,41 +1,41 @@
-import z from 'zod';
-import { dataWithPaginationMeta, paginationSchema, unwrapData } from './common';
+import z from "zod";
+import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
 
-const articleIdSchema = z.uuidv7().brand('articleId');
+const articleIdSchema = z.uuidv7().brand("articleId");
 
 /** @typedef {z.infer<typeof articleIdSchema>} ArticleId */
 
-const textDirSchema = z.enum(['ltr', 'rtl']);
+const textDirSchema = z.enum(["ltr", "rtl"]);
 
 /** @typedef {z.infer<typeof textDirSchema>} TextDir */
 
 const articleSchema = z
-	.object({
-		id: articleIdSchema,
-		created_at: z.coerce.date(),
-		updated_at: z.coerce.date(),
+    .object({
+        id: articleIdSchema,
+        created_at: z.coerce.date(),
+        updated_at: z.coerce.date(),
 
-		title: z.string(),
-		byline: z.string().nullable(),
-		content: z.string(),
-		text_content: z.string(),
-		length: z.number(),
-		excerpt: z.string().nullable(),
-		site_name: z.string().nullable(),
-		dir: textDirSchema.nullable(),
-		lang: z.string().nullable(),
-		published_time: z.coerce.date().nullable(),
-		modified_time: z.coerce.date().nullable(),
-		image: z.string().nullable(),
-		favicon: z.string().nullable(),
-		url: z.string().nullable(),
-	})
-	.strict();
+        title: z.string(),
+        byline: z.string().nullable(),
+        content: z.string(),
+        text_content: z.string(),
+        length: z.number(),
+        excerpt: z.string().nullable(),
+        site_name: z.string().nullable(),
+        dir: textDirSchema.nullable(),
+        lang: z.string().nullable(),
+        published_time: z.coerce.date().nullable(),
+        modified_time: z.coerce.date().nullable(),
+        image: z.string().nullable(),
+        favicon: z.string().nullable(),
+        url: z.string().nullable(),
+    })
+    .strict();
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
 const getArticlesSearchParamsSchema = z.object({
-	...paginationSchema.shape,
+    ...paginationSchema.shape,
 });
 
 /**
@@ -49,10 +49,12 @@ const getArticlesSearchParamsSchema = z.object({
  * @returns {Promise<{ data: Array<Article>, meta: import('./common').PaginationMeta }>} Array of articles and a pagination meta.
  */
 export async function getArticles(ky, payload) {
-	const json = await ky
-		.get('articles', { searchParams: getArticlesSearchParamsSchema.parse(payload.searchParams) })
-		.json();
-	return dataWithPaginationMeta(z.array(articleSchema)).parse(json);
+    const json = await ky
+        .get("articles", {
+            searchParams: getArticlesSearchParamsSchema.parse(payload.searchParams),
+        })
+        .json();
+    return dataWithPaginationMeta(z.array(articleSchema)).parse(json);
 }
 
 /**
@@ -62,6 +64,6 @@ export async function getArticles(ky, payload) {
  * @returns {Promise<Article>} Article.
  */
 export async function getArticle(ky, payload) {
-	const json = await ky.get(`articles/${payload.params.id}`).json();
-	return { ...unwrapData(articleSchema).parse(json) };
+    const json = await ky.get(`articles/${payload.params.id}`).json();
+    return { ...unwrapData(articleSchema).parse(json) };
 }
