@@ -24,6 +24,12 @@ use crate::internal::{
 #[sqlx(transparent)]
 pub struct ArticleId(Uuid);
 
+impl ArticleId {
+    pub fn new() -> Self {
+        Self(Uuid::now_v7())
+    }
+}
+
 pub type ArticleTitle = NonEmpty<TrimmedString>;
 pub type ArticleByLine = NonEmpty<TrimmedString>;
 pub type ArticleContent = NonEmpty<TrimmedString>;
@@ -59,10 +65,14 @@ impl std::str::FromStr for TextDirection {
     }
 }
 
-impl ArticleId {
-    pub fn new() -> Self {
-        Self(Uuid::now_v7())
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
+pub enum ArticleStatus {
+    New,
+    Pending,
+    Error,
+    Processed,
 }
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
@@ -70,6 +80,8 @@ pub struct Article {
     id: ArticleId,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+
+    status: ArticleStatus,
 
     title: ArticleTitle,
     byline: Option<ArticleByLine>,
@@ -153,6 +165,8 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
             created_at: now,
             updated_at: now,
 
+            status: ArticleStatus::New,
+
             title,
             byline,
             content,
@@ -225,14 +239,14 @@ pub async fn create_article<'c>(
     let query = sqlx::query(
         "
         INSERT INTO articles (
-            id, title, byline,
+            id, status, title, byline,
             content, text_content, length,
             excerpt, site_name, dir,
             lang, published_time, modified_time,
             image, favicon, url
         )
         VALUES (
-            ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?,
@@ -241,6 +255,7 @@ pub async fn create_article<'c>(
         ",
     )
     .bind(article.id)
+    .bind(article.status)
     .bind(&article.title)
     .bind(&article.byline)
     .bind(&article.content)

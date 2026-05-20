@@ -3,6 +3,10 @@ CREATE TABLE articles (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   --
+  status TEXT NOT NULL CHECK (
+    status IN ('new', 'pending', 'processed', 'error')
+  ),
+  --
   title TEXT NOT NULL,
   byline TEXT,
   content TEXT NOT NULL,

@@ -12,7 +12,7 @@ export async function load({ parent, url }) {
 
     const searchParams = searchParamsSchema.parse(Object.fromEntries(url.searchParams));
 
-    await queryClient.ensureQueryData(
+    await queryClient.prefetchQuery(
         getArticlesQueryOptions(ky, {
             searchParams: { limit: searchParams.limit, page_index: searchParams.page_index },
         }),

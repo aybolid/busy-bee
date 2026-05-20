@@ -1,4 +1,5 @@
 <script>
+    import ArticleStatus from "$lib/components/article-status.svelte";
     import Action from "$lib/components/ui/action.svelte";
     import AlertDescription from "$lib/components/ui/alert/alert-description.svelte";
     import AlertTitle from "$lib/components/ui/alert/alert-title.svelte";
@@ -44,6 +45,12 @@
     );
 
     const articles = createQuery(() => articlesQueryOptions);
+
+    function refreshArticles() {
+        void props.data.queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
+        });
+    }
 
     const deleteMutation = createDeleteArticleMutation();
 
@@ -105,24 +112,38 @@
         </AlertDescription>
     </Alert>
 {:else if articles.isSuccess}
+    <div class="flex justify-end pb-8">
+        <Action button variant="secondary" onclick={refreshArticles}>Refresh</Action>
+    </div>
+
     <Table>
         <TableHeader>
             <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Author</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Published</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
             {#each articles.data.data as article (article.id)}
-                <TableRow class="group">
+                <TableRow
+                    class={[
+                        "group",
+                        article.status === "error" && "bg-destructive/10 hover:bg-destructive/15!",
+                    ]}
+                >
                     <TableCell class="max-w-80 truncate font-medium">
                         {article.title}
                     </TableCell>
                     <TableCell class="text-muted-foreground">
                         {article.byline ?? "--"}
+                    </TableCell>
+                    <TableCell>
+                        <ArticleStatus status={article.status} />
                     </TableCell>
                     <TableCell>
                         {#if article.published_time}
@@ -136,6 +157,16 @@
                     <TableCell>
                         <Badge variant="secondary">
                             {dayjs(article.created_at).format("MMM DD, YYYY, HH:mm")}
+                        </Badge>
+                    </TableCell>
+                    <TableCell>
+                        <Badge
+                            variant={article.created_at.toISOString() ===
+                            article.updated_at.toISOString()
+                                ? "ghost"
+                                : "secondary"}
+                        >
+                            {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
                         </Badge>
                     </TableCell>
                     <TableCell>
@@ -160,6 +191,7 @@
                                         button
                                         variant="destructive"
                                         onclick={() => deleteArticle(article.id)}
+                                        disabled={deleteMutation.isPending}
                                     >
                                         Delete
                                     </MenuActionItem>

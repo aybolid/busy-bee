@@ -23,10 +23,12 @@
     );
 
     /** @typedef {import('class-variance-authority').VariantProps<typeof variants>} BadgeVariants */
+
+    /** @typedef {import('svelte/elements').HTMLAttributes<HTMLSpanElement> & BadgeVariants} BadgeProps */
 </script>
 
 <script>
-    /** @type {import('svelte/elements').HTMLAttributes<HTMLSpanElement> & BadgeVariants} */
+    /** @type {BadgeProps} */
     const { children, ...props } = $props();
 </script>
 

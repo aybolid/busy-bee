@@ -9,11 +9,17 @@ const textDirSchema = z.enum(["ltr", "rtl"]);
 
 /** @typedef {z.infer<typeof textDirSchema>} TextDir */
 
+const articleStatusSchema = z.enum(["new", "pending", "processed", "error"]);
+
+/** @typedef {z.infer<typeof articleStatusSchema>} ArticleStatus */
+
 const articleSchema = z
     .object({
         id: articleIdSchema,
         created_at: z.coerce.date(),
         updated_at: z.coerce.date(),
+
+        status: articleStatusSchema,
 
         title: z.string(),
         byline: z.string().nullable(),

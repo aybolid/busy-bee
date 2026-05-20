@@ -8,5 +8,5 @@ export async function load({ parent, params }) {
         params: { id: /** @type {import('$lib/api/articles').ArticleId} */ (params.articleId) },
     });
 
-    await queryClient.ensureQueryData(articleOptions);
+    await queryClient.prefetchQuery(articleOptions);
 }
