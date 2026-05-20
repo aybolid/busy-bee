@@ -1,5 +1,8 @@
 <script>
     import Action from "$lib/components/ui/action.svelte";
+    import AlertDescription from "$lib/components/ui/alert/alert-description.svelte";
+    import AlertTitle from "$lib/components/ui/alert/alert-title.svelte";
+    import Alert from "$lib/components/ui/alert/alert.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
     import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
     import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
@@ -45,11 +48,11 @@
     const deleteMutation = createDeleteArticleMutation();
 
     /**
-     * @param {import('$lib/api/articles').ArticleId} id
+     * @param {import('$lib/api/articles').ArticleId} id Article id to delete
      */
     function deleteArticle(id) {
         deleteMutation.mutate([props.data.ky, { params: { id } }], {
-            onError: console.error,
+            onError: (err) => alert(err.message),
             onSuccess: () => {
                 void props.data.queryClient.invalidateQueries({
                     predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
@@ -95,9 +98,12 @@
         </EmptyHeader>
     </Empty>
 {:else if articles.isError}
-    <p class="text-destructive">
-        Error: {articles.error.message}
-    </p>
+    <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+            {articles.error.message}
+        </AlertDescription>
+    </Alert>
 {:else if articles.isSuccess}
     <Table>
         <TableHeader>
