@@ -13,7 +13,8 @@
 
 <svelte:head>
     <link rel="icon" href={favicon} />
-    <title>Articles</title>
+    <title>Busy Bee</title>
+    <meta name="description" content="Busy Bee web UI" />
 </svelte:head>
 
 <QueryClientProvider client={data.queryClient}>
