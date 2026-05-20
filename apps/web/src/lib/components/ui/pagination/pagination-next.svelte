@@ -1,4 +1,5 @@
 <script>
+    import ArrowRight from "../icons/arrow-right.svelte";
     import PaginationAction from "./pagination-action.svelte";
 
     /** @type {import('./pagination-action.svelte').PaginationActionProps & { text?: string }} */
@@ -12,5 +13,5 @@
     class={["pr-1.5!", props.class]}
 >
     <span class="hidden sm:block">{text}</span>
-    <span>{">"}</span>
+    <ArrowRight />
 </PaginationAction>

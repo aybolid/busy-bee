@@ -1,14 +1,13 @@
 <script>
     import ArticleStatus from "$lib/components/article-status.svelte";
+    import ErrorAlert from "$lib/components/error-alert.svelte";
+    import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
-    import AlertDescription from "$lib/components/ui/alert/alert-description.svelte";
-    import AlertTitle from "$lib/components/ui/alert/alert-title.svelte";
-    import Alert from "$lib/components/ui/alert/alert.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
-    import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
-    import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
-    import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
-    import Empty from "$lib/components/ui/empty/empty.svelte";
+    import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
+    import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
+    import Refresh from "$lib/components/ui/icons/refresh.svelte";
+    import Trash from "$lib/components/ui/icons/trash.svelte";
     import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
     import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
     import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
@@ -21,6 +20,7 @@
     import PaginationNext from "$lib/components/ui/pagination/pagination-next.svelte";
     import PaginationPrevious from "$lib/components/ui/pagination/pagination-previous.svelte";
     import Pagination from "$lib/components/ui/pagination/pagination.svelte";
+    import Spinner from "$lib/components/ui/spinner.svelte";
     import TableBody from "$lib/components/ui/table/table-body.svelte";
     import TableCell from "$lib/components/ui/table/table-cell.svelte";
     import TableHead from "$lib/components/ui/table/table-head.svelte";
@@ -98,22 +98,19 @@
 </script>
 
 {#if articles.isLoading}
-    <Empty class="animate-pulse">
-        <EmptyHeader>
-            <EmptyTitle>Loading articles...</EmptyTitle>
-            <EmptyDescription>This should not take long</EmptyDescription>
-        </EmptyHeader>
-    </Empty>
+    <Pending />
 {:else if articles.isError}
-    <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-            {articles.error.message}
-        </AlertDescription>
-    </Alert>
+    <ErrorAlert error={articles.error} />
 {:else if articles.isSuccess}
     <div class="flex justify-end pb-8">
-        <Action button variant="secondary" onclick={refreshArticles}>Refresh</Action>
+        <Action button variant="secondary" onclick={refreshArticles}>
+            {#if articles.isFetching}
+                <Spinner />
+            {:else}
+                <Refresh />
+            {/if}
+            <span>Refresh</span>
+        </Action>
     </div>
 
     <Table>
@@ -173,7 +170,7 @@
                         <Menu>
                             {#snippet trigger(props)}
                                 <Action button size="icon-xs" variant="outline" {...props}>
-                                    ...
+                                    <EllipsisVertical />
                                 </Action>
                             {/snippet}
                             <MenuContent>
@@ -184,8 +181,12 @@
                                     </MenuActionItem>
                                     {#if article.url && article.url.startsWith("http")}
                                         <MenuActionItem anchor href={article.url} target="_blank">
-                                            View external
+                                            <ExternalLink />
+                                            <span>View external</span>
                                         </MenuActionItem>
+                                    {/if}
+                                    {#if article.status === "new" || article.status === "error"}
+                                        <MenuActionItem button>Create post</MenuActionItem>
                                     {/if}
                                     <MenuActionItem
                                         button
@@ -193,7 +194,12 @@
                                         onclick={() => deleteArticle(article.id)}
                                         disabled={deleteMutation.isPending}
                                     >
-                                        Delete
+                                        {#if deleteMutation.isPending}
+                                            <Spinner />
+                                        {:else}
+                                            <Trash />
+                                        {/if}
+                                        <span>Delete</span>
                                     </MenuActionItem>
                                 </MenuGroup>
                             </MenuContent>

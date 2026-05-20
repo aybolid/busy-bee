@@ -1,5 +1,6 @@
 <script>
     import Badge from "./ui/badge.svelte";
+    import Bug from "./ui/icons/bug.svelte";
 
     /** @type {Omit<import('$lib/components/ui/badge.svelte').BadgeProps, 'children'> & { status: import('$lib/api/articles').ArticleStatus }} */
     const { status, ...props } = $props();
@@ -10,7 +11,7 @@
             case "new":
                 return { label: "New", variant: "ghost" };
             case "pending":
-                return { label: "Pending", variant: "outline" };
+                return { label: "Pending", variant: "secondary" };
             case "processed":
                 return { label: "Processed", variant: "default" };
             case "error":
@@ -19,4 +20,11 @@
     });
 </script>
 
-<Badge {...props} variant={props.variant ?? variant}>{label}</Badge>
+<Badge {...props} variant={props.variant ?? variant}>
+    {#if status === "error"}
+        <Bug />
+    {/if}
+    <span>
+        {label}
+    </span>
+</Badge>

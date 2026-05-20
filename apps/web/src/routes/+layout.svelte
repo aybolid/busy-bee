@@ -18,15 +18,17 @@
 </svelte:head>
 
 <QueryClientProvider client={data.queryClient}>
-    <header class="mx-auto max-w-7xl px-4 py-8">
+    <header class="mx-auto max-w-7xl px-4 pt-16">
         <nav>
             <Action anchor href="/" variant="link">Articles</Action>
         </nav>
     </header>
 
-    <main class="mx-auto max-w-7xl px-4 py-16">
+    <main class="mx-auto max-w-7xl px-4 py-8">
         {@render children()}
     </main>
+
+    <footer class="mx-auto max-w-7xl px-4 pb-16"></footer>
 
     <SvelteQueryDevtools />
 </QueryClientProvider>

@@ -1,5 +1,9 @@
+<script module>
+    /** @typedef {import('svelte/elements').HTMLAttributes<HTMLDivElement>} EmptyProps */
+</script>
+
 <script>
-    /** @type {import('svelte/elements').HTMLAttributes<HTMLDivElement>} */
+    /** @type {EmptyProps} */
     const { children, ...props } = $props();
 </script>
 

@@ -1,4 +1,5 @@
 <script>
+    import ArrowLeft from "../icons/arrow-left.svelte";
     import PaginationAction from "./pagination-action.svelte";
 
     /** @type {import('./pagination-action.svelte').PaginationActionProps & { text?: string }} */
@@ -11,6 +12,6 @@
     {...props}
     class={["pl-1.5!", props.class]}
 >
-    <span>{"<"}</span>
+    <ArrowLeft />
     <span class="hidden sm:block">{text}</span>
 </PaginationAction>

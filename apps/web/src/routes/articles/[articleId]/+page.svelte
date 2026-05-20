@@ -1,12 +1,7 @@
 <script>
-    import AlertDescription from "$lib/components/ui/alert/alert-description.svelte";
-    import AlertTitle from "$lib/components/ui/alert/alert-title.svelte";
-    import Alert from "$lib/components/ui/alert/alert.svelte";
+    import ErrorAlert from "$lib/components/error-alert.svelte";
+    import Pending from "$lib/components/pending.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
-    import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
-    import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
-    import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
-    import Empty from "$lib/components/ui/empty/empty.svelte";
     import { getArticleQueryOptions } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
@@ -24,19 +19,9 @@
 </script>
 
 {#if article.isLoading}
-    <Empty class="animate-pulse">
-        <EmptyHeader>
-            <EmptyTitle>Loading article...</EmptyTitle>
-            <EmptyDescription>This should not take long</EmptyDescription>
-        </EmptyHeader>
-    </Empty>
+    <Pending />
 {:else if article.isError}
-    <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-            {article.error.message}
-        </AlertDescription>
-    </Alert>
+    <ErrorAlert error={article.error} />
 {:else if article.isSuccess}
     <article class="mx-auto prose max-w-4xl pt-8 prose-neutral dark:prose-invert">
         <h1>{article.data.title}</h1>

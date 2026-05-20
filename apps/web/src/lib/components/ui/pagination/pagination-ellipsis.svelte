@@ -1,6 +1,8 @@
 <script>
-    /** @type {import('svelte/elements').HTMLAttributes<HTMLSpanElement>} */
-    const { children, ...props } = $props();
+    import Ellipsis from "../icons/ellipsis.svelte";
+
+    /** @type {Omit<import('svelte/elements').HTMLAttributes<HTMLSpanElement>, 'children'>} */
+    const props = $props();
 </script>
 
 <span
@@ -11,6 +13,6 @@
         props.class,
     ]}
 >
-    ...
+    <Ellipsis />
     <span class="sr-only">More pages</span>
 </span>

@@ -18,10 +18,12 @@
     );
 
     /** @typedef {import('class-variance-authority').VariantProps<typeof variants>} AlertVariants */
+
+    /** @typedef {import('svelte/elements').HTMLAttributes<HTMLDivElement> & AlertVariants} AlertProps */
 </script>
 
 <script>
-    /** @type {import('svelte/elements').HTMLAttributes<HTMLDivElement> & AlertVariants} */
+    /** @type {AlertProps} */
     const { children, ...props } = $props();
 </script>
 
