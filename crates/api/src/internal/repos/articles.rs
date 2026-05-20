@@ -208,6 +208,15 @@ pub async fn get_article_by_id<'c>(
     query.fetch_optional(executor).await
 }
 
+#[tracing::instrument(level = "trace", skip(executor), err)]
+pub async fn delete_article_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleId,
+) -> sqlx::Result<Option<Article>> {
+    let query = sqlx::query_as("DELETE FROM articles WHERE id = ? RETURNING *;").bind(id);
+    query.fetch_optional(executor).await
+}
+
 #[tracing::instrument(level = "trace", skip_all, ret, err)]
 pub async fn create_article<'c>(
     executor: impl DatabaseExecutor<'c>,

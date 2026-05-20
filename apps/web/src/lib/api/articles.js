@@ -67,3 +67,13 @@ export async function getArticle(ky, payload) {
     const json = await ky.get(`articles/${payload.params.id}`).json();
     return { ...unwrapData(articleSchema).parse(json) };
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: ArticleId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function deleteArticle(ky, payload) {
+    await ky.delete(`articles/${payload.params.id}`);
+}

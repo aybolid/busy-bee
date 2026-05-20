@@ -1,5 +1,6 @@
 use axum::{
     extract::{Query, State},
+    http::StatusCode,
     response::IntoResponse,
 };
 
@@ -43,5 +44,17 @@ pub async fn get_article(
     let article = articles::get_article_by_id(state.db_pool(), article_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
+
     Ok(data(article))
+}
+
+pub async fn delete_article(
+    State(state): State<SharedApiState>,
+    ReqPath(article_id): ReqPath<ArticleId>,
+) -> HandlerResult<impl IntoResponse> {
+    articles::delete_article_by_id(state.db_pool(), article_id)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("article not found"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

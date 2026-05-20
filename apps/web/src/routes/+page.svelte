@@ -23,7 +23,7 @@
     import TableHeader from "$lib/components/ui/table/table-header.svelte";
     import TableRow from "$lib/components/ui/table/table-row.svelte";
     import Table from "$lib/components/ui/table/table.svelte";
-    import { getArticlesQueryOptions } from "$lib/query/articles";
+    import { createDeleteArticleMutation, getArticlesQueryOptions } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
 
@@ -36,9 +36,27 @@
         limit: props.data.searchParams.limit,
     });
 
-    const articles = createQuery(function () {
-        return getArticlesQueryOptions(props.data.ky, { searchParams: getArticlesSearchParams });
-    });
+    const articlesQueryOptions = $derived(
+        getArticlesQueryOptions(props.data.ky, { searchParams: getArticlesSearchParams }),
+    );
+
+    const articles = createQuery(() => articlesQueryOptions);
+
+    const deleteMutation = createDeleteArticleMutation();
+
+    /**
+     * @param {import('$lib/api/articles').ArticleId} id
+     */
+    function deleteArticle(id) {
+        deleteMutation.mutate([props.data.ky, { params: { id } }], {
+            onError: console.error,
+            onSuccess: () => {
+                void props.data.queryClient.invalidateQueries({
+                    predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
+                });
+            },
+        });
+    }
 
     const isFirstPage = $derived(getArticlesSearchParams.page_index === 0);
     const isLastPage = $derived(
@@ -132,9 +150,13 @@
                                             View external
                                         </MenuActionItem>
                                     {/if}
-                                    <MenuActionItem button variant="destructive"
-                                        >Delete</MenuActionItem
+                                    <MenuActionItem
+                                        button
+                                        variant="destructive"
+                                        onclick={() => deleteArticle(article.id)}
                                     >
+                                        Delete
+                                    </MenuActionItem>
                                 </MenuGroup>
                             </MenuContent>
                         </Menu>

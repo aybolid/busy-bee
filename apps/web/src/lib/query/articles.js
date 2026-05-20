@@ -1,5 +1,5 @@
-import { getArticle, getArticles } from "$lib/api/articles";
-import { keepPreviousData, queryOptions } from "@tanstack/svelte-query";
+import { deleteArticle, getArticle, getArticles } from "$lib/api/articles";
+import { createMutation, keepPreviousData, queryOptions } from "@tanstack/svelte-query";
 
 /**
  * @param {Parameters<typeof getArticles>} args `getArticles` function arguments.
@@ -20,4 +20,16 @@ export function getArticleQueryOptions(...args) {
         queryKey: ["articles", args[1]],
         queryFn: () => getArticle(...args),
     });
+}
+
+export function createDeleteArticleMutation() {
+    /** @param {Parameters<typeof deleteArticle>} args */
+    async function mutationFn(args) {
+        return deleteArticle(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["articles", "delete"],
+        mutationFn,
+    }));
 }
