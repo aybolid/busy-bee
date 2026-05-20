@@ -5,6 +5,11 @@
     import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
     import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
     import Empty from "$lib/components/ui/empty/empty.svelte";
+    import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
+    import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
+    import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
+    import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
+    import Menu from "$lib/components/ui/menu/menu.svelte";
     import PaginationAction from "$lib/components/ui/pagination/pagination-action.svelte";
     import PaginationContent from "$lib/components/ui/pagination/pagination-content.svelte";
     import PaginationEllipsis from "$lib/components/ui/pagination/pagination-ellipsis.svelte";
@@ -110,7 +115,29 @@
                         </Badge>
                     </TableCell>
                     <TableCell>
-                        <Action anchor href="/articles/{article.id}" size="xs">View</Action>
+                        <Menu>
+                            {#snippet trigger(props)}
+                                <Action button size="icon-xs" variant="outline" {...props}>
+                                    ...
+                                </Action>
+                            {/snippet}
+                            <MenuContent>
+                                <MenuGroup>
+                                    <MenuLabel>Article actions</MenuLabel>
+                                    <MenuActionItem anchor href="/articles/{article.id}">
+                                        View
+                                    </MenuActionItem>
+                                    {#if article.url && article.url.startsWith("http")}
+                                        <MenuActionItem anchor href={article.url} target="_blank">
+                                            View external
+                                        </MenuActionItem>
+                                    {/if}
+                                    <MenuActionItem button variant="destructive"
+                                        >Delete</MenuActionItem
+                                    >
+                                </MenuGroup>
+                            </MenuContent>
+                        </Menu>
                     </TableCell>
                 </TableRow>
             {/each}
