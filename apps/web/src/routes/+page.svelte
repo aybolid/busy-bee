@@ -3,6 +3,12 @@
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
+    import AlertDialogContent from "$lib/components/ui/alert-dialog/alert-dialog-content.svelte";
+    import AlertDialogDescription from "$lib/components/ui/alert-dialog/alert-dialog-description.svelte";
+    import AlertDialogFooter from "$lib/components/ui/alert-dialog/alert-dialog-footer.svelte";
+    import AlertDialogHeader from "$lib/components/ui/alert-dialog/alert-dialog-header.svelte";
+    import AlertDialogTitle from "$lib/components/ui/alert-dialog/alert-dialog-title.svelte";
+    import AlertDialog from "$lib/components/ui/alert-dialog/alert-dialog.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
@@ -122,7 +128,7 @@
                 <TableHead>Published</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
-                <TableHead></TableHead>
+                <TableHead><!-- Actions --></TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
@@ -167,43 +173,7 @@
                         </Badge>
                     </TableCell>
                     <TableCell>
-                        <Menu>
-                            {#snippet trigger(props)}
-                                <Action button size="icon-xs" variant="outline" {...props}>
-                                    <EllipsisVertical />
-                                </Action>
-                            {/snippet}
-                            <MenuContent>
-                                <MenuGroup>
-                                    <MenuLabel>Article actions</MenuLabel>
-                                    <MenuActionItem anchor href="/articles/{article.id}">
-                                        View
-                                    </MenuActionItem>
-                                    {#if article.url && article.url.startsWith("http")}
-                                        <MenuActionItem anchor href={article.url} target="_blank">
-                                            <ExternalLink />
-                                            <span>View external</span>
-                                        </MenuActionItem>
-                                    {/if}
-                                    {#if article.status === "new" || article.status === "error"}
-                                        <MenuActionItem button>Create post</MenuActionItem>
-                                    {/if}
-                                    <MenuActionItem
-                                        button
-                                        variant="destructive"
-                                        onclick={() => deleteArticle(article.id)}
-                                        disabled={deleteMutation.isPending}
-                                    >
-                                        {#if deleteMutation.isPending}
-                                            <Spinner />
-                                        {:else}
-                                            <Trash />
-                                        {/if}
-                                        <span>Delete</span>
-                                    </MenuActionItem>
-                                </MenuGroup>
-                            </MenuContent>
-                        </Menu>
+                        {@render articleMenu(article)}
                     </TableCell>
                 </TableRow>
             {/each}
@@ -252,3 +222,69 @@
         </PaginationContent>
     </Pagination>
 {/if}
+
+{#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}
+    <Menu>
+        {#snippet trigger(props)}
+            <Action button size="icon-xs" variant="outline" {...props}>
+                <EllipsisVertical />
+                <span class="sr-only">Article actions</span>
+            </Action>
+        {/snippet}
+        <MenuContent>
+            <MenuGroup>
+                <MenuLabel>Article actions</MenuLabel>
+                <MenuActionItem anchor href="/articles/{article.id}">View</MenuActionItem>
+                {#if article.url && article.url.startsWith("http")}
+                    <MenuActionItem anchor href={article.url} target="_blank">
+                        <ExternalLink />
+                        <span>View external</span>
+                    </MenuActionItem>
+                {/if}
+                {#if article.status === "new" || article.status === "error"}
+                    <MenuActionItem button>Create post</MenuActionItem>
+                {/if}
+                <AlertDialog>
+                    {#snippet trigger(props)}
+                        <MenuActionItem
+                            button
+                            variant="destructive"
+                            disabled={deleteMutation.isPending}
+                            {...props}
+                        >
+                            {#if deleteMutation.isPending}
+                                <Spinner />
+                            {:else}
+                                <Trash />
+                            {/if}
+                            <span>Delete</span>
+                        </MenuActionItem>
+                    {/snippet}
+                    {#snippet content({ closer })}
+                        <AlertDialogContent size="sm">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete article?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action will delete the article and it cannot be undone
+                                    later.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <Action button variant="outline" {...closer}>Cancel</Action>
+                                <Action
+                                    button
+                                    onclick={() => deleteArticle(article.id)}
+                                    variant="destructive"
+                                    {...closer}
+                                >
+                                    <Trash />
+                                    <span>Delete</span>
+                                </Action>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    {/snippet}
+                </AlertDialog>
+            </MenuGroup>
+        </MenuContent>
+    </Menu>
+{/snippet}
