@@ -3,13 +3,14 @@
 </script>
 
 <script>
+    import ArticleIntoPostFormDialog from "$lib/components/article-into-post-form-dialog.svelte";
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import PaginationControls from "$lib/components/pagination-controls.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
-    import AlertCloseAction from "$lib/components/ui/alert-dialog/alert-close-action.svelte";
-    import AlertContinueAction from "$lib/components/ui/alert-dialog/alert-continue-action.svelte";
+    import AlertDialogCloseAction from "$lib/components/ui/alert-dialog/alert-dialog-close-action.svelte";
+    import AlertDialogContinueAction from "$lib/components/ui/alert-dialog/alert-dialog-continue-action.svelte";
     import AlertDialogContent from "$lib/components/ui/alert-dialog/alert-dialog-content.svelte";
     import AlertDialogDescription from "$lib/components/ui/alert-dialog/alert-dialog-description.svelte";
     import AlertDialogFooter from "$lib/components/ui/alert-dialog/alert-dialog-footer.svelte";
@@ -73,28 +74,12 @@
     }
 
     const deleteMutation = createDeleteArticleMutation();
-    const processMutation = createProcessArticleMutation();
 
     /**
      * @param {import('$lib/api/articles').ArticleId} id
      */
     function deleteArticle(id) {
         deleteMutation.mutate([props.data.ky, { params: { id } }], {
-            onError: (err) => alert(err.message),
-            onSuccess: () => {
-                void props.data.queryClient.invalidateQueries({
-                    predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
-                });
-                void articleStats.refetch();
-            },
-        });
-    }
-
-    /**
-     * @param {import('$lib/api/articles').ArticleId} id
-     */
-    function articleIntoPost(id) {
-        processMutation.mutate([props.data.ky, { params: { id } }], {
             onError: (err) => alert(err.message),
             onSuccess: () => {
                 void props.data.queryClient.invalidateQueries({
@@ -278,16 +263,13 @@
                     </MenuActionItem>
                 {/if}
                 {#if article.status === "new" || article.status === "error"}
-                    <MenuActionItem
-                        button
-                        disabled={processMutation.isPending}
-                        onclick={() => articleIntoPost(article.id)}
-                    >
-                        {#if processMutation.isPending}
-                            <Spinner />
-                        {/if}
-                        <span>Into post</span>
-                    </MenuActionItem>
+                    <ArticleIntoPostFormDialog articleId={article.id}>
+                        {#snippet trigger(props)}
+                            <MenuActionItem button keepOpen {...props}>
+                                <span>Into post</span>
+                            </MenuActionItem>
+                        {/snippet}
+                    </ArticleIntoPostFormDialog>
                 {/if}
                 <AlertDialog>
                     {#snippet trigger(props)}
@@ -314,15 +296,15 @@
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertCloseAction />
-                            <AlertContinueAction
+                            <AlertDialogCloseAction />
+                            <AlertDialogContinueAction
                                 closeOnClick
                                 onclick={() => deleteArticle(article.id)}
                                 variant="destructive"
                             >
                                 <Trash />
                                 <span>Delete</span>
-                            </AlertContinueAction>
+                            </AlertDialogContinueAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

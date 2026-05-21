@@ -1,18 +1,8 @@
-<script>
-    import { cn } from "../utils";
-    import { setAlertDialogContext } from "./context";
-
-    const id = $props.id();
-    const context = setAlertDialogContext({
-        dialogId: id,
-        descriptionId: `${id}-description`,
-        labelId: `${id}-title`,
-    });
-
+<script module>
     /**
      * @typedef {Object} TriggerContext
-     * @property {'show-modal'} command The action command to open the dialog.
-     * @property {string} commandfor The unique ID of the target dialog element.
+     * @property {'show-modal'} command
+     * @property {string} commandfor
      */
 
     /**
@@ -21,22 +11,36 @@
      */
 
     /**
-     * @typedef {Object} AlertDialogSnippets
+     * @typedef {Object} DialogSnippets
      * @property {TriggerSnippet} [trigger] Optional snippet to render the dialog's trigger mechanism.
      */
 
     /**
-     * @type {import('svelte/elements').HTMLAttributes<HTMLDivElement> & AlertDialogSnippets}
+     * @typedef {import('svelte/elements').HTMLAttributes<HTMLDivElement> & DialogSnippets & { ref?: HTMLDialogElement }} DialogProps
      */
-    const { trigger, children, ...props } = $props();
+</script>
+
+<script>
+    import { cn } from "../utils";
+    import { setDialogContext } from "./context";
+
+    const id = $props.id();
+    const context = setDialogContext({
+        dialogId: id,
+        descriptionId: `${id}-description`,
+        labelId: `${id}-title`,
+    });
+
+    /** @type {DialogProps} */
+    let { ref = $bindable(), trigger, children, ...props } = $props();
 </script>
 
 <div {...props} class={cn("group contents", props.class)}>
     {@render trigger?.({ command: "show-modal", commandfor: context.dialogId })}
 
     <dialog
+        bind:this={ref}
         id={context.dialogId}
-        role="alertdialog"
         aria-labelledby={context.labelId}
         aria-describedby={context.descriptionId}
         class="backdrop:bg-black/50 backdrop:backdrop-blur-xs"

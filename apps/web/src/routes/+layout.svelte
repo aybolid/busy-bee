@@ -6,9 +6,19 @@
     import { SvelteQueryDevtools } from "@tanstack/svelte-query-devtools";
 
     import Action from "$lib/components/ui/action.svelte";
+    import { setGlobalContext } from "$lib/global-context";
 
     /** @type {import('./$types').LayoutProps} */
     let { children, data } = $props();
+
+    setGlobalContext({
+        get ky() {
+            return data.ky;
+        },
+        get queryClient() {
+            return data.queryClient;
+        },
+    });
 </script>
 
 <svelte:head>
