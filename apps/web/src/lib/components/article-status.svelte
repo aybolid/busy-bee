@@ -9,7 +9,7 @@
     const { label, variant } = $derived.by(() => {
         switch (status) {
             case "new":
-                return { label: "New", variant: "ghost" };
+                return { label: "New", variant: "outline" };
             case "pending":
                 return { label: "Pending", variant: "secondary" };
             case "processed":

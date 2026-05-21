@@ -20,10 +20,12 @@
 </script>
 
 <script>
+    import { cn } from "../utils";
+
     /** @type {import('svelte/elements').HTMLAttributes<HTMLDivElement> & EmptyMediaVariants} */
     const { children, ...props } = $props();
 </script>
 
-<div {...props} class={variants({ class: props.class, variant: props.variant })}>
+<div {...props} class={cn(variants({ class: props.class, variant: props.variant }))}>
     {@render children?.()}
 </div>

@@ -28,10 +28,12 @@
 </script>
 
 <script>
+    import { cn } from "./utils";
+
     /** @type {BadgeProps} */
     const { children, ...props } = $props();
 </script>
 
-<span {...props} class={[variants({ variant: props.variant, class: props.class })]}>
+<span {...props} class={cn(variants({ variant: props.variant, class: props.class }))}>
     {@render children?.()}
 </span>

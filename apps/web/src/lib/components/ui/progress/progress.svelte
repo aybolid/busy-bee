@@ -6,9 +6,10 @@
 </script>
 
 <div
+    data-slot="progress"
     {...props}
     class={cn(
-        "font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
+        "relative flex h-1 w-full items-center overflow-x-hidden rounded-full bg-muted",
         props.class,
     )}
 >

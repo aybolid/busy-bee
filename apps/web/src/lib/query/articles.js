@@ -17,7 +17,7 @@ export function getArticlesQueryOptions(...args) {
  */
 export function getArticleStatsQueryOptions(...args) {
     return queryOptions({
-        queryKey: ["articles", "stats"],
+        queryKey: ["articles/stats"],
         queryFn: () => getArticleStats(...args),
     });
 }

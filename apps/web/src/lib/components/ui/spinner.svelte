@@ -1,5 +1,6 @@
 <script>
     import LoaderCircle from "./icons/loader-circle.svelte";
+    import { cn } from "./utils";
 
     /** @type {import('svelte/elements').SVGAttributes<SVGElement>} */
     const props = $props();
@@ -9,5 +10,5 @@
     role="status"
     aria-label="Loading"
     {...props}
-    class={["size-4 animate-spin", props.class]}
+    class={cn("size-4 animate-spin", props.class)}
 />

@@ -1,4 +1,5 @@
 <script>
+    import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
@@ -34,6 +35,7 @@
                     {dayjs(article.data.published_time).format("MMM DD, YYYY, HH:mm")}
                 </Badge>
             {/if}
+            <ArticleStatus status={article.data.status} />
         </div>
         {@html article.data.content}
     </article>

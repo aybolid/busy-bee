@@ -1,4 +1,5 @@
 <script>
+    import { cn } from "../utils";
     import { getAlertDialogContext } from "./context";
 
     /** @type {import('svelte/elements').HTMLAttributes<HTMLDivElement>} */
@@ -9,10 +10,10 @@
 <div
     id={descriptionId}
     {...props}
-    class={[
+    class={cn(
         "text-sm text-balance text-muted-foreground md:text-pretty *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
         props.class,
-    ]}
+    )}
 >
     {@render children?.()}
 </div>
