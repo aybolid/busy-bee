@@ -1,7 +1,11 @@
+<script module>
+    /** @typedef {import('svelte/elements').HTMLAttributes<HTMLElement>} PaginationProps */
+</script>
+
 <script>
     import { cn } from "../utils";
 
-    /** @type {import('svelte/elements').HTMLAttributes<HTMLElement>} */
+    /** @type {PaginationProps} */
     const { children, ...props } = $props();
 </script>
 

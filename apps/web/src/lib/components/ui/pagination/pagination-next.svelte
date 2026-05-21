@@ -4,10 +4,11 @@
     import PaginationAction from "./pagination-action.svelte";
 
     /** @type {import('./pagination-action.svelte').PaginationActionProps & { text?: string }} */
-    const { children, text = "Next", ...props } = $props();
+    let { children, text = "Next", ref = $bindable(), ...props } = $props();
 </script>
 
 <PaginationAction
+    bind:ref
     aria-label="Go to next page"
     size="default"
     {...props}

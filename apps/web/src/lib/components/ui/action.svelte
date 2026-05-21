@@ -39,8 +39,8 @@
 
     /** @typedef {import('class-variance-authority').VariantProps<typeof variants>} ActionVariants */
 
-    /** @typedef {import('svelte/elements').HTMLAnchorAttributes & ActionVariants} AnchorProps */
-    /** @typedef {import('svelte/elements').HTMLButtonAttributes & ActionVariants} ButtonProps */
+    /** @typedef {import('svelte/elements').HTMLAnchorAttributes & ActionVariants & { ref?: HTMLElement }} AnchorProps */
+    /** @typedef {import('svelte/elements').HTMLButtonAttributes & ActionVariants & { ref?: HTMLElement }} ButtonProps */
 
     /** @typedef {AnchorProps & { anchor: true, button?: never } | ButtonProps & { anchor?: never, button: true }} ActionProps */
 </script>
@@ -49,11 +49,12 @@
     import { cn } from "./utils";
 
     /** @type {ActionProps} */
-    const props = $props();
+    let { ref = $bindable(), ...props } = $props();
 </script>
 
 {#if props.anchor}
     <a
+        bind:this={ref}
         {...props}
         class={cn(variants({ variant: props.variant, size: props.size, class: props.class }))}
     >
@@ -63,6 +64,7 @@
 
 {#if props.button}
     <button
+        bind:this={ref}
         {...props}
         type={props.type ?? "button"}
         class={cn(variants({ variant: props.variant, size: props.size, class: props.class }))}

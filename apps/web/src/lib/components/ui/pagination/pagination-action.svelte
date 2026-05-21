@@ -6,10 +6,11 @@
     import Action from "../action.svelte";
 
     /** @type {PaginationActionProps} */
-    const { children, isActive, ...props } = $props();
+    let { children, isActive, ref = $bindable(), ...props } = $props();
 </script>
 
 <Action
+    bind:ref
     aria-current={isActive ? "page" : undefined}
     {...props}
     size={props.size ?? "icon"}

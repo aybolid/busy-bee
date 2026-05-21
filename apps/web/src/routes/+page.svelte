@@ -5,6 +5,7 @@
 <script>
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
+    import PaginationControls from "$lib/components/pagination-controls.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
     import AlertCloseAction from "$lib/components/ui/alert-dialog/alert-close-action.svelte";
@@ -25,13 +26,6 @@
     import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
     import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
     import Menu from "$lib/components/ui/menu/menu.svelte";
-    import PaginationAction from "$lib/components/ui/pagination/pagination-action.svelte";
-    import PaginationContent from "$lib/components/ui/pagination/pagination-content.svelte";
-    import PaginationEllipsis from "$lib/components/ui/pagination/pagination-ellipsis.svelte";
-    import PaginationItem from "$lib/components/ui/pagination/pagination-item.svelte";
-    import PaginationNext from "$lib/components/ui/pagination/pagination-next.svelte";
-    import PaginationPrevious from "$lib/components/ui/pagination/pagination-previous.svelte";
-    import Pagination from "$lib/components/ui/pagination/pagination.svelte";
     import ProgressIndicator from "$lib/components/ui/progress/progress-indicator.svelte";
     import Progress from "$lib/components/ui/progress/progress.svelte";
     import Skeleton from "$lib/components/ui/skeleton.svelte";
@@ -85,37 +79,10 @@
                 void props.data.queryClient.invalidateQueries({
                     predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
                 });
+                void articleStats.refetch();
             },
         });
     }
-
-    const isFirstPage = $derived(getArticlesSearchParams.page_index === 0);
-    const isLastPage = $derived(
-        getArticlesSearchParams.page_index >= (articles.data?.meta.total_pages ?? 0) - 1,
-    );
-
-    const visiblePages = $derived.by(() => {
-        const total = articles.data?.meta.total_pages ?? 0;
-        const current = getArticlesSearchParams.page_index;
-
-        // If 7 or fewer pages, just show all of them
-        if (total <= 7) {
-            return Array.from({ length: total }, (_, i) => i);
-        }
-
-        // Near the beginning: 1, 2, 3, 4, 5, ..., Last
-        if (current <= 3) {
-            return [0, 1, 2, 3, 4, "ellipsis-right", total - 1];
-        }
-
-        // Near the end: 1, ..., Last-4, Last-3, Last-2, Last-1, Last
-        if (current >= total - 4) {
-            return [0, "ellipsis-left", total - 5, total - 4, total - 3, total - 2, total - 1];
-        }
-
-        // In the middle: 1, ..., Current-1, Current, Current+1, ..., Last
-        return [0, "ellipsis-left", current - 1, current, current + 1, "ellipsis-right", total - 1];
-    });
 </script>
 
 {#if articles.isPending}
@@ -136,17 +103,17 @@
 
     <div class="py-8">
         {#if articleStats.isPending}
-            <div class="grid h-9 grid-cols-4 gap-4">
-                <Skeleton class="h-full" />
-                <Skeleton />
-                <Skeleton />
-                <Skeleton />
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Skeleton class="h-9" />
+                <Skeleton class="h-9" />
+                <Skeleton class="h-9" />
+                <Skeleton class="h-9" />
             </div>
         {:else if articleStats.isError}
             <ErrorAlert error={articleStats.error} />
         {:else if articleStats.isSuccess}
             {@const total = articleStats.data.total}
-            {#snippet statusCountLi(
+            {#snippet li(
                 /** @type {import('$lib/api/articles').ArticleStatus} */ status,
                 /** @type {number} */ count,
             )}
@@ -154,7 +121,7 @@
                 <li>
                     <div class="flex items-center justify-between gap-2 pb-2">
                         <ArticleStatus {status} />
-                        <div class="font-semibold tabular-nums">
+                        <div class="font-semibold text-nowrap tabular-nums">
                             <span>
                                 {NUMBER_FORMAT.format(count)}
                             </span>
@@ -170,11 +137,11 @@
                 </li>
             {/snippet}
 
-            <ul class="grid grid-cols-4 gap-4">
-                {@render statusCountLi("new", articleStats.data.new)}
-                {@render statusCountLi("pending", articleStats.data.pending)}
-                {@render statusCountLi("processed", articleStats.data.processed)}
-                {@render statusCountLi("error", articleStats.data.error)}
+            <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {@render li("new", articleStats.data.new)}
+                {@render li("pending", articleStats.data.pending)}
+                {@render li("processed", articleStats.data.processed)}
+                {@render li("error", articleStats.data.error)}
             </ul>
         {/if}
     </div>
@@ -250,50 +217,12 @@
         </TableBody>
     </Table>
 
-    <Pagination class="pt-8">
-        <PaginationContent>
-            <PaginationItem>
-                <PaginationPrevious
-                    anchor
-                    data-sveltekit-noscroll
-                    class={[isFirstPage && "pointer-events-none opacity-50"]}
-                    aria-disabled={isFirstPage}
-                    href="/?page_index={!isFirstPage ? getArticlesSearchParams.page_index - 1 : 0}"
-                />
-            </PaginationItem>
-
-            {#each visiblePages as page (page)}
-                {#if typeof page === "string" && page.startsWith("ellipsis")}
-                    <PaginationItem>
-                        <PaginationEllipsis />
-                    </PaginationItem>
-                {:else}
-                    <PaginationItem>
-                        <PaginationAction
-                            anchor
-                            data-sveltekit-noscroll
-                            href="/?page_index={page}"
-                            isActive={page === getArticlesSearchParams.page_index}
-                        >
-                            {Number(page) + 1}
-                        </PaginationAction>
-                    </PaginationItem>
-                {/if}
-            {/each}
-
-            <PaginationItem>
-                <PaginationNext
-                    anchor
-                    data-sveltekit-noscroll
-                    class={[isLastPage && "pointer-events-none opacity-50"]}
-                    aria-disabled={isLastPage}
-                    href="/?page_index={!isLastPage
-                        ? getArticlesSearchParams.page_index + 1
-                        : getArticlesSearchParams.page_index}"
-                />
-            </PaginationItem>
-        </PaginationContent>
-    </Pagination>
+    <PaginationControls
+        class="pt-8"
+        pageIndex={getArticlesSearchParams.page_index}
+        totalPages={articles.data.meta.total_pages}
+        href={(pageIndex) => `/?page_index=${pageIndex}`}
+    />
 {/if}
 
 {#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}
