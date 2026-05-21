@@ -18,7 +18,7 @@
     );
 </script>
 
-{#if article.isLoading}
+{#if article.isPending}
     <Pending />
 {:else if article.isError}
     <ErrorAlert error={article.error} />

@@ -40,6 +40,16 @@ const articleSchema = z
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
+const articleStatsSchema = z.object({
+    total: z.int().nonnegative(),
+    new: z.int().nonnegative(),
+    pending: z.int().nonnegative(),
+    processed: z.int().nonnegative(),
+    error: z.int().nonnegative(),
+});
+
+/** @typedef {z.infer<typeof articleStatsSchema>} ArticleStats */
+
 const getArticlesSearchParamsSchema = z.object({
     ...paginationSchema.shape,
 });
@@ -65,13 +75,23 @@ export async function getArticles(ky, payload) {
 
 /**
  * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ *
+ * @returns {Promise<ArticleStats>} Article statistics.
+ */
+export async function getArticleStats(ky) {
+    const json = await ky.get("articles/stats").json();
+    return unwrapData(articleStatsSchema).parse(json);
+}
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
  * @param {{ params: { id: ArticleId } }} payload Request payload.
  *
  * @returns {Promise<Article>} Article.
  */
 export async function getArticle(ky, payload) {
     const json = await ky.get(`articles/${payload.params.id}`).json();
-    return { ...unwrapData(articleSchema).parse(json) };
+    return unwrapData(articleSchema).parse(json);
 }
 
 /**

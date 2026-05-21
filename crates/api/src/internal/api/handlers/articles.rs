@@ -48,6 +48,7 @@ pub async fn get_article(
     Ok(data(article))
 }
 
+#[tracing::instrument(level = "trace", skip(state))]
 pub async fn delete_article(
     State(state): State<SharedApiState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -57,4 +58,13 @@ pub async fn delete_article(
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[tracing::instrument(level = "trace", skip(state))]
+pub async fn get_article_stats(
+    State(state): State<SharedApiState>,
+) -> HandlerResult<impl IntoResponse> {
+    let article_stats = articles::get_article_stats(state.db_pool()).await?;
+
+    Ok(data(article_stats))
 }

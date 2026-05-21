@@ -16,7 +16,9 @@
     import AlertDialogTitle from "$lib/components/ui/alert-dialog/alert-dialog-title.svelte";
     import AlertDialog from "$lib/components/ui/alert-dialog/alert-dialog.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
+    import CardContent from "$lib/components/ui/card/card-content.svelte";
     import CardDescription from "$lib/components/ui/card/card-description.svelte";
+    import CardFooter from "$lib/components/ui/card/card-footer.svelte";
     import CardHeader from "$lib/components/ui/card/card-header.svelte";
     import CardTitle from "$lib/components/ui/card/card-title.svelte";
     import Card from "$lib/components/ui/card/card.svelte";
@@ -36,6 +38,7 @@
     import PaginationNext from "$lib/components/ui/pagination/pagination-next.svelte";
     import PaginationPrevious from "$lib/components/ui/pagination/pagination-previous.svelte";
     import Pagination from "$lib/components/ui/pagination/pagination.svelte";
+    import Skeleton from "$lib/components/ui/skeleton.svelte";
     import Spinner from "$lib/components/ui/spinner.svelte";
     import TableBody from "$lib/components/ui/table/table-body.svelte";
     import TableCell from "$lib/components/ui/table/table-cell.svelte";
@@ -43,7 +46,11 @@
     import TableHeader from "$lib/components/ui/table/table-header.svelte";
     import TableRow from "$lib/components/ui/table/table-row.svelte";
     import Table from "$lib/components/ui/table/table.svelte";
-    import { createDeleteArticleMutation, getArticlesQueryOptions } from "$lib/query/articles";
+    import {
+        createDeleteArticleMutation,
+        getArticlesQueryOptions,
+        getArticleStatsQueryOptions,
+    } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
 
@@ -61,11 +68,13 @@
     );
 
     const articles = createQuery(() => articlesQueryOptions);
+    const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
 
-    function refreshArticles() {
+    function refresh() {
         void props.data.queryClient.invalidateQueries({
             predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
         });
+        void articleStats.refetch();
     }
 
     const deleteMutation = createDeleteArticleMutation();
@@ -113,24 +122,60 @@
     });
 </script>
 
-{#if articles.isLoading}
+{#if articleStats.isPending || articleStats.isRefetching}
+    <div class="grid h-24 grid-cols-3 gap-4">
+        <Skeleton class="h-full" />
+        <Skeleton />
+    </div>
+{:else if articleStats.isError}
+    <ErrorAlert error={articleStats.error} />
+{:else if articleStats.isSuccess}
+    <div class="grid h-24 grid-cols-3 gap-4">
+        <Card>
+            <CardHeader>
+                <CardDescription>Total articles</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <CardTitle class="font-semibold tabular-nums">
+                    {NUMBER_FORMAT.format(articleStats.data.total)}
+                </CardTitle>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardDescription>Count by status</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ul class="flex justify-between">
+                    {@render statusCountLi("new", articleStats.data.new)}
+                    {@render statusCountLi("pending", articleStats.data.pending)}
+                    {@render statusCountLi("processed", articleStats.data.processed)}
+                    {@render statusCountLi("error", articleStats.data.error)}
+                </ul>
+            </CardContent>
+        </Card>
+    </div>
+{/if}
+
+{#snippet statusCountLi(
+    /** @type {import('$lib/api/articles').ArticleStatus} */ status,
+    /** @type {number} */ count,
+)}
+    <li class="flex items-center justify-between gap-1">
+        <span class="font-semibold tabular-nums">
+            {NUMBER_FORMAT.format(count)}
+        </span>
+        <ArticleStatus {status} />
+    </li>
+{/snippet}
+
+{#if articles.isPending}
     <Pending />
 {:else if articles.isError}
     <ErrorAlert error={articles.error} />
 {:else if articles.isSuccess}
-    <div class="grid grid-cols-5 gap-4">
-        <Card>
-            <CardHeader>
-                <CardDescription>Total articles</CardDescription>
-                <CardTitle class="text-2xl font-semibold tabular-nums">
-                    {NUMBER_FORMAT.format(articles.data.meta.total)}
-                </CardTitle>
-            </CardHeader>
-        </Card>
-    </div>
-
     <div class="flex justify-end py-8">
-        <Action button variant="secondary" onclick={refreshArticles}>
+        <Action button variant="secondary" onclick={refresh}>
             {#if articles.isFetching}
                 <Spinner />
             {:else}
@@ -164,7 +209,9 @@
                     ]}
                 >
                     <TableCell class="max-w-80 truncate font-medium">
-                        {article.title}
+                        <a href="/articles/{article.id}" class="hover:underline">
+                            {article.title}
+                        </a>
                     </TableCell>
                     <TableCell class="text-xs whitespace-normal text-muted-foreground">
                         <p class="line-clamp-2 w-96 text-wrap">
@@ -214,6 +261,7 @@
             <PaginationItem>
                 <PaginationPrevious
                     anchor
+                    data-sveltekit-noscroll
                     class={[isFirstPage && "pointer-events-none opacity-50"]}
                     aria-disabled={isFirstPage}
                     href="/?page_index={!isFirstPage ? getArticlesSearchParams.page_index - 1 : 0}"
@@ -229,6 +277,7 @@
                     <PaginationItem>
                         <PaginationAction
                             anchor
+                            data-sveltekit-noscroll
                             href="/?page_index={page}"
                             isActive={page === getArticlesSearchParams.page_index}
                         >
@@ -241,6 +290,7 @@
             <PaginationItem>
                 <PaginationNext
                     anchor
+                    data-sveltekit-noscroll
                     class={[isLastPage && "pointer-events-none opacity-50"]}
                     aria-disabled={isLastPage}
                     href="/?page_index={!isLastPage

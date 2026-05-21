@@ -185,6 +185,43 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, serde::Serialize)]
+pub struct ArticleStats {
+    total: usize,
+    new: usize,
+    pending: usize,
+    error: usize,
+    processed: usize,
+}
+
+#[tracing::instrument(level = "trace", skip_all, err, ret)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub async fn get_article_stats<'c>(
+    executor: impl DatabaseExecutor<'c>,
+) -> sqlx::Result<ArticleStats> {
+    let row: (i64, i64, i64, i64, i64) = sqlx::query_as(
+        "
+        SELECT
+            COUNT(*),
+            COALESCE(SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN status = 'processed' THEN 1 ELSE 0 END), 0)
+        FROM articles;
+        ",
+    )
+    .fetch_one(executor)
+    .await?;
+
+    Ok(ArticleStats {
+        total: row.0 as usize,
+        new: row.1 as usize,
+        pending: row.2 as usize,
+        error: row.3 as usize,
+        processed: row.4 as usize,
+    })
+}
+
 #[tracing::instrument(level = "trace", skip_all, err, ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
