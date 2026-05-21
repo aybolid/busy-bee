@@ -1,3 +1,7 @@
+<script module>
+    const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
+</script>
+
 <script>
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
@@ -12,6 +16,10 @@
     import AlertDialogTitle from "$lib/components/ui/alert-dialog/alert-dialog-title.svelte";
     import AlertDialog from "$lib/components/ui/alert-dialog/alert-dialog.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
+    import CardDescription from "$lib/components/ui/card/card-description.svelte";
+    import CardHeader from "$lib/components/ui/card/card-header.svelte";
+    import CardTitle from "$lib/components/ui/card/card-title.svelte";
+    import Card from "$lib/components/ui/card/card.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
     import Refresh from "$lib/components/ui/icons/refresh.svelte";
@@ -110,7 +118,18 @@
 {:else if articles.isError}
     <ErrorAlert error={articles.error} />
 {:else if articles.isSuccess}
-    <div class="flex justify-end pb-8">
+    <div class="grid grid-cols-5 gap-4">
+        <Card>
+            <CardHeader>
+                <CardDescription>Total articles</CardDescription>
+                <CardTitle class="text-2xl font-semibold tabular-nums">
+                    {NUMBER_FORMAT.format(articles.data.meta.total)}
+                </CardTitle>
+            </CardHeader>
+        </Card>
+    </div>
+
+    <div class="flex justify-end py-8">
         <Action button variant="secondary" onclick={refreshArticles}>
             {#if articles.isFetching}
                 <Spinner />
