@@ -39,10 +39,10 @@
 
     /** @typedef {import('class-variance-authority').VariantProps<typeof variants>} ActionVariants */
 
-    /** @typedef {import('svelte/elements').HTMLAnchorAttributes & ActionVariants & { anchor: true, button?: never }} AnchorProps */
-    /** @typedef {import('svelte/elements').HTMLButtonAttributes & ActionVariants & { anchor?: never, button: true }} ButtonProps */
+    /** @typedef {import('svelte/elements').HTMLAnchorAttributes & ActionVariants} AnchorProps */
+    /** @typedef {import('svelte/elements').HTMLButtonAttributes & ActionVariants} ButtonProps */
 
-    /** @typedef {AnchorProps | ButtonProps} ActionProps */
+    /** @typedef {AnchorProps & { anchor: true, button?: never } | ButtonProps & { anchor?: never, button: true }} ActionProps */
 </script>
 
 <script>
@@ -62,6 +62,7 @@
 {#if props.button}
     <button
         {...props}
+        type={props.type ?? "button"}
         class={variants({ variant: props.variant, size: props.size, class: props.class })}
     >
         {@render props.children?.()}

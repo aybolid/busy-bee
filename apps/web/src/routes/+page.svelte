@@ -3,6 +3,8 @@
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
+    import AlertCloseAction from "$lib/components/ui/alert-dialog/alert-close-action.svelte";
+    import AlertContinueAction from "$lib/components/ui/alert-dialog/alert-continue-action.svelte";
     import AlertDialogContent from "$lib/components/ui/alert-dialog/alert-dialog-content.svelte";
     import AlertDialogDescription from "$lib/components/ui/alert-dialog/alert-dialog-description.svelte";
     import AlertDialogFooter from "$lib/components/ui/alert-dialog/alert-dialog-footer.svelte";
@@ -260,29 +262,25 @@
                             <span>Delete</span>
                         </MenuActionItem>
                     {/snippet}
-                    {#snippet content({ closer })}
-                        <AlertDialogContent size="sm">
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete article?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action will delete the article and it cannot be undone
-                                    later.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <Action button variant="outline" {...closer}>Cancel</Action>
-                                <Action
-                                    button
-                                    onclick={() => deleteArticle(article.id)}
-                                    variant="destructive"
-                                    {...closer}
-                                >
-                                    <Trash />
-                                    <span>Delete</span>
-                                </Action>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    {/snippet}
+                    <AlertDialogContent size="sm">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete article?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action will delete the article and it cannot be undone later.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertCloseAction />
+                            <AlertContinueAction
+                                closeOnClick
+                                onclick={() => deleteArticle(article.id)}
+                                variant="destructive"
+                            >
+                                <Trash />
+                                <span>Delete</span>
+                            </AlertContinueAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
                 </AlertDialog>
             </MenuGroup>
         </MenuContent>
