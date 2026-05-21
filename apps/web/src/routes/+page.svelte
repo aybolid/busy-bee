@@ -125,12 +125,15 @@
         <TableHeader>
             <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Author</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Published</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
-                <TableHead><!-- Actions --></TableHead>
+                <TableHead class="sticky right-0 bg-background/80 backdrop-blur-xs">
+                    <!-- Actions -->
+                </TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
@@ -144,7 +147,12 @@
                     <TableCell class="max-w-80 truncate font-medium">
                         {article.title}
                     </TableCell>
-                    <TableCell class="text-muted-foreground">
+                    <TableCell class="text-xs whitespace-normal text-muted-foreground">
+                        <p class="line-clamp-2 w-96 text-wrap">
+                            {article.excerpt ?? "--"}
+                        </p>
+                    </TableCell>
+                    <TableCell>
                         {article.byline ?? "--"}
                     </TableCell>
                     <TableCell>
@@ -174,7 +182,7 @@
                             {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
                         </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
                         {@render articleMenu(article)}
                     </TableCell>
                 </TableRow>
@@ -228,7 +236,7 @@
 {#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}
     <Menu>
         {#snippet trigger(props)}
-            <Action button size="icon-xs" variant="outline" {...props}>
+            <Action button size="icon-sm" variant="outline" {...props}>
                 <EllipsisVertical />
                 <span class="sr-only">Article actions</span>
             </Action>
