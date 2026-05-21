@@ -222,6 +222,26 @@ pub async fn get_article_stats<'c>(
     })
 }
 
+#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+pub async fn mark_article_as_pending<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleId,
+) -> sqlx::Result<Option<ArticleId>> {
+    let query = sqlx::query_scalar(
+        "
+        UPDATE articles
+        SET
+            status = 'pending'
+        WHERE
+            id = ? AND status NOT IN ('pending', 'processed')
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
+}
+
 #[tracing::instrument(level = "trace", skip_all, err, ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {

@@ -68,3 +68,15 @@ pub async fn get_article_stats(
 
     Ok(data(article_stats))
 }
+
+#[tracing::instrument(level = "trace", skip(state))]
+pub async fn process_article(
+    State(state): State<SharedApiState>,
+    ReqPath(article_id): ReqPath<ArticleId>,
+) -> HandlerResult<impl IntoResponse> {
+    articles::mark_article_as_pending(state.db_pool(), article_id)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("article not found"))?;
+
+    Ok(StatusCode::ACCEPTED)
+}

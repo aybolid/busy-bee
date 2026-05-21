@@ -22,3 +22,13 @@ CREATE TABLE articles (
   favicon TEXT,
   url TEXT
 );
+
+CREATE TRIGGER trigger_articles_updated_at AFTER
+UPDATE ON articles FOR EACH ROW BEGIN
+UPDATE articles
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = NEW.id;
+
+END;

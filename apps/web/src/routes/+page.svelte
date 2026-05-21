@@ -17,6 +17,10 @@
     import AlertDialogTitle from "$lib/components/ui/alert-dialog/alert-dialog-title.svelte";
     import AlertDialog from "$lib/components/ui/alert-dialog/alert-dialog.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
+    import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
+    import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
+    import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
+    import Empty from "$lib/components/ui/empty/empty.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
     import Refresh from "$lib/components/ui/icons/refresh.svelte";
@@ -38,6 +42,7 @@
     import Table from "$lib/components/ui/table/table.svelte";
     import {
         createDeleteArticleMutation,
+        createProcessArticleMutation,
         getArticlesQueryOptions,
         getArticleStatsQueryOptions,
     } from "$lib/query/articles";
@@ -68,12 +73,28 @@
     }
 
     const deleteMutation = createDeleteArticleMutation();
+    const processMutation = createProcessArticleMutation();
 
     /**
-     * @param {import('$lib/api/articles').ArticleId} id Article id to delete
+     * @param {import('$lib/api/articles').ArticleId} id
      */
     function deleteArticle(id) {
         deleteMutation.mutate([props.data.ky, { params: { id } }], {
+            onError: (err) => alert(err.message),
+            onSuccess: () => {
+                void props.data.queryClient.invalidateQueries({
+                    predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
+                });
+                void articleStats.refetch();
+            },
+        });
+    }
+
+    /**
+     * @param {import('$lib/api/articles').ArticleId} id
+     */
+    function articleIntoPost(id) {
+        processMutation.mutate([props.data.ky, { params: { id } }], {
             onError: (err) => alert(err.message),
             onSuccess: () => {
                 void props.data.queryClient.invalidateQueries({
@@ -162,6 +183,19 @@
             </TableRow>
         </TableHeader>
         <TableBody>
+            {#if articles.data.data.length === 0}
+                <TableRow>
+                    <TableCell colspan={8}>
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyTitle>No articles</EmptyTitle>
+                            </EmptyHeader>
+                            <EmptyDescription>There are no articles to display.</EmptyDescription>
+                        </Empty>
+                    </TableCell>
+                </TableRow>
+            {/if}
+
             {#each articles.data.data as article (article.id)}
                 <TableRow
                     class={[
@@ -244,12 +278,22 @@
                     </MenuActionItem>
                 {/if}
                 {#if article.status === "new" || article.status === "error"}
-                    <MenuActionItem button>Create post</MenuActionItem>
+                    <MenuActionItem
+                        button
+                        disabled={processMutation.isPending}
+                        onclick={() => articleIntoPost(article.id)}
+                    >
+                        {#if processMutation.isPending}
+                            <Spinner />
+                        {/if}
+                        <span>Into post</span>
+                    </MenuActionItem>
                 {/if}
                 <AlertDialog>
                     {#snippet trigger(props)}
                         <MenuActionItem
                             button
+                            keepOpen
                             variant="destructive"
                             disabled={deleteMutation.isPending}
                             {...props}

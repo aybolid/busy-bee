@@ -1,4 +1,10 @@
-import { deleteArticle, getArticle, getArticles, getArticleStats } from "$lib/api/articles";
+import {
+    deleteArticle,
+    getArticle,
+    getArticles,
+    getArticleStats,
+    processArticle,
+} from "$lib/api/articles";
 import { createMutation, keepPreviousData, queryOptions } from "@tanstack/svelte-query";
 
 /**
@@ -40,6 +46,18 @@ export function createDeleteArticleMutation() {
 
     return createMutation(() => ({
         mutationKey: ["articles", "delete"],
+        mutationFn,
+    }));
+}
+
+export function createProcessArticleMutation() {
+    /** @param {Parameters<typeof processArticle>} args */
+    async function mutationFn(args) {
+        return processArticle(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["articles", "process"],
         mutationFn,
     }));
 }

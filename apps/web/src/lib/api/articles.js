@@ -103,3 +103,13 @@ export async function getArticle(ky, payload) {
 export async function deleteArticle(ky, payload) {
     await ky.delete(`articles/${payload.params.id}`);
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: ArticleId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function processArticle(ky, payload) {
+    await ky.post(`articles/${payload.params.id}/process`);
+}

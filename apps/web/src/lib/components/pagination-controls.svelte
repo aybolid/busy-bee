@@ -24,8 +24,8 @@
     // svelte-ignore non_reactive_update
     let nextAnchor;
 
-    const isFirstPage = $derived(pageIndex === 0);
-    const isLastPage = $derived(pageIndex === totalPages - 1);
+    const isFirstPage = $derived(pageIndex <= 0);
+    const isLastPage = $derived(pageIndex >= Math.max(totalPages - 1, 0));
 
     const pages = $derived.by(() => {
         // If 7 or fewer pages, just show all of them
