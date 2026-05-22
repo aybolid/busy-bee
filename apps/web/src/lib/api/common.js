@@ -33,9 +33,11 @@ export function dataWithPaginationMeta(type) {
     return z.object({ data: type, meta: paginationMetaSchema }).strict();
 }
 
-export const paginationSchema = z.object({
-    page_index: z.coerce.number().nonnegative().default(0),
-    limit: z.coerce.number().int().max(255).positive().default(20),
-});
+export const paginationSchema = z
+    .object({
+        page_index: z.coerce.number().nonnegative().default(0),
+        limit: z.coerce.number().int().max(255).positive().default(20),
+    })
+    .strict();
 
 /** @typedef {z.infer<typeof paginationSchema>} Pagination */

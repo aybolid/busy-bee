@@ -50,9 +50,11 @@ const articleStatsSchema = z.object({
 
 /** @typedef {z.infer<typeof articleStatsSchema>} ArticleStats */
 
-const getArticlesSearchParamsSchema = z.object({
-    ...paginationSchema.shape,
-});
+const getArticlesSearchParamsSchema = z
+    .object({
+        ...paginationSchema.shape,
+    })
+    .strict();
 
 /**
  * @typedef {z.infer<typeof getArticlesSearchParamsSchema>} GetArticlesSearchParams
@@ -104,12 +106,22 @@ export async function deleteArticle(ky, payload) {
     await ky.delete(`articles/${payload.params.id}`);
 }
 
+export const processArticleJsonSchema = z
+    .object({
+        context: z.string().trim().max(500).optional(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof processArticleJsonSchema>} ProcessArticleJson */
+
 /**
  * @param {import('ky').KyInstance} ky `KyInstance` to use.
- * @param {{ params: { id: ArticleId } }} payload Request payload.
+ * @param {{ params: { id: ArticleId }, json: ProcessArticleJson }} payload Request payload.
  *
  * @returns {Promise<void>}
  */
 export async function processArticle(ky, payload) {
-    await ky.post(`articles/${payload.params.id}/process`);
+    await ky.post(`articles/${payload.params.id}/process`, {
+        json: processArticleJsonSchema.parse(payload.json),
+    });
 }

@@ -31,6 +31,7 @@
     "dependencies": {
         "@fontsource-variable/jetbrains-mono": "^5.2.8",
         "@fontsource-variable/outfit": "^5.2.8",
+        "@tanstack/svelte-form": "^1.32.0",
         "@tanstack/svelte-query": "^6.1.29",
         "@tanstack/svelte-query-devtools": "^6.1.29",
         "class-variance-authority": "^0.7.1",
