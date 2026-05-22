@@ -1,2 +1,2 @@
-pub mod non_empty;
+pub mod length;
 pub mod trimmed_string;

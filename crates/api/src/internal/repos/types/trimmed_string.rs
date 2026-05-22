@@ -1,4 +1,4 @@
-use crate::internal::repos::types::non_empty::EmptyCheck;
+use crate::internal::repos::types::length::LengthCheck;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, sqlx::Type)]
 #[sqlx(transparent)]
@@ -8,6 +8,16 @@ impl TrimmedString {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(string: impl AsRef<str>) -> Self {
         Self(string.as_ref().trim().to_owned())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for TrimmedString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self::new(s))
     }
 }
 
@@ -25,8 +35,8 @@ impl AsRef<String> for TrimmedString {
     }
 }
 
-impl EmptyCheck for TrimmedString {
-    fn is_empty(&self) -> bool {
-        EmptyCheck::is_empty(&self.0)
+impl LengthCheck for TrimmedString {
+    fn len(&self) -> usize {
+        String::len(self)
     }
 }

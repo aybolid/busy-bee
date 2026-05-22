@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::internal::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
-    repos::types::{non_empty::NonEmpty, trimmed_string::TrimmedString},
+    repos::types::{length::NonEmpty, trimmed_string::TrimmedString},
 };
 
 #[derive(

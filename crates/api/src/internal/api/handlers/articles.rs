@@ -7,11 +7,17 @@ use axum::{
 use crate::internal::{
     api::{
         err::{HandlerError, HandlerResult},
-        req::{Pagination, ReqPath},
+        req::{Pagination, ReqJson, ReqPath},
         resp::{Metadata, data, data_with_meta},
         state::SharedApiState,
     },
-    repos::articles::{self, ArticleId},
+    repos::{
+        articles::{self, ArticleId},
+        types::{
+            length::{MaxLength, NonEmpty},
+            trimmed_string::TrimmedString,
+        },
+    },
 };
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -69,14 +75,22 @@ pub async fn get_article_stats(
     Ok(data(article_stats))
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub struct ProcessArticleJson {
+    context: Option<MaxLength<500, NonEmpty<TrimmedString>>>,
+}
+
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn process_article(
     State(state): State<SharedApiState>,
     ReqPath(article_id): ReqPath<ArticleId>,
+    ReqJson(json): ReqJson<ProcessArticleJson>,
 ) -> HandlerResult<impl IntoResponse> {
     articles::mark_article_as_pending(state.db_pool(), article_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
+
+    tracing::trace!(ctx = ?json.context);
 
     Ok(StatusCode::ACCEPTED)
 }
