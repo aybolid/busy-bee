@@ -40,6 +40,12 @@
     import Lock from "$lib/components/ui/icons/lock.svelte";
     import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
     import TableContainer from "$lib/components/ui/table/table-container.svelte";
+    import NativeSelect from "$lib/components/ui/native-select/native-select.svelte";
+    import NativeSelectOption from "$lib/components/ui/native-select/native-select-option.svelte";
+    import { page } from "$app/state";
+    import { goto } from "$app/navigation";
+    import { dev } from "$app/environment";
+    import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -69,6 +75,31 @@
         void articleStats.refetch();
 
         setTimeout(() => (canRefresh = true), 5000);
+    }
+
+    /**
+     * @param {{ limit?: number, pageIndex?: number }} params
+     *
+     * @returns {URLSearchParams}
+     */
+    function getUpdatedSearchParams({ limit, pageIndex }) {
+        const params = new URLSearchParams(page.url.searchParams);
+        params.set("limit", limit?.toString() ?? params.get("limit") ?? "20");
+        if (limit) {
+            // Reset page on limit change
+            params.set("page_index", "0");
+        } else {
+            params.set("page_index", pageIndex?.toString() ?? params.get("page_index") ?? "0");
+        }
+        return params;
+    }
+
+    /** @type {import('svelte/elements').ChangeEventHandler<HTMLSelectElement>} */
+    function handlePageSizeChange(event) {
+        const value = event.currentTarget.value;
+        const limit = Number(value);
+        const params = getUpdatedSearchParams({ limit });
+        goto(`/?${params.toString()}`);
     }
 </script>
 
@@ -236,8 +267,23 @@
         <PaginationControls
             pageIndex={getArticlesSearchParams.page_index}
             totalPages={articles.data.meta.total_pages}
-            href={(pageIndex) => `/?page_index=${pageIndex}`}
+            href={(pageIndex) => `/?${getUpdatedSearchParams({ pageIndex }).toString()}`}
         />
+        <NativeSelect
+            value={getArticlesSearchParams.limit.toString()}
+            onchange={handlePageSizeChange}
+        >
+            <NativeSelectOption value="" disabled>Page size</NativeSelectOption>
+            <NativeSelectOption value="10">10</NativeSelectOption>
+            <NativeSelectOption value="20">20</NativeSelectOption>
+            <NativeSelectOption value="40">40</NativeSelectOption>
+            <NativeSelectOption value="50">50</NativeSelectOption>
+            {#if dev}
+                <NativeSelectOptGroup label="Dev only">
+                    <NativeSelectOption value="255">255</NativeSelectOption>
+                </NativeSelectOptGroup>
+            {/if}
+        </NativeSelect>
     </StickyBottomBar>
 {/if}
 
