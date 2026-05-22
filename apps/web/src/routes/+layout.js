@@ -2,6 +2,8 @@ import { browser } from "$app/environment";
 import { QueryClient } from "@tanstack/svelte-query";
 import _ky from "ky";
 
+export const ssr = false;
+
 /** @type {import('./$types').LayoutLoad} */
 export function load({ url, fetch }) {
     const queryClient = new QueryClient({
