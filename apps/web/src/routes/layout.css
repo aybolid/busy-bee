@@ -1,8 +1,14 @@
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/outfit";
+
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @theme inline {
+    --font-sans: "Outfit Variable", sans-serif;
+    --font-mono: "JetBrains Mono Variable", monospace;
+
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);

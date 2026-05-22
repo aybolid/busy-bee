@@ -9,14 +9,6 @@
     import PaginationControls from "$lib/components/pagination-controls.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
-    import AlertDialogCloseAction from "$lib/components/ui/alert-dialog/alert-dialog-close-action.svelte";
-    import AlertDialogContinueAction from "$lib/components/ui/alert-dialog/alert-dialog-continue-action.svelte";
-    import AlertDialogContent from "$lib/components/ui/alert-dialog/alert-dialog-content.svelte";
-    import AlertDialogDescription from "$lib/components/ui/alert-dialog/alert-dialog-description.svelte";
-    import AlertDialogFooter from "$lib/components/ui/alert-dialog/alert-dialog-footer.svelte";
-    import AlertDialogHeader from "$lib/components/ui/alert-dialog/alert-dialog-header.svelte";
-    import AlertDialogTitle from "$lib/components/ui/alert-dialog/alert-dialog-title.svelte";
-    import AlertDialog from "$lib/components/ui/alert-dialog/alert-dialog.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
     import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
     import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
@@ -41,14 +33,10 @@
     import TableHeader from "$lib/components/ui/table/table-header.svelte";
     import TableRow from "$lib/components/ui/table/table-row.svelte";
     import Table from "$lib/components/ui/table/table.svelte";
-    import {
-        createDeleteArticleMutation,
-        createProcessArticleMutation,
-        getArticlesQueryOptions,
-        getArticleStatsQueryOptions,
-    } from "$lib/query/articles";
+    import { getArticlesQueryOptions, getArticleStatsQueryOptions } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
+    import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -66,28 +54,18 @@
     const articles = createQuery(() => articlesQueryOptions);
     const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
 
+    let canRefresh = $state(true);
+
     function refresh() {
+        if (!canRefresh) return;
+        canRefresh = false;
+
         void props.data.queryClient.invalidateQueries({
-            predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
+            predicate: (q) => q.queryKey[0] === "articles",
         });
         void articleStats.refetch();
-    }
 
-    const deleteMutation = createDeleteArticleMutation();
-
-    /**
-     * @param {import('$lib/api/articles').ArticleId} id
-     */
-    function deleteArticle(id) {
-        deleteMutation.mutate([props.data.ky, { params: { id } }], {
-            onError: (err) => alert(err.message),
-            onSuccess: () => {
-                void props.data.queryClient.invalidateQueries({
-                    predicate: (q) => q.queryKey[0] === articlesQueryOptions.queryKey[0],
-                });
-                void articleStats.refetch();
-            },
-        });
+        setTimeout(() => (canRefresh = true), 5000);
     }
 </script>
 
@@ -96,8 +74,9 @@
 {:else if articles.isError}
     <ErrorAlert error={articles.error} />
 {:else if articles.isSuccess}
-    <div class="flex justify-end">
-        <Action button variant="secondary" onclick={refresh}>
+    <div class="flex items-baseline justify-between gap-8">
+        <h1 class="text-4xl font-bold">Articles</h1>
+        <Action button variant="secondary" disabled={!canRefresh} onclick={refresh}>
             {#if articles.isFetching}
                 <Spinner />
             {:else}
@@ -193,8 +172,10 @@
                             {article.title}
                         </a>
                     </TableCell>
-                    <TableCell class="text-xs whitespace-normal text-muted-foreground">
-                        <p class="line-clamp-2 w-96 text-wrap">
+                    <TableCell>
+                        <p
+                            class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal text-muted-foreground"
+                        >
                             {article.excerpt ?? "--"}
                         </p>
                     </TableCell>
@@ -271,43 +252,14 @@
                         {/snippet}
                     </ArticleIntoPostFormDialog>
                 {/if}
-                <AlertDialog>
+                <DeleteArticleAlertDialog articleId={article.id}>
                     {#snippet trigger(props)}
-                        <MenuActionItem
-                            button
-                            keepOpen
-                            variant="destructive"
-                            disabled={deleteMutation.isPending}
-                            {...props}
-                        >
-                            {#if deleteMutation.isPending}
-                                <Spinner />
-                            {:else}
-                                <Trash />
-                            {/if}
+                        <MenuActionItem button keepOpen variant="destructive" {...props}>
+                            <Trash />
                             <span>Delete</span>
                         </MenuActionItem>
                     {/snippet}
-                    <AlertDialogContent size="sm">
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Delete article?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action will delete the article and it cannot be undone later.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCloseAction />
-                            <AlertDialogContinueAction
-                                closeOnClick
-                                onclick={() => deleteArticle(article.id)}
-                                variant="destructive"
-                            >
-                                <Trash />
-                                <span>Delete</span>
-                            </AlertDialogContinueAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                </DeleteArticleAlertDialog>
             </MenuGroup>
         </MenuContent>
     </Menu>

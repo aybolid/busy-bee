@@ -1,14 +1,4 @@
-<script>
-    import { cn } from "../utils";
-    import { setAlertDialogContext } from "./context";
-
-    const id = $props.id();
-    const context = setAlertDialogContext({
-        dialogId: id,
-        descriptionId: `${id}-description`,
-        labelId: `${id}-title`,
-    });
-
+<script module>
     /**
      * @typedef {Object} TriggerContext
      * @property {'show-modal'} command The action command to open the dialog.
@@ -26,15 +16,30 @@
      */
 
     /**
-     * @type {import('svelte/elements').HTMLAttributes<HTMLDivElement> & AlertDialogSnippets}
+     * @typedef {import('svelte/elements').HTMLAttributes<HTMLDivElement> & AlertDialogSnippets & { ref?: HTMLDialogElement }} AlertDialogProps
      */
-    const { trigger, children, ...props } = $props();
+</script>
+
+<script>
+    import { cn } from "../utils";
+    import { setAlertDialogContext } from "./context";
+
+    const id = $props.id();
+    const context = setAlertDialogContext({
+        dialogId: id,
+        descriptionId: `${id}-description`,
+        labelId: `${id}-title`,
+    });
+
+    /** @type {AlertDialogProps} */
+    let { trigger, children, ref = $bindable(), ...props } = $props();
 </script>
 
 <div {...props} class={cn("group contents", props.class)}>
     {@render trigger?.({ command: "show-modal", commandfor: context.dialogId })}
 
     <dialog
+        bind:this={ref}
         id={context.dialogId}
         role="alertdialog"
         aria-labelledby={context.labelId}
