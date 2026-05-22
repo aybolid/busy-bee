@@ -20,6 +20,8 @@
     import FieldGroup from "./ui/field/field-group.svelte";
     import z from "zod";
     import { processArticleJsonSchema } from "$lib/api/articles";
+    import { isHTTPError } from "ky";
+    import { getApiError } from "$lib/api/error";
 
     /**
      * @typedef {Object} FormProps
@@ -43,11 +45,23 @@
                 context: processArticleJsonSchema.shape.context.nonoptional(),
             }),
         },
-        onSubmit: async ({ value }) => {
+        onSubmit: async ({ value, formApi }) => {
             await processMutation.mutateAsync(
                 [ky, { params: { id: articleId }, json: { context: value.context || undefined } }],
                 {
-                    onError: (err) => alert(err.message),
+                    onError: (err) => {
+                        if (isHTTPError(err)) {
+                            const apiError = getApiError(err);
+                            if (apiError) {
+                                formApi.setErrorMap({
+                                    // Set all API errors to the context field since it is the only field we have
+                                    onSubmit: { fields: { context: apiError } },
+                                });
+                                return;
+                            }
+                        }
+                        alert(err.message);
+                    },
                     onSuccess: () => {
                         void queryClient.invalidateQueries({
                             queryKey: ["articles"],
