@@ -85,14 +85,16 @@
                         {/snippet}
                     </ArticleIntoPostFormDialog>
                 {/if}
-                <DeleteArticleAlertDialog articleId={article.id} onSuccess={() => goto("/")}>
-                    {#snippet trigger(props)}
-                        <MenuActionItem button keepOpen variant="destructive" {...props}>
-                            <Trash />
-                            <span>Delete</span>
-                        </MenuActionItem>
-                    {/snippet}
-                </DeleteArticleAlertDialog>
+                {#if article.status !== "pending"}
+                    <DeleteArticleAlertDialog articleId={article.id} onSuccess={() => goto("/")}>
+                        {#snippet trigger(props)}
+                            <MenuActionItem button keepOpen variant="destructive" {...props}>
+                                <Trash />
+                                <span>Delete</span>
+                            </MenuActionItem>
+                        {/snippet}
+                    </DeleteArticleAlertDialog>
+                {/if}
             </MenuGroup>
         </MenuContent>
     </Menu>

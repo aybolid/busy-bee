@@ -279,12 +279,21 @@ pub async fn get_article_by_id<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err)]
+#[tracing::instrument(level = "trace", skip(executor), ret, err)]
 pub async fn delete_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
-) -> sqlx::Result<Option<Article>> {
-    let query = sqlx::query_as("DELETE FROM articles WHERE id = ? RETURNING *;").bind(id);
+) -> sqlx::Result<Option<ArticleId>> {
+    let query = sqlx::query_scalar(
+        "
+        DELETE FROM articles
+        WHERE
+            id = ? AND status != 'pending'
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
     query.fetch_optional(executor).await
 }
 

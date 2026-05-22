@@ -1,1 +1,1 @@
-- Block delete if article is pending
+- [x] Block delete if article is pending

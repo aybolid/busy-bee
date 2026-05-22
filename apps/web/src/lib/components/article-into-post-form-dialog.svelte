@@ -32,8 +32,10 @@
             onError: (err) => alert(err.message),
             onSuccess: () => {
                 void queryClient.invalidateQueries({
-                    predicate: (q) =>
-                        q.queryKey[0] === "articles" || q.queryKey[0] === "articles/stats",
+                    queryKey: ["articles"],
+                });
+                void queryClient.invalidateQueries({
+                    queryKey: ["articles/stats"],
                 });
                 dialog.close();
             },

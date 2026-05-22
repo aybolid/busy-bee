@@ -5,6 +5,6 @@
     const { children, ...props } = $props();
 </script>
 
-<div {...props} class={cn("relative w-full overflow-x-auto", props.class)}>
+<div {...props} class={cn("w-full overflow-x-auto", props.class)}>
     {@render children?.()}
 </div>

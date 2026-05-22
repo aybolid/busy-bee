@@ -9,13 +9,14 @@
 
     /**
      * @typedef {Object} PaginationControlsProps
+     * @property {URL} url
      * @property {number} pageIndex
      * @property {number} totalPages
-     * @property {(pageIndex: number) => string} href
+     * @property {(pageIndex: number) => URLSearchParams} buildSearchParams
      */
 
     /** @type {Omit<import('$lib/components/ui/pagination/pagination.svelte').PaginationProps, 'children'> & PaginationControlsProps} */
-    const { pageIndex, totalPages, href, ...props } = $props();
+    const { url, pageIndex, totalPages, buildSearchParams, ...props } = $props();
 
     /** @type {HTMLAnchorElement} */
     // svelte-ignore non_reactive_update
@@ -23,6 +24,14 @@
     /** @type {HTMLAnchorElement} */
     // svelte-ignore non_reactive_update
     let nextAnchor;
+
+    /**
+     * @param {URLSearchParams} searchParams
+     * @returns {string} a href attribute value.
+     */
+    function getHref(searchParams) {
+        return `${url.pathname}?${searchParams.toString()}`;
+    }
 
     const isFirstPage = $derived(pageIndex <= 0);
     const isLastPage = $derived(pageIndex >= Math.max(totalPages - 1, 0));
@@ -88,7 +97,7 @@
                 data-sveltekit-noscroll
                 class={[isFirstPage && "pointer-events-none opacity-50"]}
                 aria-disabled={isFirstPage}
-                href={href(!isFirstPage ? pageIndex - 1 : 0)}
+                href={getHref(buildSearchParams(!isFirstPage ? pageIndex - 1 : 0))}
             />
         </PaginationItem>
 
@@ -102,7 +111,7 @@
                     <PaginationAction
                         anchor
                         data-sveltekit-noscroll
-                        href={href(Number(page))}
+                        href={getHref(buildSearchParams(Number(page)))}
                         isActive={page === pageIndex}
                     >
                         {Number(page) + 1}
@@ -118,7 +127,7 @@
                 data-sveltekit-noscroll
                 class={[isLastPage && "pointer-events-none opacity-50"]}
                 aria-disabled={isLastPage}
-                href={href(!isLastPage ? pageIndex + 1 : pageIndex)}
+                href={getHref(buildSearchParams(!isLastPage ? pageIndex + 1 : pageIndex))}
             />
         </PaginationItem>
     </PaginationContent>

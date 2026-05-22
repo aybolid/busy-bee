@@ -63,6 +63,8 @@
     const articles = createQuery(() => articlesQueryOptions);
     const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
 
+    /** @type {ReturnType<typeof setTimeout>} */
+    let refreshTimeout;
     let canRefresh = $state(true);
 
     function refresh() {
@@ -70,12 +72,18 @@
         canRefresh = false;
 
         void props.data.queryClient.invalidateQueries({
-            predicate: (q) => q.queryKey[0] === "articles",
+            queryKey: ["articles"],
         });
         void articleStats.refetch();
 
-        setTimeout(() => (canRefresh = true), 5000);
+        refreshTimeout = setTimeout(() => (canRefresh = true), 5000);
     }
+
+    $effect(() => {
+        return () => {
+            clearTimeout(refreshTimeout);
+        };
+    });
 
     /**
      * @param {{ limit?: number, pageIndex?: number }} params
@@ -97,108 +105,113 @@
     /** @type {import('svelte/elements').ChangeEventHandler<HTMLSelectElement>} */
     function handlePageSizeChange(event) {
         const value = event.currentTarget.value;
-        const limit = Number(value);
-        const params = getUpdatedSearchParams({ limit });
-        goto(`/?${params.toString()}`);
+        const params = getUpdatedSearchParams({ limit: Number(value) });
+        void goto(`${page.url.pathname}?${params.toString()}`, { keepFocus: true, noScroll: true });
     }
 </script>
 
-{#if articles.isPending}
-    <Pending />
-{:else if articles.isError}
-    <ErrorAlert error={articles.error} />
-{:else if articles.isSuccess}
-    <div class="flex items-baseline justify-between gap-8">
-        <h1 class="text-4xl font-bold">Articles</h1>
-        <Action
-            button
-            variant="secondary"
-            disabled={!canRefresh || articles.isFetching || articleStats.isFetching}
-            onclick={refresh}
-        >
-            {#if articles.isFetching || articleStats.isFetching}
-                <Spinner />
-            {:else if !canRefresh}
-                <Lock />
-            {:else}
-                <Refresh />
-            {/if}
-            <span>Refresh</span>
-        </Action>
-    </div>
-
-    <div class="py-8">
-        {#if articleStats.isPending}
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Skeleton class="h-9" />
-                <Skeleton class="h-9" />
-                <Skeleton class="h-9" />
-                <Skeleton class="h-9" />
-            </div>
-        {:else if articleStats.isError}
-            <ErrorAlert error={articleStats.error} />
-        {:else if articleStats.isSuccess}
-            {@const total = articleStats.data.total}
-            {#snippet li(
-                /** @type {import('$lib/api/articles').ArticleStatus} */ status,
-                /** @type {number} */ count,
-            )}
-                {@const value = (count / total) * 100}
-                <li>
-                    <div class="flex items-center justify-between gap-2 pb-2">
-                        <ArticleStatus {status} />
-                        <div class="font-semibold text-nowrap tabular-nums">
-                            <span>
-                                {NUMBER_FORMAT.format(count)}
-                            </span>
-                            <span class="text-xs font-normal text-muted-foreground">/{total}</span>
-                        </div>
-                    </div>
-                    <Progress>
-                        <ProgressIndicator
-                            {value}
-                            class={[status === "error" && "bg-destructive"]}
-                        />
-                    </Progress>
-                </li>
-            {/snippet}
-
-            <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {@render li("new", articleStats.data.new)}
-                {@render li("pending", articleStats.data.pending)}
-                {@render li("processed", articleStats.data.processed)}
-                {@render li("error", articleStats.data.error)}
-            </ul>
+<div class="flex items-baseline justify-between gap-8">
+    <h1 class="text-4xl font-bold">Articles</h1>
+    <Action
+        button
+        variant="secondary"
+        disabled={!canRefresh || articles.isFetching || articleStats.isFetching}
+        onclick={refresh}
+    >
+        {#if articles.isFetching || articleStats.isFetching}
+            <Spinner />
+        {:else if !canRefresh}
+            <Lock />
+        {:else}
+            <Refresh />
         {/if}
-    </div>
+        <span>Refresh</span>
+    </Action>
+</div>
 
-    <TableContainer class="mb-8">
-        <Table>
-            <TableHeader>
+<div class="py-8">
+    {#if articleStats.isPending}
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Skeleton class="h-9" />
+            <Skeleton class="h-9" />
+            <Skeleton class="h-9" />
+            <Skeleton class="h-9" />
+        </div>
+    {:else if articleStats.isError}
+        <ErrorAlert error={articleStats.error} />
+    {:else if articleStats.isSuccess}
+        {@const total = articleStats.data.total}
+        {#snippet li(
+            /** @type {import('$lib/api/articles').ArticleStatus} */ status,
+            /** @type {number} */ count,
+        )}
+            {@const value = (count / total) * 100}
+            <li>
+                <div class="flex items-center justify-between gap-2 pb-2">
+                    <ArticleStatus {status} />
+                    <div class="font-semibold text-nowrap tabular-nums">
+                        <span>
+                            {NUMBER_FORMAT.format(count)}
+                        </span>
+                        <span class="text-xs font-normal text-muted-foreground">/{total}</span>
+                    </div>
+                </div>
+                <Progress>
+                    <ProgressIndicator {value} class={[status === "error" && "bg-destructive"]} />
+                </Progress>
+            </li>
+        {/snippet}
+
+        <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {@render li("new", articleStats.data.new)}
+            {@render li("pending", articleStats.data.pending)}
+            {@render li("processed", articleStats.data.processed)}
+            {@render li("error", articleStats.data.error)}
+        </ul>
+    {/if}
+</div>
+
+<TableContainer class="mb-8">
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
+                    <!-- Actions -->
+                </TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {@const colspan = 8}
+            {#if articles.isPending}
                 <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Published</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
-                        <!-- Actions -->
-                    </TableHead>
+                    <TableCell {colspan}>
+                        <Pending />
+                    </TableCell>
                 </TableRow>
-            </TableHeader>
-            <TableBody>
+            {:else if articles.isError}
+                <TableRow>
+                    <TableCell {colspan}>
+                        <ErrorAlert error={articles.error} />
+                    </TableCell>
+                </TableRow>
+            {:else if articles.isSuccess}
                 {#if articles.data.data.length === 0}
                     <TableRow>
-                        <TableCell colspan={8}>
+                        <TableCell {colspan}>
                             <Empty>
                                 <EmptyHeader>
                                     <EmptyTitle>No articles</EmptyTitle>
                                 </EmptyHeader>
-                                <EmptyDescription
-                                    >There are no articles to display.</EmptyDescription
-                                >
+                                <EmptyDescription>
+                                    There are no articles to display.
+                                </EmptyDescription>
                             </Empty>
                         </TableCell>
                     </TableRow>
@@ -221,11 +234,11 @@
                             <p
                                 class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal text-muted-foreground"
                             >
-                                {article.excerpt ?? "--"}
+                                {article.excerpt || "--"}
                             </p>
                         </TableCell>
                         <TableCell>
-                            {article.byline ?? "--"}
+                            {article.byline || "--"}
                         </TableCell>
                         <TableCell>
                             <ArticleStatus status={article.status} />
@@ -259,28 +272,28 @@
                         </TableCell>
                     </TableRow>
                 {/each}
-            </TableBody>
-        </Table>
-    </TableContainer>
+            {/if}
+        </TableBody>
+    </Table>
+</TableContainer>
 
+{#if articles.isSuccess}
     <StickyBottomBar>
         <PaginationControls
+            url={page.url}
             pageIndex={getArticlesSearchParams.page_index}
             totalPages={articles.data.meta.total_pages}
-            href={(pageIndex) => `/?${getUpdatedSearchParams({ pageIndex }).toString()}`}
+            buildSearchParams={(pageIndex) => getUpdatedSearchParams({ pageIndex })}
         />
-        <NativeSelect
-            value={getArticlesSearchParams.limit.toString()}
-            onchange={handlePageSizeChange}
-        >
-            <NativeSelectOption value="" disabled>Page size</NativeSelectOption>
-            <NativeSelectOption value="10">10</NativeSelectOption>
-            <NativeSelectOption value="20">20</NativeSelectOption>
-            <NativeSelectOption value="40">40</NativeSelectOption>
-            <NativeSelectOption value="50">50</NativeSelectOption>
+        <NativeSelect value={getArticlesSearchParams.limit} onchange={handlePageSizeChange}>
+            <NativeSelectOption value={0} disabled>Page size</NativeSelectOption>
+            <NativeSelectOption value={10}>10</NativeSelectOption>
+            <NativeSelectOption value={20}>20</NativeSelectOption>
+            <NativeSelectOption value={40}>40</NativeSelectOption>
+            <NativeSelectOption value={50}>50</NativeSelectOption>
             {#if dev}
                 <NativeSelectOptGroup label="Dev only">
-                    <NativeSelectOption value="255">255</NativeSelectOption>
+                    <NativeSelectOption value={255}>255</NativeSelectOption>
                 </NativeSelectOptGroup>
             {/if}
         </NativeSelect>
@@ -314,14 +327,16 @@
                         {/snippet}
                     </ArticleIntoPostFormDialog>
                 {/if}
-                <DeleteArticleAlertDialog articleId={article.id}>
-                    {#snippet trigger(props)}
-                        <MenuActionItem button keepOpen variant="destructive" {...props}>
-                            <Trash />
-                            <span>Delete</span>
-                        </MenuActionItem>
-                    {/snippet}
-                </DeleteArticleAlertDialog>
+                {#if article.status !== "pending"}
+                    <DeleteArticleAlertDialog articleId={article.id}>
+                        {#snippet trigger(props)}
+                            <MenuActionItem button keepOpen variant="destructive" {...props}>
+                                <Trash />
+                                <span>Delete</span>
+                            </MenuActionItem>
+                        {/snippet}
+                    </DeleteArticleAlertDialog>
+                {/if}
             </MenuGroup>
         </MenuContent>
     </Menu>
