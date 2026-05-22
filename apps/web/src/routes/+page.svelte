@@ -37,6 +37,9 @@
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
+    import Lock from "$lib/components/ui/icons/lock.svelte";
+    import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
+    import TableContainer from "$lib/components/ui/table/table-container.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -76,9 +79,16 @@
 {:else if articles.isSuccess}
     <div class="flex items-baseline justify-between gap-8">
         <h1 class="text-4xl font-bold">Articles</h1>
-        <Action button variant="secondary" disabled={!canRefresh} onclick={refresh}>
-            {#if articles.isFetching}
+        <Action
+            button
+            variant="secondary"
+            disabled={!canRefresh || articles.isFetching || articleStats.isFetching}
+            onclick={refresh}
+        >
+            {#if articles.isFetching || articleStats.isFetching}
                 <Spinner />
+            {:else if !canRefresh}
+                <Lock />
             {:else}
                 <Refresh />
             {/if}
@@ -131,98 +141,104 @@
         {/if}
     </div>
 
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead class="sticky right-0 bg-background/80 backdrop-blur-xs">
-                    <!-- Actions -->
-                </TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {#if articles.data.data.length === 0}
+    <TableContainer class="mb-8">
+        <Table>
+            <TableHeader>
                 <TableRow>
-                    <TableCell colspan={8}>
-                        <Empty>
-                            <EmptyHeader>
-                                <EmptyTitle>No articles</EmptyTitle>
-                            </EmptyHeader>
-                            <EmptyDescription>There are no articles to display.</EmptyDescription>
-                        </Empty>
-                    </TableCell>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Published</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
+                        <!-- Actions -->
+                    </TableHead>
                 </TableRow>
-            {/if}
+            </TableHeader>
+            <TableBody>
+                {#if articles.data.data.length === 0}
+                    <TableRow>
+                        <TableCell colspan={8}>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyTitle>No articles</EmptyTitle>
+                                </EmptyHeader>
+                                <EmptyDescription
+                                    >There are no articles to display.</EmptyDescription
+                                >
+                            </Empty>
+                        </TableCell>
+                    </TableRow>
+                {/if}
 
-            {#each articles.data.data as article (article.id)}
-                <TableRow
-                    class={[
-                        "group",
-                        article.status === "error" && "bg-destructive/10 hover:bg-destructive/15",
-                    ]}
-                >
-                    <TableCell class="max-w-80 truncate font-medium">
-                        <a href="/articles/{article.id}" class="hover:underline">
-                            {article.title}
-                        </a>
-                    </TableCell>
-                    <TableCell>
-                        <p
-                            class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal text-muted-foreground"
-                        >
-                            {article.excerpt ?? "--"}
-                        </p>
-                    </TableCell>
-                    <TableCell>
-                        {article.byline ?? "--"}
-                    </TableCell>
-                    <TableCell>
-                        <ArticleStatus status={article.status} />
-                    </TableCell>
-                    <TableCell>
-                        {#if article.published_time}
+                {#each articles.data.data as article (article.id)}
+                    <TableRow
+                        class={[
+                            "group",
+                            article.status === "error" &&
+                                "bg-destructive/10 hover:bg-destructive/15",
+                        ]}
+                    >
+                        <TableCell class="max-w-80 truncate font-medium">
+                            <a href="/articles/{article.id}" class="hover:underline">
+                                {article.title}
+                            </a>
+                        </TableCell>
+                        <TableCell>
+                            <p
+                                class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal text-muted-foreground"
+                            >
+                                {article.excerpt ?? "--"}
+                            </p>
+                        </TableCell>
+                        <TableCell>
+                            {article.byline ?? "--"}
+                        </TableCell>
+                        <TableCell>
+                            <ArticleStatus status={article.status} />
+                        </TableCell>
+                        <TableCell>
+                            {#if article.published_time}
+                                <Badge variant="secondary">
+                                    {dayjs(article.published_time).format("MMM DD, YYYY, HH:mm")}
+                                </Badge>
+                            {:else}
+                                <span class="text-muted-foreground">--</span>
+                            {/if}
+                        </TableCell>
+                        <TableCell>
                             <Badge variant="secondary">
-                                {dayjs(article.published_time).format("MMM DD, YYYY, HH:mm")}
+                                {dayjs(article.created_at).format("MMM DD, YYYY, HH:mm")}
                             </Badge>
-                        {:else}
-                            <span class="text-muted-foreground">--</span>
-                        {/if}
-                    </TableCell>
-                    <TableCell>
-                        <Badge variant="secondary">
-                            {dayjs(article.created_at).format("MMM DD, YYYY, HH:mm")}
-                        </Badge>
-                    </TableCell>
-                    <TableCell>
-                        <Badge
-                            variant={article.created_at.toISOString() ===
-                            article.updated_at.toISOString()
-                                ? "ghost"
-                                : "secondary"}
-                        >
-                            {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
-                        </Badge>
-                    </TableCell>
-                    <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
-                        {@render articleMenu(article)}
-                    </TableCell>
-                </TableRow>
-            {/each}
-        </TableBody>
-    </Table>
+                        </TableCell>
+                        <TableCell>
+                            <Badge
+                                variant={article.created_at.toISOString() ===
+                                article.updated_at.toISOString()
+                                    ? "ghost"
+                                    : "secondary"}
+                            >
+                                {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
+                            </Badge>
+                        </TableCell>
+                        <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
+                            {@render articleMenu(article)}
+                        </TableCell>
+                    </TableRow>
+                {/each}
+            </TableBody>
+        </Table>
+    </TableContainer>
 
-    <PaginationControls
-        class="pt-8"
-        pageIndex={getArticlesSearchParams.page_index}
-        totalPages={articles.data.meta.total_pages}
-        href={(pageIndex) => `/?page_index=${pageIndex}`}
-    />
+    <StickyBottomBar>
+        <PaginationControls
+            pageIndex={getArticlesSearchParams.page_index}
+            totalPages={articles.data.meta.total_pages}
+            href={(pageIndex) => `/?page_index=${pageIndex}`}
+        />
+    </StickyBottomBar>
 {/if}
 
 {#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}

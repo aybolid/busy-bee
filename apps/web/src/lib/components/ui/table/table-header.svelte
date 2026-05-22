@@ -5,6 +5,6 @@
     const { children, ...props } = $props();
 </script>
 
-<thead {...props} class={cn("[&_tr:last-child]:border-0", props.class)}>
+<thead {...props} class={cn("bg-muted [&_tr:last-child]:border-0", props.class)}>
     {@render children?.()}
 </thead>

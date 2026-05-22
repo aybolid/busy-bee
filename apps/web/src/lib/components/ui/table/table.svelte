@@ -5,8 +5,6 @@
     const { children, ...props } = $props();
 </script>
 
-<div class="relative w-full overflow-x-auto">
-    <table {...props} class={cn("w-full caption-bottom text-sm", props.class)}>
-        {@render children?.()}
-    </table>
-</div>
+<table {...props} class={cn("w-full caption-bottom text-sm", props.class)}>
+    {@render children?.()}
+</table>

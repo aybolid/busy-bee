@@ -1,6 +1,7 @@
 <script>
     import Badge from "./ui/badge.svelte";
     import Bug from "./ui/icons/bug.svelte";
+    import Spinner from "./ui/spinner.svelte";
 
     /** @type {Omit<import('$lib/components/ui/badge.svelte').BadgeProps, 'children'> & { status: import('$lib/api/articles').ArticleStatus }} */
     const { status, ...props } = $props();
@@ -23,6 +24,8 @@
 <Badge {...props} variant={props.variant ?? variant}>
     {#if status === "error"}
         <Bug />
+    {:else if status === "pending"}
+        <Spinner />
     {/if}
     <span>
         {label}
