@@ -8,7 +8,7 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use crate::internal::{
-    infra::{amqp::declare_durable_queue, db::DatabasePool},
+    infra::db::DatabasePool,
     repos::articles::{self, Article, FromParsedArticeError},
 };
 
@@ -45,12 +45,10 @@ pub enum RssArticlesConsumerError {
 pub async fn run_rss_articles_consumer(
     context: RssArticlesConsumerContext,
 ) -> Result<(), RssArticlesConsumerError> {
-    let queue = declare_durable_queue(&context.channel, context.queue.clone()).await?;
-
     let mut consumer = context
         .channel
         .basic_consume(
-            queue.name().clone(),
+            context.queue.clone(),
             "rss_articles_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),

@@ -99,6 +99,12 @@ pub struct Article {
     url: Option<ArticleUrl>,
 }
 
+impl Article {
+    pub fn id(&self) -> ArticleId {
+        self.id
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum FromParsedArticeError {
     #[error(transparent)]
@@ -234,6 +240,46 @@ pub async fn mark_article_as_pending<'c>(
             status = 'pending'
         WHERE
             id = ? AND status NOT IN ('pending', 'processed')
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+pub async fn mark_article_as_error<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleId,
+) -> sqlx::Result<Option<ArticleId>> {
+    let query = sqlx::query_scalar(
+        "
+        UPDATE articles
+        SET
+            status = 'error'
+        WHERE
+            id = ? AND status != 'error'
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+pub async fn mark_article_as_processed<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleId,
+) -> sqlx::Result<Option<ArticleId>> {
+    let query = sqlx::query_scalar(
+        "
+        UPDATE articles
+        SET
+            status = 'processed'
+        WHERE
+            id = ? AND status == 'pending'
         RETURNING id;
         ",
     )

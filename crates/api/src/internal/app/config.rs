@@ -13,6 +13,7 @@ pub struct Config {
     api_addr: SocketAddr,
     amqp_url: Url,
     rss_articles_queue: ShortString,
+    article_processor_queue: ShortString,
     database_url: Url,
 }
 
@@ -22,6 +23,7 @@ impl Debug for Config {
             .field("api_addr", &self.api_addr)
             .field("amqp_url", &self.amqp_url.as_str())
             .field("rss_articles_queue", &self.rss_articles_queue)
+            .field("article_processor_queue", &self.article_processor_queue)
             .field("database_url", &self.database_url.as_str())
             .finish()
     }
@@ -38,6 +40,10 @@ impl Config {
 
     pub fn rss_articles_queue(&self) -> &ShortString {
         &self.rss_articles_queue
+    }
+
+    pub fn article_processor_queue(&self) -> &ShortString {
+        &self.article_processor_queue
     }
 
     pub fn database_url(&self) -> &str {
@@ -63,6 +69,8 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
         Url::parse("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
     });
     let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", &"rss_articles"))?;
+    let article_processor_queue =
+        ShortString::try_new(get_or("ARTICLE_PROCESSOR_QUEUE", &"article_processor"))?;
 
     let database_url = parse_or_else("DB_URL", || {
         Url::parse("sqlite://data.db").expect("default database url must parse")
@@ -72,6 +80,7 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
         api_addr,
         amqp_url,
         rss_articles_queue,
+        article_processor_queue,
         database_url,
     })
 }

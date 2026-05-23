@@ -2,6 +2,7 @@
 
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use chrono::{DateTime, Utc};
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 pub type HandlerResult<T> = Result<T, HandlerError>;
@@ -175,6 +176,16 @@ impl From<sqlx::Error> for HandlerError {
         Self::obfuscated(
             StatusCode::INTERNAL_SERVER_ERROR,
             "database operation failed",
+            value,
+        )
+    }
+}
+
+impl<T> From<mpsc::error::SendError<T>> for HandlerError {
+    fn from(value: mpsc::error::SendError<T>) -> Self {
+        Self::obfuscated(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "mpsc send operation failed",
             value,
         )
     }

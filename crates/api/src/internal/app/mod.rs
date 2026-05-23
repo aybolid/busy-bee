@@ -5,10 +5,14 @@ use crate::internal::{
     api::{run_api_server, state::ApiState},
     app::config::load_config,
     infra::{
-        amqp::{amqp_close, amqp_connect},
+        amqp::{amqp_close, amqp_connect, declare_durable_queue},
         db::{database_close, database_connect, database_migrate},
     },
-    rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
+    workers::{
+        article_processor::{ArticleProcessorContext, run_article_processor},
+        publisher::{Queues, create_publisher_mpsc_channel, run_publisher},
+        rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
+    },
 };
 
 pub mod config;
@@ -23,7 +27,15 @@ pub enum RunError {
     #[error(transparent)]
     TaskError(#[from] tokio::task::JoinError),
     #[error(transparent)]
-    RssArtcilesConsumerError(#[from] crate::internal::rss_consumer::RssArticlesConsumerError),
+    RssArtcilesConsumerError(
+        #[from] crate::internal::workers::rss_consumer::RssArticlesConsumerError,
+    ),
+    #[error(transparent)]
+    ArtcileProcessorError(
+        #[from] crate::internal::workers::article_processor::ArticleProcessorError,
+    ),
+    #[error(transparent)]
+    PublisherError(#[from] crate::internal::workers::publisher::PublisherError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -40,26 +52,49 @@ pub async fn run() -> Result<(), RunError> {
     tokio::spawn(shutdown_signal_listener(cancel_token.clone()));
 
     let amqp_connection = amqp_connect(&config).await?;
-    let channel = amqp_connection.create_channel().await?;
+    {
+        let channel = amqp_connection.create_channel().await?;
+        declare_durable_queue(&channel, config.rss_articles_queue().clone()).await?;
+        declare_durable_queue(&channel, config.article_processor_queue().clone()).await?;
+        channel.close(200, "setup completed".into()).await?;
+    }
 
     let db_pool = database_connect(config.database_url()).await?;
     database_migrate(&db_pool).await?;
 
+    let (tx, rx) = create_publisher_mpsc_channel();
+    let publisher = run_publisher(
+        rx,
+        amqp_connection.create_channel().await?,
+        Queues::new(config.article_processor_queue().clone()),
+    );
+
     let rss_consumer = run_rss_articles_consumer(RssArticlesConsumerContext::new(
         db_pool.clone(),
-        channel,
+        amqp_connection.create_channel().await?,
         config.rss_articles_queue().clone(),
         cancel_token.clone(),
     ));
 
-    let api_server = run_api_server(ApiState::new(config, db_pool.clone()), cancel_token);
+    let article_processor = run_article_processor(ArticleProcessorContext::new(
+        db_pool.clone(),
+        amqp_connection.create_channel().await?,
+        config.article_processor_queue().clone(),
+        cancel_token.clone(),
+    ));
+
+    let api_server = run_api_server(ApiState::new(config, db_pool.clone(), tx), cancel_token);
 
     let mut tasks = JoinSet::new();
 
+    tasks.spawn(async move { publisher.await.map_err(RunError::from) });
+    tracing::info!("publisher task spawned");
     tasks.spawn(async move { api_server.await.map_err(RunError::from) });
     tracing::info!("api server task spawned");
     tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
     tracing::info!("rss consumer task spawned");
+    tasks.spawn(async move { article_processor.await.map_err(RunError::from) });
+    tracing::info!("article processor task spawned");
 
     while let Some(result) = tasks.join_next().await {
         result??;

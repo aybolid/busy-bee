@@ -11,12 +11,10 @@ use crate::internal::{
         resp::{Metadata, data, data_with_meta},
         state::SharedApiState,
     },
-    repos::{
-        articles::{self, ArticleId},
-        types::{
-            length::{MaxLength, NonEmpty},
-            trimmed_string::TrimmedString,
-        },
+    repos::articles::{self, ArticleId},
+    workers::{
+        article_processor::{AdditionalContext, ArticleDeliveryPayload},
+        publisher::PublisherCommand,
     },
 };
 
@@ -77,7 +75,7 @@ pub async fn get_article_stats(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
-    context: Option<MaxLength<500, NonEmpty<TrimmedString>>>,
+    context: Option<AdditionalContext>,
 }
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -90,7 +88,15 @@ pub async fn process_article(
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
-    tracing::trace!(ctx = ?json.context);
+    let command = PublisherCommand::ProcessArticle(ArticleDeliveryPayload {
+        article_id,
+        context: json.context,
+    });
 
-    Ok(StatusCode::ACCEPTED)
+    if let Err(error) = state.amqp_tx().send(command).await {
+        articles::mark_article_as_error(state.db_pool(), article_id).await?;
+        Err(error.into())
+    } else {
+        Ok(StatusCode::ACCEPTED)
+    }
 }
