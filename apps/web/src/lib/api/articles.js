@@ -1,7 +1,7 @@
 import z from "zod";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
 
-const articleIdSchema = z.uuidv7().brand("articleId");
+export const articleIdSchema = z.uuidv7().brand("articleId");
 
 /** @typedef {z.infer<typeof articleIdSchema>} ArticleId */
 

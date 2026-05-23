@@ -48,6 +48,15 @@ pub struct ArticleProcessingOutput {
     output_text: OutputText,
 }
 
+#[tracing::instrument(level = "trace", skip(executor), err)]
+pub async fn get_article_processing_output_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: ArticleProcessingOutputId,
+) -> sqlx::Result<Option<ArticleProcessingOutput>> {
+    let query = sqlx::query_as("SELECT * FROM article_processing_outputs WHERE id = ?;").bind(id);
+    query.fetch_optional(executor).await
+}
+
 #[tracing::instrument(level = "trace", skip_all, err, ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_article_processing_outputs<'c>(

@@ -5,12 +5,12 @@ use axum::{
 
 use crate::internal::{
     api::{
-        err::HandlerResult,
-        req::Pagination,
-        resp::{Metadata, data_with_meta},
+        err::{HandlerError, HandlerResult},
+        req::{Pagination, ReqPath},
+        resp::{Metadata, data, data_with_meta},
         state::SharedApiState,
     },
-    repos::article_processing_outputs,
+    repos::article_processing_outputs::{self, ArticleProcessingOutputId},
 };
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -39,4 +39,17 @@ pub async fn get_article_processing_outputs(
             total: count,
         },
     ))
+}
+
+#[tracing::instrument(level = "trace", skip(state))]
+pub async fn get_article_processing_output(
+    State(state): State<SharedApiState>,
+    ReqPath(output_id): ReqPath<ArticleProcessingOutputId>,
+) -> HandlerResult<impl IntoResponse> {
+    let output =
+        article_processing_outputs::get_article_processing_output_by_id(state.db_pool(), output_id)
+            .await?
+            .ok_or_else(|| HandlerError::not_found("output not found"))?;
+
+    Ok(data(output))
 }

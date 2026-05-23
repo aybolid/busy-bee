@@ -29,8 +29,9 @@
 
 <QueryClientProvider client={data.queryClient}>
     <header class="mx-auto max-w-7xl px-4 pt-16">
-        <nav>
+        <nav class="flex gap-2">
             <Action anchor href="/" variant="link">Articles</Action>
+            <Action anchor href="/outputs" variant="link">Outputs</Action>
         </nav>
     </header>
 
