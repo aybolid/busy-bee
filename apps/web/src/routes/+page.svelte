@@ -277,9 +277,10 @@
     </Table>
 </TableContainer>
 
-{#if articles.isSuccess}
+{#if articles.isSuccess && articles.data.meta.total > 0}
     <StickyBottomBar>
         <PaginationControls
+            class="justify-start"
             url={page.url}
             pageIndex={getArticlesSearchParams.page_index}
             totalPages={articles.data.meta.total_pages}

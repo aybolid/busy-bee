@@ -2,6 +2,7 @@ use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use crate::internal::{
+    ai,
     api::{run_api_server, state::ApiState},
     app::config::load_config,
     infra::{
@@ -42,6 +43,8 @@ pub enum RunError {
     SqlxError(#[from] sqlx::Error),
     #[error(transparent)]
     MigrateError(#[from] sqlx::migrate::MigrateError),
+    #[error(transparent)]
+    AiError(#[from] ai::ClientInitError),
 }
 
 #[tracing::instrument(level = "trace", err)]
@@ -62,6 +65,9 @@ pub async fn run() -> Result<(), RunError> {
     let db_pool = database_connect(config.database_url()).await?;
     database_migrate(&db_pool).await?;
 
+    let ai_client = ai::Client::try_new(&config).await?;
+    let ai_client = ai::SharedClient::new(ai_client);
+
     let (tx, rx) = create_publisher_mpsc_channel();
     let publisher = run_publisher(
         rx,
@@ -77,6 +83,7 @@ pub async fn run() -> Result<(), RunError> {
     ));
 
     let article_processor = run_article_processor(ArticleProcessorContext::new(
+        ai_client,
         db_pool.clone(),
         amqp_connection.create_channel().await?,
         config.article_processor_queue().clone(),

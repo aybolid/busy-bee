@@ -1,7 +1,4 @@
-use genai::{
-    Client,
-    chat::{ChatMessage, ChatRequest},
-};
+use genai::chat::{ChatMessage, ChatRequest};
 use lapin::{
     Channel,
     message::Delivery,
@@ -12,6 +9,7 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use crate::internal::{
+    ai,
     infra::db::DatabasePool,
     repos::{
         article_processing_outputs,
@@ -25,6 +23,7 @@ use crate::internal::{
 };
 
 pub struct ArticleProcessorContext {
+    ai_client: ai::SharedClient,
     db_pool: DatabasePool,
     channel: Channel,
     queue: ShortString,
@@ -33,12 +32,14 @@ pub struct ArticleProcessorContext {
 
 impl ArticleProcessorContext {
     pub fn new(
+        ai_client: ai::SharedClient,
         db_pool: DatabasePool,
         channel: Channel,
         queue: ShortString,
         cancel_token: CancellationToken,
     ) -> Self {
         Self {
+            ai_client,
             db_pool,
             channel,
             queue,
@@ -73,7 +74,7 @@ pub async fn run_article_processor(
         tokio::select! {
             delivery = consumer.next() => {
                 if let Some(delivery) = delivery {
-                    _ = process_article_delivery(&context.db_pool, delivery).await;
+                    _ = process_article_delivery(&context.ai_client, &context.db_pool, delivery).await;
                 } else {
                     tracing::error!("consumer stream ended unexpectedly");
                     break;
@@ -116,6 +117,7 @@ pub struct ArticleDeliveryPayload {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_article_delivery(
+    ai_client: &ai::SharedClient,
     db_pool: &DatabasePool,
     delivery: lapin::Result<Delivery>,
 ) -> Result<(), ProcessArticleDeliveryError> {
@@ -125,16 +127,25 @@ async fn process_article_delivery(
     let payload = serde_json::from_slice::<ArticleDeliveryPayload>(&delivery.data)?;
     tracing::trace!(article_id = ?payload.article_id, context = ?payload.context, "got payload");
 
+    if let Err(error) = process_article(ai_client, db_pool, &payload).await {
+        articles::mark_article_as_error(db_pool, payload.article_id).await?;
+        Err(error)
+    } else {
+        Ok(())
+    }
+}
+
+#[tracing::instrument(level = "trace", skip_all, err)]
+async fn process_article(
+    ai_client: &ai::SharedClient,
+    db_pool: &DatabasePool,
+    payload: &ArticleDeliveryPayload,
+) -> Result<(), ProcessArticleDeliveryError> {
     let article = articles::get_article_by_id(db_pool, payload.article_id)
         .await?
         .ok_or(ProcessArticleDeliveryError::ArticleNotFound(
             payload.article_id,
         ))?;
-
-    let client = Client::default();
-
-    let adapter_kind = client.resolve_service_target("").await?.model.adapter_kind;
-    tracing::trace!(?adapter_kind);
 
     let mut chat_request = ChatRequest::new(vec![ChatMessage::system(
         "
@@ -151,11 +162,8 @@ async fn process_article_delivery(
     }
     chat_request = chat_request.append_message(ChatMessage::user(article.text_content().as_str()));
 
-    let chat_response = client.exec_chat("gemma4", chat_request, None).await?;
-    tracing::trace!(usage = ?chat_response.usage);
+    let chat_response = ai_client.exec_chat(chat_request).await?;
     let text = chat_response.into_texts().join("");
-    tracing::trace!(?text);
-
     let output_text = NonEmpty::try_new(TrimmedString::new(text))?;
 
     article_processing_outputs::create_article_processing_output(

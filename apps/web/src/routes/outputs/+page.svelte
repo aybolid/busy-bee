@@ -203,9 +203,10 @@
     </Table>
 </TableContainer>
 
-{#if outputs.isSuccess}
+{#if outputs.isSuccess && outputs.data.meta.total > 0}
     <StickyBottomBar>
         <PaginationControls
+            class="justify-start"
             url={page.url}
             pageIndex={getArticleProcessingOutputsSearchParams.page_index}
             totalPages={outputs.data.meta.total_pages}

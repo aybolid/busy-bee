@@ -15,6 +15,8 @@ pub struct Config {
     rss_articles_queue: ShortString,
     article_processor_queue: ShortString,
     database_url: Url,
+    ai_model: String,
+    ai_api_key: String,
 }
 
 impl Debug for Config {
@@ -25,6 +27,15 @@ impl Debug for Config {
             .field("rss_articles_queue", &self.rss_articles_queue)
             .field("article_processor_queue", &self.article_processor_queue)
             .field("database_url", &self.database_url.as_str())
+            .field("ai_model", &self.ai_model)
+            .field(
+                "ai_api_key",
+                if self.ai_api_key.is_empty() {
+                    &""
+                } else {
+                    &"[REDACTED]"
+                },
+            )
             .finish()
     }
 }
@@ -48,6 +59,14 @@ impl Config {
 
     pub fn database_url(&self) -> &str {
         self.database_url.as_ref()
+    }
+
+    pub fn ai_model(&self) -> &str {
+        &self.ai_model
+    }
+
+    pub fn ai_api_key(&self) -> &str {
+        &self.ai_api_key
     }
 }
 
@@ -76,12 +95,17 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
         Url::parse("sqlite://data.db").expect("default database url must parse")
     });
 
+    let ai_model = get_or("AI_MODEL", &"gemma4");
+    let ai_api_key = get_or("AI_API_KEY", &"");
+
     Ok(Config {
         api_addr,
         amqp_url,
         rss_articles_queue,
         article_processor_queue,
         database_url,
+        ai_model,
+        ai_api_key,
     })
 }
 
