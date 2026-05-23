@@ -3,7 +3,7 @@
 </script>
 
 <script>
-    import ArticleIntoPostFormDialog from "$lib/components/article-into-post-form-dialog.svelte";
+    import ProcessArticleFormDialog from "$lib/components/process-article-form-dialog.svelte";
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import PaginationControls from "$lib/components/pagination-controls.svelte";
@@ -318,14 +318,12 @@
                         <span>View external</span>
                     </MenuActionItem>
                 {/if}
-                {#if article.status === "new" || article.status === "error"}
-                    <ArticleIntoPostFormDialog articleId={article.id}>
+                {#if article.status !== "pending"}
+                    <ProcessArticleFormDialog articleId={article.id}>
                         {#snippet trigger(props)}
-                            <MenuActionItem button keepOpen {...props}>
-                                <span>Into post</span>
-                            </MenuActionItem>
+                            <MenuActionItem button keepOpen {...props}>Process</MenuActionItem>
                         {/snippet}
-                    </ArticleIntoPostFormDialog>
+                    </ProcessArticleFormDialog>
                 {/if}
                 {#if article.status !== "pending"}
                     <DeleteArticleAlertDialog articleId={article.id}>

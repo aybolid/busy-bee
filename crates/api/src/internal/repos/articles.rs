@@ -243,7 +243,7 @@ pub async fn mark_article_as_pending<'c>(
         SET
             status = 'pending'
         WHERE
-            id = ? AND status NOT IN ('pending', 'processed')
+            id = ? AND status != 'pending'
         RETURNING id;
         ",
     )

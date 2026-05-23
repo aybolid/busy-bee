@@ -81,8 +81,8 @@
     <DialogContent>
         <DialogX />
         <DialogHeader>
-            <DialogTitle>Convert into post</DialogTitle>
-            <DialogDescription>Create a post from the article</DialogDescription>
+            <DialogTitle>Process</DialogTitle>
+            <DialogDescription>Schedule article for being processed by LLM</DialogDescription>
         </DialogHeader>
         <form
             class="contents"
@@ -125,7 +125,7 @@
                     {#if form.state.isSubmitting}
                         <Spinner />
                     {/if}
-                    <span>Convert</span>
+                    <span>Process</span>
                 </DialogContinueAction>
             </DialogFooter>
         </form>
