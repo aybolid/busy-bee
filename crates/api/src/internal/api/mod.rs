@@ -6,7 +6,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
 use crate::internal::api::{
-    routers::articles,
+    routers::{article_processing_outputs, articles},
     state::{ApiState, SharedApiState},
 };
 
@@ -41,7 +41,9 @@ pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) ->
 fn create_api_router(state: ApiState) -> Router {
     let state = SharedApiState::new(state);
 
-    let router = Router::new().merge(articles::router());
+    let router = Router::new()
+        .merge(articles::router())
+        .merge(article_processing_outputs::router());
 
     Router::new().nest("/api", router).with_state(state)
 }

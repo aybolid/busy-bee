@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -44,6 +46,38 @@ pub struct ArticleProcessingOutput {
 
     user_context: Option<AdditionalContext>,
     output_text: OutputText,
+}
+
+#[tracing::instrument(level = "trace", skip_all, err, ret)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub async fn count_article_processing_outputs<'c>(
+    executor: impl DatabaseExecutor<'c>,
+) -> sqlx::Result<usize> {
+    let query = sqlx::query_scalar("SELECT COUNT(*) FROM article_processing_outputs;");
+    query
+        .fetch_one(executor)
+        .await
+        .map(|count: i64| count as usize)
+}
+
+#[tracing::instrument(level = "trace", skip_all, err)]
+#[allow(clippy::cast_possible_wrap)]
+pub async fn get_article_processing_outputs<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    page_index: usize,
+    limit: NonZeroU8,
+) -> sqlx::Result<Vec<ArticleProcessingOutput>> {
+    let limit = limit.get();
+    let offset = page_index * usize::from(limit);
+    tracing::trace!(limit, offset);
+
+    let query = sqlx::query_as(
+        "SELECT * FROM article_processing_outputs ORDER BY created_at DESC LIMIT ? OFFSET ?;",
+    )
+    .bind(i64::from(limit))
+    .bind(offset as i64);
+
+    query.fetch_all(executor).await
 }
 
 #[tracing::instrument(level = "trace", skip_all, ret, err)]
