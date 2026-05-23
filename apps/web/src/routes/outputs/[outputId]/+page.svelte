@@ -13,6 +13,7 @@
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import { getArticleProcessingOutputQueryOptions } from "$lib/query/article-processing-outputs";
+    import SvelteMarkdown from "@humanspeak/svelte-markdown";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -33,10 +34,7 @@
     <ErrorAlert error={output.error} />
 {:else if output.isSuccess}
     <article class="mx-auto prose max-w-4xl py-8 prose-neutral dark:prose-invert">
-        <h1>{output.data.id}</h1>
-        <p>
-            {@html output.data.output_text}
-        </p>
+        <SvelteMarkdown source={output.data.output_text} />
     </article>
 
     <StickyBottomBar>

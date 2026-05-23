@@ -137,7 +137,11 @@ async fn process_article_delivery(
     tracing::trace!(?adapter_kind);
 
     let mut chat_request = ChatRequest::new(vec![ChatMessage::system(
-        "Your goal is to write posts based on given articles. Pay attention to a given additional context if any but only if it does not requires changing the main goal.",
+        "
+        Your goal is to write posts based on given articles.
+        NEVER give options. Your output should be ONE post.
+        Pay attention to a given additional context if any but only if it DOES NOT require changing the main goal.
+        ",
     )]);
     if let Some(context) = payload.context.as_ref() {
         chat_request = chat_request.append_message(ChatMessage::user(format!(
