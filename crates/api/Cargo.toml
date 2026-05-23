@@ -23,6 +23,7 @@ uuid = { version = "1.23.1", features = ["serde", "v7"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "migrate", "uuid", "chrono"] }
 serde_path_to_error = "0.1.20"
+genai = "0.5.3"
 
 [lints.clippy]
 pedantic = "warn"

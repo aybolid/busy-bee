@@ -103,6 +103,10 @@ impl Article {
     pub fn id(&self) -> ArticleId {
         self.id
     }
+
+    pub fn text_content(&self) -> &TrimmedString {
+        &self.text_content
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

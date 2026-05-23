@@ -1,3 +1,7 @@
+use genai::{
+    Client,
+    chat::{ChatMessage, ChatRequest},
+};
 use lapin::{
     Channel,
     message::Delivery,
@@ -94,6 +98,8 @@ enum ProcessArticleDeliveryError {
     SqlxError(#[from] sqlx::Error),
     #[error("article {0:?} not found")]
     ArticleNotFound(ArticleId),
+    #[error(transparent)]
+    GenaiError(#[from] genai::Error),
 }
 
 pub type AdditionalContext = MaxLength<500, NonEmpty<TrimmedString>>;
@@ -121,7 +127,26 @@ async fn process_article_delivery(
             payload.article_id,
         ))?;
 
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    let client = Client::default();
+
+    let adapter_kind = client.resolve_service_target("").await?.model.adapter_kind;
+    tracing::trace!(?adapter_kind);
+
+    let mut chat_request = ChatRequest::new(vec![ChatMessage::system(
+        "Write a short telegram post. Your goal is to make fun of the author of the article",
+    )]);
+    if let Some(context) = payload.context {
+        chat_request = chat_request.append_message(ChatMessage::user(format!(
+            "Additional context: {}",
+            context.as_str()
+        )));
+    }
+    chat_request = chat_request.append_message(ChatMessage::user(article.text_content().as_str()));
+
+    let chat_response = client.exec_chat("gemma4", chat_request, None).await?;
+    tracing::trace!(usage = ?chat_response.usage);
+    let text = chat_response.into_texts().join("");
+    tracing::trace!(?text);
 
     articles::mark_article_as_processed(db_pool, article.id())
         .await?
