@@ -24,8 +24,29 @@ CREATE TABLE articles (
 );
 
 CREATE TRIGGER trigger_articles_updated_at AFTER
-UPDATE ON articles FOR EACH ROW BEGIN
+UPDATE ON articles FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
 UPDATE articles
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = NEW.id;
+
+END;
+
+CREATE TABLE article_processing_outputs (
+  id BLOB NOT NULL PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ---
+  article_id BLOB REFERENCES articles (id) ON DELETE SET NULL ON UPDATE CASCADE,
+  ---
+  user_context TEXT,
+  output_text TEXT NOT NULL
+);
+
+CREATE TRIGGER trigger_outputs_updated_at AFTER
+UPDATE ON article_processing_outputs FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
+UPDATE article_processing_outputs
 SET
   updated_at = CURRENT_TIMESTAMP
 WHERE

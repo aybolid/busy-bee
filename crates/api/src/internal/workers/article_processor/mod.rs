@@ -14,8 +14,10 @@ use tokio_util::sync::CancellationToken;
 use crate::internal::{
     infra::db::DatabasePool,
     repos::{
+        article_processing_outputs,
         articles::{self, ArticleId},
         types::{
+            self,
             length::{MaxLength, NonEmpty},
             trimmed_string::TrimmedString,
         },
@@ -100,6 +102,8 @@ enum ProcessArticleDeliveryError {
     ArticleNotFound(ArticleId),
     #[error(transparent)]
     GenaiError(#[from] genai::Error),
+    #[error(transparent)]
+    EmptyOutputError(#[from] types::length::EmptyValueError),
 }
 
 pub type AdditionalContext = MaxLength<500, NonEmpty<TrimmedString>>;
@@ -135,7 +139,7 @@ async fn process_article_delivery(
     let mut chat_request = ChatRequest::new(vec![ChatMessage::system(
         "Write a short telegram post. Your goal is to make fun of the author of the article",
     )]);
-    if let Some(context) = payload.context {
+    if let Some(context) = payload.context.as_ref() {
         chat_request = chat_request.append_message(ChatMessage::user(format!(
             "Additional context: {}",
             context.as_str()
@@ -147,6 +151,16 @@ async fn process_article_delivery(
     tracing::trace!(usage = ?chat_response.usage);
     let text = chat_response.into_texts().join("");
     tracing::trace!(?text);
+
+    let output_text = NonEmpty::try_new(TrimmedString::new(text))?;
+
+    article_processing_outputs::create_article_processing_output(
+        db_pool,
+        article.id(),
+        &output_text,
+        payload.context.as_ref(),
+    )
+    .await?;
 
     articles::mark_article_as_processed(db_pool, article.id())
         .await?
