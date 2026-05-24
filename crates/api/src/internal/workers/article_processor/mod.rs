@@ -2,7 +2,7 @@ use genai::chat::{ChatMessage, ChatRequest};
 use lapin::{
     Channel,
     message::Delivery,
-    options::{BasicAckOptions, BasicConsumeOptions},
+    options::{BasicAckOptions, BasicConsumeOptions, BasicRejectOptions},
     types::{FieldTable, ShortString},
 };
 use tokio_stream::StreamExt;
@@ -22,12 +22,14 @@ use crate::internal::{
     },
 };
 
+const POST_SYSTEM_PROMPT: &str = include_str!("prompts/post.md");
+
 pub struct ArticleProcessorContext {
-    ai_client: ai::SharedClient,
-    db_pool: DatabasePool,
-    channel: Channel,
-    queue: ShortString,
-    cancel_token: CancellationToken,
+    pub ai_client: ai::SharedClient,
+    pub db_pool: DatabasePool,
+    pub channel: Channel,
+    pub queue: ShortString,
+    pub cancel_token: CancellationToken,
 }
 
 impl ArticleProcessorContext {
@@ -51,7 +53,7 @@ impl ArticleProcessorContext {
 #[derive(Debug, thiserror::Error)]
 pub enum ArticleProcessorError {
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
@@ -72,12 +74,19 @@ pub async fn run_article_processor(
     tracing::info!("processing delivery");
     loop {
         tokio::select! {
-            delivery = consumer.next() => {
-                if let Some(delivery) = delivery {
-                    _ = process_article_delivery(&context.ai_client, &context.db_pool, delivery).await;
-                } else {
-                    tracing::error!("consumer stream ended unexpectedly");
-                    break;
+            delivery_result = consumer.next() => {
+                match delivery_result {
+                    Some(Ok(delivery)) => {
+                        // Error logged by `tracing::instrument`
+                        _ =  process_article_delivery(&context.ai_client, &context.db_pool, delivery).await;
+                    }
+                    Some(Err(error)) => {
+                        tracing::error!(%error);
+                    }
+                    None => {
+                        tracing::error!("consumer stream ended unexpectedly");
+                        break;
+                    }
                 }
             }
             () = context.cancel_token.cancelled() => {
@@ -91,20 +100,19 @@ pub async fn run_article_processor(
 }
 
 #[derive(Debug, thiserror::Error)]
-#[allow(clippy::enum_variant_names)]
-enum ProcessArticleDeliveryError {
+pub enum ProcessArticleDeliveryError {
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
     #[error(transparent)]
-    JsonError(#[from] serde_json::Error),
+    Json(#[from] serde_json::Error),
     #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
     #[error("article {0:?} not found")]
     ArticleNotFound(ArticleId),
     #[error(transparent)]
-    GenaiError(#[from] genai::Error),
+    Genai(#[from] genai::Error),
     #[error(transparent)]
-    EmptyOutputError(#[from] types::length::EmptyValueError),
+    EmptyOutput(#[from] types::length::EmptyValueError),
 }
 
 pub type AdditionalContext = MaxLength<500, NonEmpty<TrimmedString>>;
@@ -119,20 +127,28 @@ pub struct ArticleDeliveryPayload {
 async fn process_article_delivery(
     ai_client: &ai::SharedClient,
     db_pool: &DatabasePool,
-    delivery: lapin::Result<Delivery>,
+    delivery: Delivery,
 ) -> Result<(), ProcessArticleDeliveryError> {
-    let delivery = delivery?;
-    delivery.ack(BasicAckOptions::default()).await?;
-
-    let payload = serde_json::from_slice::<ArticleDeliveryPayload>(&delivery.data)?;
-    tracing::trace!(article_id = ?payload.article_id, context = ?payload.context, "got payload");
+    let payload = match serde_json::from_slice::<ArticleDeliveryPayload>(&delivery.data) {
+        Ok(p) => p,
+        Err(e) => {
+            // Reject unparseable messages without requeuing to avoid poison pill loops
+            _ = delivery.reject(BasicRejectOptions { requeue: false }).await;
+            return Err(e.into());
+        }
+    };
+    tracing::trace!(article_id = ?payload.article_id, context = ?payload.context);
 
     if let Err(error) = process_article(ai_client, db_pool, &payload).await {
         articles::mark_article_as_error(db_pool, payload.article_id).await?;
-        Err(error)
-    } else {
-        Ok(())
+        // Acknowledge the message since the "error state" has been safely recorded in the database.
+        delivery.ack(BasicAckOptions::default()).await?;
+        return Err(error);
     }
+
+    // Acknowledge on full success
+    delivery.ack(BasicAckOptions::default()).await?;
+    Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
@@ -147,13 +163,8 @@ async fn process_article(
             payload.article_id,
         ))?;
 
-    let mut chat_request = ChatRequest::new(vec![ChatMessage::system(
-        "
-        Your goal is to write posts based on given articles.
-        NEVER give options. Your output should be ONE post.
-        Pay attention to a given additional context if any but only if it DOES NOT require changing the main goal.
-        ",
-    )]);
+    let mut chat_request = ChatRequest::new(vec![ChatMessage::system(POST_SYSTEM_PROMPT)]);
+
     if let Some(context) = payload.context.as_ref() {
         chat_request = chat_request.append_message(ChatMessage::user(format!(
             "Additional context: {}",
@@ -163,20 +174,25 @@ async fn process_article(
     chat_request = chat_request.append_message(ChatMessage::user(article.text_content().as_str()));
 
     let chat_response = ai_client.exec_chat(chat_request).await?;
+
     let text = chat_response.into_texts().join("");
     let output_text = NonEmpty::try_new(TrimmedString::new(text))?;
 
+    let mut tx = db_pool.begin().await?;
+
     article_processing_outputs::create_article_processing_output(
-        db_pool,
+        &mut *tx,
         article.id(),
         &output_text,
         payload.context.as_ref(),
     )
     .await?;
 
-    articles::mark_article_as_processed(db_pool, article.id())
+    articles::mark_article_as_processed(&mut *tx, article.id())
         .await?
         .ok_or(ProcessArticleDeliveryError::ArticleNotFound(article.id()))?;
+
+    tx.commit().await?;
 
     Ok(())
 }
