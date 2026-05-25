@@ -1,16 +1,13 @@
 use genai::chat::{ChatMessage, ChatRequest};
 use lapin::{
-    Channel,
     message::Delivery,
     options::{BasicAckOptions, BasicConsumeOptions, BasicRejectOptions},
-    types::{FieldTable, ShortString},
+    types::FieldTable,
 };
 use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
 
-use crate::internal::{
-    ai,
-    infra::db::DatabasePool,
+use crate::{
+    app::state::SharedAppState,
     repos::{
         article_processing_outputs,
         articles::{self, ArticleId},
@@ -24,32 +21,6 @@ use crate::internal::{
 
 const POST_SYSTEM_PROMPT: &str = include_str!("prompts/post.md");
 
-pub struct ArticleProcessorContext {
-    pub ai_client: ai::SharedClient,
-    pub db_pool: DatabasePool,
-    pub channel: Channel,
-    pub queue: ShortString,
-    pub cancel_token: CancellationToken,
-}
-
-impl ArticleProcessorContext {
-    pub fn new(
-        ai_client: ai::SharedClient,
-        db_pool: DatabasePool,
-        channel: Channel,
-        queue: ShortString,
-        cancel_token: CancellationToken,
-    ) -> Self {
-        Self {
-            ai_client,
-            db_pool,
-            channel,
-            queue,
-            cancel_token,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum ArticleProcessorError {
     #[error(transparent)]
@@ -57,13 +28,12 @@ pub enum ArticleProcessorError {
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
-pub async fn run_article_processor(
-    context: ArticleProcessorContext,
-) -> Result<(), ArticleProcessorError> {
-    let mut consumer = context
-        .channel
+pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleProcessorError> {
+    let channel = state.amqp_connection().create_channel().await?;
+
+    let mut consumer = channel
         .basic_consume(
-            context.queue.clone(),
+            state.config().article_processor_queue().clone(),
             "article_processor_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -78,7 +48,7 @@ pub async fn run_article_processor(
                 match delivery_result {
                     Some(Ok(delivery)) => {
                         // Error logged by `tracing::instrument`
-                        _ =  process_article_delivery(&context.ai_client, &context.db_pool, delivery).await;
+                        _ =  process_article_delivery(&state, delivery).await;
                     }
                     Some(Err(error)) => {
                         tracing::error!(%error);
@@ -89,7 +59,7 @@ pub async fn run_article_processor(
                     }
                 }
             }
-            () = context.cancel_token.cancelled() => {
+            () = state.cancel_token().cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
@@ -125,8 +95,7 @@ pub struct ArticleDeliveryPayload {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_article_delivery(
-    ai_client: &ai::SharedClient,
-    db_pool: &DatabasePool,
+    state: &SharedAppState,
     delivery: Delivery,
 ) -> Result<(), ProcessArticleDeliveryError> {
     let payload = match serde_json::from_slice::<ArticleDeliveryPayload>(&delivery.data) {
@@ -139,8 +108,8 @@ async fn process_article_delivery(
     };
     tracing::trace!(article_id = ?payload.article_id, context = ?payload.context);
 
-    if let Err(error) = process_article(ai_client, db_pool, &payload).await {
-        articles::mark_article_as_error(db_pool, payload.article_id).await?;
+    if let Err(error) = process_article(state, &payload).await {
+        articles::mark_article_as_error(state.db_pool(), payload.article_id).await?;
         // Acknowledge the message since the "error state" has been safely recorded in the database.
         delivery.ack(BasicAckOptions::default()).await?;
         return Err(error);
@@ -153,11 +122,10 @@ async fn process_article_delivery(
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_article(
-    ai_client: &ai::SharedClient,
-    db_pool: &DatabasePool,
+    state: &SharedAppState,
     payload: &ArticleDeliveryPayload,
 ) -> Result<(), ProcessArticleDeliveryError> {
-    let article = articles::get_article_by_id(db_pool, payload.article_id)
+    let article = articles::get_article_by_id(state.db_pool(), payload.article_id)
         .await?
         .ok_or(ProcessArticleDeliveryError::ArticleNotFound(
             payload.article_id,
@@ -173,12 +141,12 @@ async fn process_article(
     }
     chat_request = chat_request.append_message(ChatMessage::user(article.text_content().as_str()));
 
-    let chat_response = ai_client.exec_chat(chat_request).await?;
+    let chat_response = state.ai_client().exec_chat(chat_request).await?;
 
     let text = chat_response.into_texts().join("");
     let output_text = NonEmpty::try_new(TrimmedString::new(text))?;
 
-    let mut tx = db_pool.begin().await?;
+    let mut tx = state.db_pool().begin().await?;
 
     article_processing_outputs::create_article_processing_output(
         &mut *tx,

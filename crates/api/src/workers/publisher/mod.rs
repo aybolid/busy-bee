@@ -1,7 +1,7 @@
-use lapin::{BasicProperties, Channel, options::BasicPublishOptions, types::ShortString};
+use lapin::{BasicProperties, Channel, options::BasicPublishOptions};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-use crate::internal::workers::article_processor::ArticleDeliveryPayload;
+use crate::{app::state::SharedAppState, workers::article_processor::ArticleDeliveryPayload};
 
 #[tracing::instrument(level = "trace")]
 pub fn create_publisher_mpsc_channel() -> (Sender<PublisherCommand>, Receiver<PublisherCommand>) {
@@ -15,31 +15,22 @@ pub enum PublisherCommand {
     ProcessArticle(ArticleDeliveryPayload),
 }
 
-#[derive(Debug)]
-pub struct Queues {
-    article_processor_queue: ShortString,
-}
-
-impl Queues {
-    pub fn new(article_processor_queue: ShortString) -> Self {
-        Self {
-            article_processor_queue,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
-pub enum PublisherError {}
+pub enum PublisherError {
+    #[error(transparent)]
+    Amqp(#[from] lapin::Error),
+}
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 pub async fn run_publisher(
     mut rx: Receiver<PublisherCommand>,
-    channel: Channel,
-    queues: Queues,
+    state: SharedAppState,
 ) -> Result<(), PublisherError> {
+    let channel = state.amqp_connection().create_channel().await?;
+
     while let Some(command) = rx.recv().await {
         tracing::trace!("got publish command");
-        _ = process_command(command, &channel, &queues).await;
+        _ = process_command(&state, command, &channel).await;
     }
     Ok(())
 }
@@ -54,14 +45,14 @@ enum ProcessCommandError {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_command(
+    state: &SharedAppState,
     command: PublisherCommand,
     channel: &Channel,
-    queues: &Queues,
 ) -> Result<(), ProcessCommandError> {
     let (payload, queue) = match command {
         PublisherCommand::ProcessArticle(payload) => (
             serde_json::to_vec(&payload)?,
-            queues.article_processor_queue.clone(),
+            state.config().article_processor_queue().clone(),
         ),
     };
 

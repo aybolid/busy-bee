@@ -1,4 +1,4 @@
-use crate::internal::repos::types::length::LengthCheck;
+use crate::repos::types::length::LengthCheck;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, sqlx::Type)]
 #[sqlx(transparent)]

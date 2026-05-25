@@ -4,13 +4,13 @@ use axum::{
     response::IntoResponse,
 };
 
-use crate::internal::{
+use crate::{
     api::{
         err::{HandlerError, HandlerResult},
         req::{Pagination, ReqJson, ReqPath},
         resp::{Metadata, data, data_with_meta},
-        state::SharedApiState,
     },
+    app::state::SharedAppState,
     repos::articles::{self, ArticleId},
     workers::{
         article_processor::{AdditionalContext, ArticleDeliveryPayload},
@@ -20,7 +20,7 @@ use crate::internal::{
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_articles(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
 ) -> HandlerResult<impl IntoResponse> {
     let page_index = pagination.page_index();
@@ -42,7 +42,7 @@ pub async fn get_articles(
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
 ) -> HandlerResult<impl IntoResponse> {
     let article = articles::get_article_by_id(state.db_pool(), article_id)
@@ -54,7 +54,7 @@ pub async fn get_article(
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn delete_article(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
 ) -> HandlerResult<impl IntoResponse> {
     articles::delete_article_by_id(state.db_pool(), article_id)
@@ -66,7 +66,7 @@ pub async fn delete_article(
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article_stats(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
     let article_stats = articles::get_article_stats(state.db_pool()).await?;
 
@@ -80,7 +80,7 @@ pub struct ProcessArticleJson {
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn process_article(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
     ReqJson(json): ReqJson<ProcessArticleJson>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -93,7 +93,7 @@ pub async fn process_article(
         context: json.context,
     });
 
-    if let Err(error) = state.amqp_tx().send(command).await {
+    if let Err(error) = state.publisher_tx().send(command).await {
         articles::mark_article_as_error(state.db_pool(), article_id).await?;
         Err(error.into())
     } else {

@@ -2,12 +2,11 @@ use std::io;
 
 use axum::Router;
 use tokio::net::TcpListener;
-use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
-use crate::internal::api::{
-    routers::{article_processing_outputs, articles},
-    state::{ApiState, SharedApiState},
+use crate::{
+    api::routers::{article_processing_outputs, articles},
+    app::state::SharedAppState,
 };
 
 mod err;
@@ -15,10 +14,11 @@ mod handlers;
 mod req;
 mod resp;
 mod routers;
-pub mod state;
 
 #[tracing::instrument(level = "trace", skip_all, err)]
-pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) -> io::Result<()> {
+pub async fn run_api_server(state: SharedAppState) -> io::Result<()> {
+    let cancel_token = state.cancel_token().clone();
+
     let listener = TcpListener::bind(state.config().api_addr()).await?;
     tracing::info!("listening on {}", state.config().api_addr());
 
@@ -38,9 +38,7 @@ pub async fn run_api_server(state: ApiState, cancel_token: CancellationToken) ->
     Ok(())
 }
 
-fn create_api_router(state: ApiState) -> Router {
-    let state = SharedApiState::new(state);
-
+fn create_api_router(state: SharedAppState) -> Router {
     let router = Router::new()
         .merge(articles::router())
         .merge(article_processing_outputs::router());

@@ -1,6 +1,11 @@
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-mod internal;
+mod ai;
+mod api;
+mod app;
+mod infra;
+mod repos;
+mod workers;
 
 fn init_tracing_subscriber() {
     tracing_subscriber::registry()
@@ -17,5 +22,5 @@ fn init_tracing_subscriber() {
 #[tokio::main]
 async fn main() {
     init_tracing_subscriber();
-    internal::app::run().await.unwrap();
+    app::run().await.unwrap();
 }

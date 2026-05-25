@@ -3,7 +3,7 @@ use std::num::NonZeroU8;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::internal::{
+use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
     repos::{
         articles::ArticleId,

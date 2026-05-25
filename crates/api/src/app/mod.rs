@@ -1,22 +1,26 @@
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
-use crate::internal::{
+use crate::{
     ai,
-    api::{run_api_server, state::ApiState},
-    app::config::load_config,
+    api::run_api_server,
+    app::{
+        config::load_config,
+        state::{AppState, SharedAppState},
+    },
     infra::{
         amqp::{amqp_close, amqp_connect, declare_durable_queue},
         db::{database_close, database_connect, database_migrate},
     },
     workers::{
-        article_processor::{ArticleProcessorContext, run_article_processor},
-        publisher::{Queues, create_publisher_mpsc_channel, run_publisher},
-        rss_consumer::{RssArticlesConsumerContext, run_rss_articles_consumer},
+        article_processor::run_article_processor,
+        publisher::{create_publisher_mpsc_channel, run_publisher},
+        rss_consumer::run_rss_articles_consumer,
     },
 };
 
 pub mod config;
+pub mod state;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
@@ -28,15 +32,11 @@ pub enum RunError {
     #[error(transparent)]
     TaskError(#[from] tokio::task::JoinError),
     #[error(transparent)]
-    RssArtcilesConsumerError(
-        #[from] crate::internal::workers::rss_consumer::RssArticlesConsumerError,
-    ),
+    RssArtcilesConsumerError(#[from] crate::workers::rss_consumer::RssArticlesConsumerError),
     #[error(transparent)]
-    ArtcileProcessorError(
-        #[from] crate::internal::workers::article_processor::ArticleProcessorError,
-    ),
+    ArtcileProcessorError(#[from] crate::workers::article_processor::ArticleProcessorError),
     #[error(transparent)]
-    PublisherError(#[from] crate::internal::workers::publisher::PublisherError),
+    PublisherError(#[from] crate::workers::publisher::PublisherError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -66,31 +66,22 @@ pub async fn run() -> Result<(), RunError> {
     database_migrate(&db_pool).await?;
 
     let ai_client = ai::Client::try_new(&config).await?;
-    let ai_client = ai::SharedClient::new(ai_client);
 
-    let (tx, rx) = create_publisher_mpsc_channel();
-    let publisher = run_publisher(
-        rx,
-        amqp_connection.create_channel().await?,
-        Queues::new(config.article_processor_queue().clone()),
-    );
+    let (publisher_tx, publisher_rx) = create_publisher_mpsc_channel();
 
-    let rss_consumer = run_rss_articles_consumer(RssArticlesConsumerContext::new(
-        db_pool.clone(),
-        amqp_connection.create_channel().await?,
-        config.rss_articles_queue().clone(),
-        cancel_token.clone(),
-    ));
-
-    let article_processor = run_article_processor(ArticleProcessorContext::new(
+    let state = SharedAppState::new(AppState::new(
+        config,
+        db_pool,
+        amqp_connection,
         ai_client,
-        db_pool.clone(),
-        amqp_connection.create_channel().await?,
-        config.article_processor_queue().clone(),
-        cancel_token.clone(),
+        publisher_tx,
+        cancel_token,
     ));
 
-    let api_server = run_api_server(ApiState::new(config, db_pool.clone(), tx), cancel_token);
+    let publisher = run_publisher(publisher_rx, state.clone());
+    let rss_consumer = run_rss_articles_consumer(state.clone());
+    let article_processor = run_article_processor(state.clone());
+    let api_server = run_api_server(state.clone());
 
     let mut tasks = JoinSet::new();
 
@@ -107,10 +98,10 @@ pub async fn run() -> Result<(), RunError> {
         result??;
     }
 
-    _ = amqp_close(amqp_connection)
+    _ = amqp_close(state.amqp_connection())
         .await
         .inspect_err(|error| tracing::error!(%error));
-    database_close(db_pool).await;
+    database_close(state.db_pool()).await;
 
     tracing::info!("bye!");
     Ok(())

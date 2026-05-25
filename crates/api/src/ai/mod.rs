@@ -1,20 +1,16 @@
-use std::sync::Arc;
-
 use genai::{
     adapter::AdapterKind,
     chat::{ChatRequest, ChatResponse},
     resolver::{AuthData, AuthResolver},
 };
 
-use crate::internal::app::config::Config;
+use crate::app::config::Config;
 
 #[derive(Debug, Clone, Default)]
 pub struct Client {
     client: genai::Client,
     model: String,
 }
-
-pub type SharedClient = Arc<Client>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientInitError {

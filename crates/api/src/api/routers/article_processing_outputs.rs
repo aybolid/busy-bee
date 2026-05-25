@@ -1,8 +1,8 @@
 use axum::{Router, routing::get};
 
-use crate::internal::api::{handlers::article_processing_outputs, state::SharedApiState};
+use crate::{api::handlers::article_processing_outputs, app::state::SharedAppState};
 
-pub fn router() -> Router<SharedApiState> {
+pub fn router() -> Router<SharedAppState> {
     tracing::info!("register /article_processing_outputs router");
 
     let router = Router::new()

@@ -3,19 +3,19 @@ use axum::{
     response::IntoResponse,
 };
 
-use crate::internal::{
+use crate::{
     api::{
         err::{HandlerError, HandlerResult},
         req::{Pagination, ReqPath},
         resp::{Metadata, data, data_with_meta},
-        state::SharedApiState,
     },
+    app::state::SharedAppState,
     repos::article_processing_outputs::{self, ArticleProcessingOutputId},
 };
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article_processing_outputs(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
 ) -> HandlerResult<impl IntoResponse> {
     let page_index = pagination.page_index();
@@ -43,7 +43,7 @@ pub async fn get_article_processing_outputs(
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article_processing_output(
-    State(state): State<SharedApiState>,
+    State(state): State<SharedAppState>,
     ReqPath(output_id): ReqPath<ArticleProcessingOutputId>,
 ) -> HandlerResult<impl IntoResponse> {
     let output =

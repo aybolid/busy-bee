@@ -3,9 +3,9 @@ use axum::{
     routing::{delete, get, post},
 };
 
-use crate::internal::api::{handlers::articles, state::SharedApiState};
+use crate::{api::handlers::articles, app::state::SharedAppState};
 
-pub fn router() -> Router<SharedApiState> {
+pub fn router() -> Router<SharedAppState> {
     tracing::info!("register /articles router");
 
     let router = Router::new()

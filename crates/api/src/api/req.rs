@@ -12,7 +12,7 @@ use axum::{
 };
 use serde::de::DeserializeOwned;
 
-use crate::internal::api::err::HandlerError;
+use crate::api::err::HandlerError;
 
 /// Axum extractor for path parameters that maps rejections to [`HandlerError`].
 pub struct ReqPath<T>(pub T);

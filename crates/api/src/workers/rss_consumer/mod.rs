@@ -1,54 +1,30 @@
 use lapin::{
-    Channel,
     message::Delivery,
     options::{BasicAckOptions, BasicConsumeOptions},
-    types::{FieldTable, ShortString},
+    types::FieldTable,
 };
 use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
 
-use crate::internal::{
-    infra::db::DatabasePool,
+use crate::{
+    app::state::SharedAppState,
     repos::articles::{self, Article, FromParsedArticeError},
 };
-
-pub struct RssArticlesConsumerContext {
-    db_pool: DatabasePool,
-    channel: Channel,
-    queue: ShortString,
-    cancel_token: CancellationToken,
-}
-
-impl RssArticlesConsumerContext {
-    pub fn new(
-        db_pool: DatabasePool,
-        channel: Channel,
-        queue: ShortString,
-        cancel_token: CancellationToken,
-    ) -> Self {
-        Self {
-            db_pool,
-            channel,
-            queue,
-            cancel_token,
-        }
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum RssArticlesConsumerError {
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 pub async fn run_rss_articles_consumer(
-    context: RssArticlesConsumerContext,
+    state: SharedAppState,
 ) -> Result<(), RssArticlesConsumerError> {
-    let mut consumer = context
-        .channel
+    let channel = state.amqp_connection().create_channel().await?;
+
+    let mut consumer = channel
         .basic_consume(
-            context.queue.clone(),
+            state.config().rss_articles_queue().clone(),
             "rss_articles_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -61,13 +37,13 @@ pub async fn run_rss_articles_consumer(
         tokio::select! {
             delivery = consumer.next() => {
                 if let Some(delivery) = delivery {
-                    _ = process_rss_delivery(&context.db_pool, delivery).await;
+                    _ = process_rss_delivery(&state, delivery).await;
                 } else {
                     tracing::error!("consumer stream ended unexpectedly");
                     break;
                 }
             }
-            () = context.cancel_token.cancelled() => {
+            () = state.cancel_token().cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
@@ -92,7 +68,7 @@ enum ProcessRssDeliveryError {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_rss_delivery(
-    db_pool: &DatabasePool,
+    state: &SharedAppState,
     delivery: lapin::Result<Delivery>,
 ) -> Result<(), ProcessRssDeliveryError> {
     let delivery = delivery?;
@@ -103,7 +79,7 @@ async fn process_rss_delivery(
 
     let article = Article::try_from(parsed_article)?;
 
-    articles::create_article(db_pool, &article).await?;
+    articles::create_article(state.db_pool(), &article).await?;
 
     Ok(())
 }

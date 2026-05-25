@@ -29,7 +29,7 @@ pub async fn database_connect(database_url: &str) -> sqlx::Result<DatabasePool> 
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-pub async fn database_close(pool: DatabasePool) {
+pub async fn database_close(pool: &DatabasePool) {
     tracing::trace!(pool_size = pool.size(), num_idle = pool.num_idle());
     pool.close().await;
     tracing::info!("database connections pool closed");
@@ -41,7 +41,7 @@ where
     A: Acquire<'a>,
     <A::Connection as Deref>::Target: Migrate,
 {
-    sqlx::migrate!("src/internal/infra/db/migrations")
+    sqlx::migrate!("src/infra/db/migrations")
         .run(migrator)
         .await
         .inspect(|()| tracing::info!("database migrations applied"))
