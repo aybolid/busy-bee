@@ -1,14 +1,12 @@
 use std::num::NonZeroU8;
 
 use chrono::{DateTime, Utc};
+use types::{NonEmpty, TrimmedString};
 use uuid::Uuid;
 
 use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
-    repos::{
-        articles::ArticleId,
-        types::{length::NonEmpty, trimmed_string::TrimmedString},
-    },
+    repos::articles::ArticleId,
     workers::article_processor::AdditionalContext,
 };
 

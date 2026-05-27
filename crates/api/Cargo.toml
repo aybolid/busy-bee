@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 rss-reader = { workspace = true }
+types = { workspace = true, features = ["serde", "sqlx"] }
 redis = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

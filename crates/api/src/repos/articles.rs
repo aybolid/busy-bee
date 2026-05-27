@@ -1,12 +1,10 @@
 use std::num::NonZeroU8;
 
 use chrono::{DateTime, Utc};
+use types::{NonEmpty, TrimmedString};
 use uuid::Uuid;
 
-use crate::{
-    infra::db::{DatabaseExecutor, DatabaseQueryResult},
-    repos::types::{length::NonEmpty, trimmed_string::TrimmedString},
-};
+use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult};
 
 #[derive(
     Debug,
@@ -127,48 +125,48 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
     fn try_from(value: rss_reader::ParsedArticle) -> Result<Self, Self::Error> {
         let now = Utc::now();
 
-        let title = ArticleTitle::try_new(TrimmedString::new(value.title))
+        let title = ArticleTitle::try_new(TrimmedString::from(value.title))
             .map_err(|_| FromParsedArticeError::EmptyString("title"))?;
 
         let byline = value
             .byline
-            .and_then(|s| ArticleByLine::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleByLine::new(TrimmedString::from(s)));
 
-        let content = ArticleTitle::try_new(TrimmedString::new(value.content))
+        let content = ArticleTitle::try_new(TrimmedString::from(value.content))
             .map_err(|_| FromParsedArticeError::EmptyString("content"))?;
-        let text_content = ArticleTitle::try_new(TrimmedString::new(value.text_content))
+        let text_content = ArticleTitle::try_new(TrimmedString::from(value.text_content))
             .map_err(|_| FromParsedArticeError::EmptyString("text_content"))?;
 
         let length = i64::try_from(text_content.chars().count())?;
 
         let excerpt = value
             .excerpt
-            .and_then(|s| ArticleExcerpt::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleExcerpt::new(TrimmedString::from(s)));
 
         let site_name = value
             .site_name
-            .and_then(|s| ArticleSiteName::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleSiteName::new(TrimmedString::from(s)));
 
         let dir = value.dir.map(|s| s.parse()).transpose()?;
 
         let lang = value
             .lang
-            .and_then(|s| ArticleLang::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleLang::new(TrimmedString::from(s)));
 
         let published_time = value.published_time.map(|s| s.parse()).transpose()?;
         let modified_time = value.modified_time.map(|s| s.parse()).transpose()?;
 
         let image = value
             .image
-            .and_then(|s| ArticleImage::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleImage::new(TrimmedString::from(s)));
 
         let favicon = value
             .favicon
-            .and_then(|s| ArticleFavicon::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleFavicon::new(TrimmedString::from(s)));
 
         let url = value
             .url
-            .and_then(|s| ArticleUrl::new(TrimmedString::new(s)));
+            .and_then(|s| ArticleUrl::new(TrimmedString::from(s)));
 
         Ok(Self {
             id: ArticleId::new(),

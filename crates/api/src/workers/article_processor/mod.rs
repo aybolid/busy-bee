@@ -5,17 +5,13 @@ use lapin::{
     types::FieldTable,
 };
 use tokio_stream::StreamExt;
+use types::{NonEmpty, NonEmptyMaxLength, TrimmedString};
 
 use crate::{
     app::state::SharedAppState,
     repos::{
         article_processing_outputs,
         articles::{self, ArticleId},
-        types::{
-            self,
-            length::{MaxLength, NonEmpty},
-            trimmed_string::TrimmedString,
-        },
     },
 };
 
@@ -85,10 +81,11 @@ pub enum ProcessArticleDeliveryError {
     #[error(transparent)]
     Genai(#[from] genai::Error),
     #[error(transparent)]
-    EmptyOutput(#[from] types::length::EmptyValueError),
+    InvalidOutputLength(#[from] types::LengthBoundError),
 }
 
-pub type AdditionalContext = MaxLength<500, NonEmpty<TrimmedString>>;
+#[allow(clippy::identity_op)]
+pub type AdditionalContext = NonEmptyMaxLength<500, TrimmedString>;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ArticleDeliveryPayload {
@@ -147,7 +144,7 @@ async fn process_article(
     let chat_response = state.ai_client().exec_chat(chat_request).await?;
 
     let text = chat_response.into_texts().join("");
-    let output_text = NonEmpty::try_new(TrimmedString::new(text))?;
+    let output_text = NonEmpty::try_new(TrimmedString::from(text))?;
 
     let mut tx = state.db_pool().begin().await?;
 
