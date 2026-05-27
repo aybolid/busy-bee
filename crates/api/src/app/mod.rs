@@ -23,28 +23,27 @@ pub mod config;
 pub mod state;
 
 #[derive(Debug, thiserror::Error)]
-#[allow(clippy::enum_variant_names)]
 pub enum RunError {
     #[error(transparent)]
-    LoadConfigError(#[from] config::LoadConfigError),
+    LoadConfig(#[from] config::LoadConfigError),
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
     #[error(transparent)]
-    TaskError(#[from] tokio::task::JoinError),
+    Task(#[from] tokio::task::JoinError),
     #[error(transparent)]
-    RssArtcilesConsumerError(#[from] crate::workers::rss_consumer::RssArticlesConsumerError),
+    RssArtcilesConsumer(#[from] crate::workers::rss_consumer::RssArticlesConsumerError),
     #[error(transparent)]
-    ArtcileProcessorError(#[from] crate::workers::article_processor::ArticleProcessorError),
+    ArtcileProcessor(#[from] crate::workers::article_processor::ArticleProcessorError),
     #[error(transparent)]
-    PublisherError(#[from] crate::workers::publisher::PublisherError),
+    Publisher(#[from] crate::workers::publisher::PublisherError),
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
     #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
-    MigrateError(#[from] sqlx::migrate::MigrateError),
+    Migrate(#[from] sqlx::migrate::MigrateError),
     #[error(transparent)]
-    AiError(#[from] ai::ClientInitError),
+    Ai(#[from] ai::ClientInitError),
 }
 
 #[tracing::instrument(level = "trace", err)]
@@ -78,7 +77,7 @@ pub async fn run() -> Result<(), RunError> {
         cancel_token,
     ));
 
-    let publisher = run_publisher(publisher_rx, state.clone());
+    let publisher = run_publisher(state.clone(), publisher_rx);
     let rss_consumer = run_rss_articles_consumer(state.clone());
     let article_processor = run_article_processor(state.clone());
     let api_server = run_api_server(state.clone());
@@ -86,13 +85,9 @@ pub async fn run() -> Result<(), RunError> {
     let mut tasks = JoinSet::new();
 
     tasks.spawn(async move { publisher.await.map_err(RunError::from) });
-    tracing::info!("publisher task spawned");
     tasks.spawn(async move { api_server.await.map_err(RunError::from) });
-    tracing::info!("api server task spawned");
     tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
-    tracing::info!("rss consumer task spawned");
     tasks.spawn(async move { article_processor.await.map_err(RunError::from) });
-    tracing::info!("article processor task spawned");
 
     while let Some(result) = tasks.join_next().await {
         result??;
