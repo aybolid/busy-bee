@@ -5,13 +5,13 @@ use axum::{
 };
 
 use crate::{
-    api::{
+    app::state::SharedAppState,
+    repos::articles::{self, ArticleId},
+    workers::api::{
         err::{HandlerError, HandlerResult},
         req::{Pagination, ReqJson, ReqPath},
         resp::{Metadata, data, data_with_meta},
     },
-    app::state::SharedAppState,
-    repos::articles::{self, ArticleId},
     workers::{
         article_processor::{AdditionalContext, ArticleDeliveryPayload},
         publisher::PublisherCommand,

@@ -15,7 +15,7 @@ pub struct Client {
 #[derive(Debug, thiserror::Error)]
 pub enum ClientInitError {
     #[error(transparent)]
-    GenaiError(#[from] genai::Error),
+    Genai(#[from] genai::Error),
     #[error("api key not found for a model that requires it")]
     ApiKeyNotFound,
 }

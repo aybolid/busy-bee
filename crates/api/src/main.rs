@@ -1,7 +1,6 @@
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod ai;
-mod api;
 mod app;
 mod infra;
 mod repos;

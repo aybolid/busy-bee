@@ -3,7 +3,6 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     ai,
-    api::run_api_server,
     app::{
         config::load_config,
         state::{AppState, SharedAppState},
@@ -13,6 +12,7 @@ use crate::{
         db::{database_close, database_connect, database_migrate},
     },
     workers::{
+        api::run_api_server,
         article_processor::run_article_processor,
         publisher::{create_publisher_mpsc_channel, run_publisher},
         rss_consumer::run_rss_articles_consumer,

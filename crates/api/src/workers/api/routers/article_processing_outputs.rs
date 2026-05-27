@@ -1,6 +1,6 @@
 use axum::{Router, routing::get};
 
-use crate::{api::handlers::article_processing_outputs, app::state::SharedAppState};
+use crate::{app::state::SharedAppState, workers::api::handlers::article_processing_outputs};
 
 pub fn router() -> Router<SharedAppState> {
     tracing::info!("register /article_processing_outputs router");

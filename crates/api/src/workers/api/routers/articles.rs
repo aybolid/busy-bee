@@ -3,7 +3,7 @@ use axum::{
     routing::{delete, get, post},
 };
 
-use crate::{api::handlers::articles, app::state::SharedAppState};
+use crate::{app::state::SharedAppState, workers::api::handlers::articles};
 
 pub fn router() -> Router<SharedAppState> {
     tracing::info!("register /articles router");

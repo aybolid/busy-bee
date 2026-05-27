@@ -4,13 +4,13 @@ use axum::{
 };
 
 use crate::{
-    api::{
+    app::state::SharedAppState,
+    repos::article_processing_outputs::{self, ArticleProcessingOutputId},
+    workers::api::{
         err::{HandlerError, HandlerResult},
         req::{Pagination, ReqPath},
         resp::{Metadata, data, data_with_meta},
     },
-    app::state::SharedAppState,
-    repos::article_processing_outputs::{self, ArticleProcessingOutputId},
 };
 
 #[tracing::instrument(level = "trace", skip(state))]

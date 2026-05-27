@@ -5,8 +5,8 @@ use tokio::net::TcpListener;
 use tracing::Instrument;
 
 use crate::{
-    api::routers::{article_processing_outputs, articles},
     app::state::SharedAppState,
+    workers::api::routers::{article_processing_outputs, articles},
 };
 
 mod err;
