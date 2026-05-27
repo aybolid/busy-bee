@@ -77,9 +77,9 @@ impl FeedConfig {
 #[derive(Debug, thiserror::Error)]
 pub enum LoadConfigError {
     #[error(transparent)]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error(transparent)]
-    DeserializeError(#[from] toml::de::Error),
+    Deserialize(#[from] toml::de::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), ret, err)]
@@ -91,9 +91,9 @@ pub fn load_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, LoadConf
 #[derive(Debug, thiserror::Error)]
 pub enum WriteConfigError {
     #[error(transparent)]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error(transparent)]
-    SerializeError(#[from] toml::ser::Error),
+    Serialize(#[from] toml::ser::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), err)]

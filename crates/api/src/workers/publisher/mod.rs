@@ -27,11 +27,12 @@ pub async fn run_publisher(
     state: SharedAppState,
     mut rx: Receiver<PublisherCommand>,
 ) -> Result<(), PublisherError> {
-    tracing::trace!("publisher started");
+    tracing::trace!("started");
 
     let channel = state.amqp_connection().create_channel().await?;
-    tracing::trace!("publisher amqp channel created");
+    tracing::trace!("amqp channel created");
 
+    tracing::trace!("processing mpsc messages");
     loop {
         tokio::select! {
             command = rx.recv() => {

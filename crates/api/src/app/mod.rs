@@ -96,6 +96,7 @@ pub async fn run() -> Result<(), RunError> {
     _ = amqp_close(state.amqp_connection())
         .await
         .inspect_err(|error| tracing::error!(%error));
+
     database_close(state.db_pool()).await;
 
     tracing::info!("bye!");

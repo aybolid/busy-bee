@@ -29,7 +29,10 @@ pub enum ArticleProcessorError {
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleProcessorError> {
+    tracing::trace!("started");
+
     let channel = state.amqp_connection().create_channel().await?;
+    tracing::trace!("amqp channel created");
 
     let mut consumer = channel
         .basic_consume(
@@ -131,7 +134,7 @@ async fn process_article(
             payload.article_id,
         ))?;
 
-    let mut chat_request = ChatRequest::new(vec![ChatMessage::system(POST_SYSTEM_PROMPT)]);
+    let mut chat_request = ChatRequest::default().with_system(POST_SYSTEM_PROMPT);
 
     if let Some(context) = payload.context.as_ref() {
         chat_request = chat_request.append_message(ChatMessage::user(format!(

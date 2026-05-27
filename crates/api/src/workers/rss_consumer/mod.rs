@@ -20,7 +20,10 @@ pub enum RssArticlesConsumerError {
 pub async fn run_rss_articles_consumer(
     state: SharedAppState,
 ) -> Result<(), RssArticlesConsumerError> {
+    tracing::trace!("started");
+
     let channel = state.amqp_connection().create_channel().await?;
+    tracing::trace!("amqp channel created");
 
     let mut consumer = channel
         .basic_consume(
@@ -35,12 +38,19 @@ pub async fn run_rss_articles_consumer(
     tracing::info!("processing delivery");
     loop {
         tokio::select! {
-            delivery = consumer.next() => {
-                if let Some(delivery) = delivery {
-                    _ = process_rss_delivery(&state, delivery).await;
-                } else {
-                    tracing::error!("consumer stream ended unexpectedly");
-                    break;
+            delivery_result = consumer.next() => {
+                match delivery_result {
+                    Some(Ok(delivery)) => {
+                        // Error logged by `tracing::instrument`
+                        _ =  process_rss_delivery(&state, delivery).await;
+                    }
+                    Some(Err(error)) => {
+                        tracing::error!(%error);
+                    }
+                    None => {
+                        tracing::error!("consumer stream ended unexpectedly");
+                        break;
+                    }
                 }
             }
             () = state.cancel_token().cancelled() => {
@@ -57,21 +67,20 @@ pub async fn run_rss_articles_consumer(
 #[allow(clippy::enum_variant_names)]
 enum ProcessRssDeliveryError {
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
     #[error(transparent)]
-    JsonError(#[from] serde_json::Error),
+    Json(#[from] serde_json::Error),
     #[error(transparent)]
-    ConvertError(#[from] FromParsedArticeError),
+    Convert(#[from] FromParsedArticeError),
     #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
 async fn process_rss_delivery(
     state: &SharedAppState,
-    delivery: lapin::Result<Delivery>,
+    delivery: Delivery,
 ) -> Result<(), ProcessRssDeliveryError> {
-    let delivery = delivery?;
     delivery.ack(BasicAckOptions::default()).await?;
 
     let parsed_article = serde_json::from_slice::<rss_reader::ParsedArticle>(&delivery.data)?;

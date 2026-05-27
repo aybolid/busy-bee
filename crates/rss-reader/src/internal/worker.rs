@@ -78,9 +78,9 @@ pub async fn rss_worker(context: FeedWorkerContext) {
 #[derive(Debug, thiserror::Error)]
 enum ProcessFeedError {
     #[error(transparent)]
-    RequestError(#[from] reqwest::Error),
+    Request(#[from] reqwest::Error),
     #[error(transparent)]
-    RssError(#[from] rss::Error),
+    Rss(#[from] rss::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err)]
@@ -106,22 +106,21 @@ async fn process_rss_feed(context: &Arc<FeedWorkerContext>) -> Result<(), Proces
 }
 
 #[derive(Debug, thiserror::Error)]
-#[allow(clippy::enum_variant_names)]
 enum ProcessFeedItemError {
     #[error(transparent)]
-    PermitError(#[from] tokio::sync::AcquireError),
+    Permit(#[from] tokio::sync::AcquireError),
     #[error(transparent)]
-    RequestError(#[from] reqwest::Error),
+    Request(#[from] reqwest::Error),
     #[error(transparent)]
-    ReadabilityError(#[from] dom_smoothie::ReadabilityError),
+    Readability(#[from] dom_smoothie::ReadabilityError),
     #[error(transparent)]
-    TaskError(#[from] tokio::task::JoinError),
+    Task(#[from] tokio::task::JoinError),
     #[error(transparent)]
-    RedisError(#[from] redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error(transparent)]
-    AmqpError(#[from] lapin::Error),
+    Amqp(#[from] lapin::Error),
     #[error(transparent)]
-    JsonError(#[from] serde_json::Error),
+    Json(#[from] serde_json::Error),
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(link = item.link), err)]
