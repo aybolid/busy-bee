@@ -3,11 +3,12 @@ use std::{ops::Deref, str::FromStr};
 use sqlx::{
     Acquire, Executor, Pool, Sqlite, SqlitePool,
     migrate::Migrate,
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteQueryResult},
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteQueryResult, SqliteRow},
 };
 
 pub type Database = Sqlite;
 pub type DatabasePool = Pool<Database>;
+pub type DatabaseRow = SqliteRow;
 
 pub trait DatabaseExecutor<'c>: Executor<'c, Database = Database> {}
 
