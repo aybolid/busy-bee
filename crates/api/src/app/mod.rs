@@ -77,17 +77,12 @@ pub async fn run() -> Result<(), RunError> {
         cancel_token,
     ));
 
-    let publisher = run_publisher(state.clone(), publisher_rx);
-    let rss_consumer = run_rss_articles_consumer(state.clone());
-    let article_processor = run_article_processor(state.clone());
-    let api_server = run_api_server(state.clone());
-
     let mut tasks = JoinSet::new();
 
-    tasks.spawn(async move { publisher.await.map_err(RunError::from) });
-    tasks.spawn(async move { api_server.await.map_err(RunError::from) });
-    tasks.spawn(async move { rss_consumer.await.map_err(RunError::from) });
-    tasks.spawn(async move { article_processor.await.map_err(RunError::from) });
+    tasks.spawn(worker(run_publisher(state.clone(), publisher_rx)));
+    tasks.spawn(worker(run_api_server(state.clone())));
+    tasks.spawn(worker(run_rss_articles_consumer(state.clone())));
+    tasks.spawn(worker(run_article_processor(state.clone())));
 
     while let Some(result) = tasks.join_next().await {
         result??;
@@ -101,6 +96,12 @@ pub async fn run() -> Result<(), RunError> {
 
     tracing::info!("bye!");
     Ok(())
+}
+
+async fn worker(
+    future: impl Future<Output = Result<(), impl Into<RunError>>>,
+) -> Result<(), RunError> {
+    future.await.map_err(Into::into)
 }
 
 #[tracing::instrument(level = "trace", skip_all)]

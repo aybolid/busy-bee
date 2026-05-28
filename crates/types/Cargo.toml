@@ -12,3 +12,6 @@ sqlx = { workspace = true, optional = true }
 [features]
 serde = [ "dep:serde" ]
 sqlx = [ "dep:sqlx" ]
+
+[lints.clippy]
+pedantic = "warn"

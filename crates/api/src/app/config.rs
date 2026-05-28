@@ -92,7 +92,7 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
             .expect("default rss articles queue value is not empty")
     });
     let article_processor_queue = parse_or_else("ARTICLE_PROCESSOR_QUEUE", || {
-        NonEmpty::new(TrimmedString::new("qrticle_processor"))
+        NonEmpty::new(TrimmedString::new("article_processor"))
             .expect("default article processor queue value is not empty")
     });
 

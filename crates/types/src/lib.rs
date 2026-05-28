@@ -1,8 +1,4 @@
-#![warn(
-    missing_debug_implementations,
-    missing_copy_implementations,
-    clippy::pedantic
-)]
+#![warn(missing_debug_implementations, missing_copy_implementations)]
 
 mod length_check;
 mod trimmed;
