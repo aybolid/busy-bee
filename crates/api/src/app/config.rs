@@ -53,11 +53,11 @@ impl Config {
         self.database_url.as_ref()
     }
 
-    pub fn ai_model(&self) -> &str {
+    pub fn ai_model(&self) -> &NonEmpty<TrimmedString> {
         &self.ai_model
     }
 
-    pub fn ai_api_key(&self) -> &str {
+    pub fn ai_api_key(&self) -> &TrimmedString {
         &self.ai_api_key
     }
 

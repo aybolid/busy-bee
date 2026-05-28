@@ -34,6 +34,7 @@
     import { getArticleProcessingOutputsQueryOptions } from "$lib/query/article-processing-outputs";
     import Badge from "$lib/components/ui/badge.svelte";
     import dayjs from "dayjs";
+    import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -124,6 +125,8 @@
                 <TableHead>ID</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Context</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Tokens</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
                 <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
@@ -132,7 +135,7 @@
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 6}
+            {@const colspan = 8}
             {#if outputs.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -177,6 +180,20 @@
                             >
                                 {output.user_context || "--"}
                             </p>
+                        </TableCell>
+                        <TableCell>
+                            <Badge>
+                                {output.model}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <ViewTokenUsageDialog {output}>
+                                {#snippet trigger(props)}
+                                    <Action button variant="outline" size="xs" {...props}>
+                                        Usage
+                                    </Action>
+                                {/snippet}
+                            </ViewTokenUsageDialog>
                         </TableCell>
                         <TableCell>
                             <Badge variant="secondary">
@@ -244,6 +261,11 @@
             <MenuGroup>
                 <MenuLabel>Output actions</MenuLabel>
                 <MenuActionItem anchor href="/outputs/{output.id}">View</MenuActionItem>
+                <ViewTokenUsageDialog {output}>
+                    {#snippet trigger(props)}
+                        <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
+                    {/snippet}
+                </ViewTokenUsageDialog>
                 {#if output.article_id}
                     <MenuActionItem anchor href="/articles/{output.article_id}">
                         View article

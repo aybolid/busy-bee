@@ -153,8 +153,12 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
             .lang
             .and_then(|s| ArticleLang::new(TrimmedString::from(s)));
 
-        let published_time = value.published_time.map(|s| s.parse()).transpose()?;
-        let modified_time = value.modified_time.map(|s| s.parse()).transpose()?;
+        let published_time = value
+            .published_time
+            .and_then(|s| s.parse().inspect_err(|error| tracing::warn!(?error)).ok());
+        let modified_time = value
+            .modified_time
+            .and_then(|s| s.parse().inspect_err(|error| tracing::warn!(?error)).ok());
 
         let image = value
             .image

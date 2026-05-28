@@ -143,6 +143,7 @@ async fn process_article(
 
     let chat_response = state.ai_client().exec_chat(chat_request).await?;
 
+    let usage = chat_response.usage.clone();
     let text = chat_response.into_texts().join("");
     let output_text = NonEmpty::try_new(TrimmedString::from(text))?;
 
@@ -151,8 +152,10 @@ async fn process_article(
     article_processing_outputs::create_article_processing_output(
         &mut *tx,
         article.id(),
+        state.ai_client().model(),
         &output_text,
         payload.context.as_ref(),
+        &usage,
     )
     .await?;
 

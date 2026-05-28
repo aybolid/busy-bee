@@ -14,6 +14,7 @@
     import dayjs from "dayjs";
     import { getArticleProcessingOutputQueryOptions } from "$lib/query/article-processing-outputs";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
+    import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -61,6 +62,11 @@
         <MenuContent>
             <MenuGroup>
                 <MenuLabel>Output actions</MenuLabel>
+                <ViewTokenUsageDialog {output}>
+                    {#snippet trigger(props)}
+                        <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
+                    {/snippet}
+                </ViewTokenUsageDialog>
                 {#if output.article_id}
                     <MenuActionItem anchor href="/articles/{output.article_id}">
                         View article

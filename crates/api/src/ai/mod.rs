@@ -3,13 +3,14 @@ use genai::{
     chat::{ChatRequest, ChatResponse},
     resolver::{AuthData, AuthResolver},
 };
+use types::{NonEmpty, TrimmedString};
 
 use crate::app::config::Config;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Client {
     client: genai::Client,
-    model: String,
+    model: NonEmpty<TrimmedString>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -22,7 +23,7 @@ pub enum ClientInitError {
 
 impl Client {
     pub async fn try_new(config: &Config) -> Result<Self, ClientInitError> {
-        let api_key = config.ai_api_key().to_owned();
+        let api_key = config.ai_api_key().as_str().to_owned();
         let auth_resolver = AuthResolver::from_resolver_fn(
             |_| -> Result<Option<AuthData>, genai::resolver::Error> {
                 Ok(Some(AuthData::Key(api_key)))
@@ -41,7 +42,7 @@ impl Client {
         } else {
             Ok(Self {
                 client,
-                model: target.model.model_name.to_string(),
+                model: config.ai_model().clone(),
             })
         }
     }
@@ -52,5 +53,9 @@ impl Client {
             .exec_chat(self.model.as_str(), request, None)
             .await
             .inspect(|resp| tracing::trace!(usage = ?resp.usage))
+    }
+
+    pub fn model(&self) -> &NonEmpty<TrimmedString> {
+        &self.model
     }
 }

@@ -16,6 +16,18 @@ const articleProcessingOutputSchema = z
 
         user_context: z.string().nullable(),
         output_text: z.string(),
+
+        model: z.string(),
+        prompt_tokens: z.int().nullable(),
+        prompt_cache_creation_tokens: z.int().nullable(),
+        prompt_cached_tokens: z.int().nullable(),
+        prompt_audio_tokens: z.int().nullable(),
+        completion_tokens: z.int().nullable(),
+        completion_accepted_prediction_tokens: z.int().nullable(),
+        completion_rejected_prediction_tokens: z.int().nullable(),
+        completion_reasoning_tokens: z.int().nullable(),
+        completion_audio_tokens: z.int().nullable(),
+        total_tokens: z.int().nullable(),
     })
     .strict();
 
