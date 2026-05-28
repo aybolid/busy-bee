@@ -46,7 +46,7 @@ pub struct ArticleProcessingOutput {
     output_text: OutputText,
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err)]
+#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
 pub async fn get_article_processing_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleProcessingOutputId,
@@ -67,7 +67,7 @@ pub async fn count_article_processing_outputs<'c>(
         .map(|count: i64| count as usize)
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_wrap)]
 pub async fn get_article_processing_outputs<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -87,7 +87,7 @@ pub async fn get_article_processing_outputs<'c>(
     query.fetch_all(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip_all, ret, err)]
+#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
 pub async fn create_article_processing_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,

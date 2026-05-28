@@ -16,7 +16,7 @@ pub enum RssArticlesConsumerError {
     Amqp(#[from] lapin::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_rss_articles_consumer(
     state: SharedAppState,
 ) -> Result<(), RssArticlesConsumerError> {
@@ -45,7 +45,7 @@ pub async fn run_rss_articles_consumer(
                         _ =  process_rss_delivery(&state, delivery).await;
                     }
                     Some(Err(error)) => {
-                        tracing::error!(%error);
+                        tracing::error!(?error);
                     }
                     None => {
                         tracing::error!("consumer stream ended unexpectedly");
@@ -76,7 +76,7 @@ enum ProcessRssDeliveryError {
     Sqlx(#[from] sqlx::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_rss_delivery(
     state: &SharedAppState,
     delivery: Delivery,

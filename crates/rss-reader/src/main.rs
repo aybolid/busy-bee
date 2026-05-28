@@ -25,7 +25,7 @@ enum RunError {
     AmqpError(#[from] lapin::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn run_rss_reader(args: Args) -> Result<(), RunError> {
     let config = load_config_from_file(args.config)?;
 
@@ -88,7 +88,7 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
         tracing::info!("listening to ctrl + c notification");
         tokio::signal::ctrl_c()
             .await
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap();
     };
 
@@ -98,7 +98,7 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
 
         tracing::info!("listening to SIGTERM");
         tokio::signal::unix::signal(SignalKind::terminate())
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap()
             .recv()
             .await;
@@ -115,7 +115,7 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     cancel_token.cancel();
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 fn init_rss_reader(args: Args) -> Result<(), WriteConfigError> {
     let default_config = new_default_config();
     write_config_into_file(&args.config, &default_config)?;
@@ -145,10 +145,10 @@ async fn main() {
     match args.command.unwrap_or_default() {
         Command::Run => run_rss_reader(args)
             .await
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap(),
         Command::Init => init_rss_reader(args)
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap(),
     }
 }

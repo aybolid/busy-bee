@@ -15,7 +15,7 @@ mod req;
 mod resp;
 mod routers;
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_api_server(state: SharedAppState) -> io::Result<()> {
     let cancel_token = state.cancel_token().clone();
 

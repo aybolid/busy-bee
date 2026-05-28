@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 rss-reader = { workspace = true }
 types = { workspace = true, features = ["serde", "sqlx"] }
+
 redis = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -15,6 +16,7 @@ thiserror = { workspace = true }
 serde_json = { workspace = true }
 lapin = { workspace = true }
 tokio-util = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio", "sqlite", "migrate", "uuid", "chrono"] }
 
 tokio-stream = "0.1.18"
 dotenvy = "0.15.7"
@@ -22,7 +24,6 @@ url = { version = "2.5.8", features = ["serde"] }
 axum = "0.8.9"
 uuid = { version = "1.23.1", features = ["serde", "v7"] }
 chrono = { version = "0.4.44", features = ["serde"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "migrate", "uuid", "chrono"] }
 serde_path_to_error = "0.1.20"
 genai = "0.5.3"
 

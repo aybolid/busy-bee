@@ -300,7 +300,7 @@ pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Re
         .map(|count: i64| count as usize)
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_wrap)]
 pub async fn get_articles<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -318,7 +318,7 @@ pub async fn get_articles<'c>(
     query.fetch_all(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err)]
+#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
 pub async fn get_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -327,7 +327,7 @@ pub async fn get_article_by_id<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip(executor), ret, err)]
+#[tracing::instrument(level = "trace", skip(executor), ret, err(Debug))]
 pub async fn delete_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -345,7 +345,7 @@ pub async fn delete_article_by_id<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip_all, ret, err)]
+#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
 pub async fn create_article<'c>(
     executor: impl DatabaseExecutor<'c>,
     article: &Article,

@@ -76,7 +76,7 @@ pub enum LoadConfigError {
     ShortStringError(#[from] lapin::types::ShortStringError),
 }
 
-#[tracing::instrument(level = "trace", ret, err)]
+#[tracing::instrument(level = "trace", ret, err(Debug))]
 pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     load_dotenv();
 
@@ -122,7 +122,7 @@ fn load_dotenv() {
 fn get_or(key: impl AsRef<OsStr>, default: &impl ToString) -> String {
     env::var(key).unwrap_or_else(|error| {
         if matches!(error, VarError::NotUnicode(_)) {
-            tracing::error!(%error);
+            tracing::error!(?error);
         } else {
             tracing::warn!("not found");
         }
@@ -144,7 +144,7 @@ where
     env::var(key)
         .inspect_err(|error| {
             if matches!(error, VarError::NotUnicode(_)) {
-                tracing::error!(%error);
+                tracing::error!(?error);
             } else {
                 tracing::warn!("not found");
             }
@@ -152,7 +152,7 @@ where
         .ok()
         .and_then(|val| {
             val.parse()
-                .inspect_err(|error| tracing::error!(%error))
+                .inspect_err(|error| tracing::error!(?error))
                 .ok()
         })
         .unwrap_or_else(|| {

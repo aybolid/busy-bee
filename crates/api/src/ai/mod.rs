@@ -46,7 +46,7 @@ impl Client {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip_all, err)]
+    #[tracing::instrument(level = "trace", skip_all, err(Debug))]
     pub async fn exec_chat(&self, request: ChatRequest) -> genai::Result<ChatResponse> {
         self.client
             .exec_chat(self.model.as_str(), request, None)

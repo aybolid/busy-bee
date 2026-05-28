@@ -23,7 +23,7 @@ pub enum ArticleProcessorError {
     Amqp(#[from] lapin::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleProcessorError> {
     tracing::trace!("started");
 
@@ -50,7 +50,7 @@ pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleP
                         _ =  process_article_delivery(&state, delivery).await;
                     }
                     Some(Err(error)) => {
-                        tracing::error!(%error);
+                        tracing::error!(?error);
                     }
                     None => {
                         tracing::error!("consumer stream ended unexpectedly");
@@ -93,7 +93,7 @@ pub struct ArticleDeliveryPayload {
     pub context: Option<AdditionalContext>,
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_article_delivery(
     state: &SharedAppState,
     delivery: Delivery,
@@ -120,7 +120,7 @@ async fn process_article_delivery(
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_article(
     state: &SharedAppState,
     payload: &ArticleDeliveryPayload,

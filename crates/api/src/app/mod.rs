@@ -46,7 +46,7 @@ pub enum RunError {
     Ai(#[from] ai::ClientInitError),
 }
 
-#[tracing::instrument(level = "trace", err)]
+#[tracing::instrument(level = "trace", err(Debug))]
 pub async fn run() -> Result<(), RunError> {
     let config = load_config()?;
 
@@ -95,7 +95,7 @@ pub async fn run() -> Result<(), RunError> {
 
     _ = amqp_close(state.amqp_connection())
         .await
-        .inspect_err(|error| tracing::error!(%error));
+        .inspect_err(|error| tracing::error!(?error));
 
     database_close(state.db_pool()).await;
 
@@ -109,7 +109,7 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
         tracing::info!("listening to ctrl + c notification");
         tokio::signal::ctrl_c()
             .await
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap();
     };
 
@@ -119,7 +119,7 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
 
         tracing::info!("listening to SIGTERM");
         tokio::signal::unix::signal(SignalKind::terminate())
-            .inspect_err(|error| tracing::error!(%error))
+            .inspect_err(|error| tracing::error!(?error))
             .unwrap()
             .recv()
             .await;

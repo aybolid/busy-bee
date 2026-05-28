@@ -22,7 +22,7 @@ pub enum PublisherError {
     Amqp(#[from] lapin::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_publisher(
     state: SharedAppState,
     mut rx: Receiver<PublisherCommand>,
@@ -64,7 +64,7 @@ enum ProcessCommandError {
     Amqp(#[from] lapin::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_command(
     state: &SharedAppState,
 

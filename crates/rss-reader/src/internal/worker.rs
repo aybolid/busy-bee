@@ -83,7 +83,7 @@ enum ProcessFeedError {
     Rss(#[from] rss::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_rss_feed(context: &Arc<FeedWorkerContext>) -> Result<(), ProcessFeedError> {
     tracing::trace!("fetching rss");
     let feed_response = context.http_client.get(context.config.url()).send().await?;
@@ -123,7 +123,7 @@ enum ProcessFeedItemError {
     Json(#[from] serde_json::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(link = item.link), err)]
+#[tracing::instrument(level = "trace", skip_all, fields(link = item.link), err(Debug))]
 async fn process_rss_feed_item(
     item: rss::Item,
     context: Arc<FeedWorkerContext>,
@@ -174,7 +174,7 @@ async fn process_rss_feed_item(
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(queue), err)]
+#[tracing::instrument(level = "trace", skip_all, fields(queue), err(Debug))]
 async fn publish_article(channel: &Channel, queue: &str, payload: &[u8]) -> lapin::Result<()> {
     let confirmation = channel
         .basic_publish(
@@ -202,7 +202,7 @@ enum CacheResponse {
     AlreadyCached,
 }
 
-#[tracing::instrument(level = "trace", skip(redis_connection), ret, err)]
+#[tracing::instrument(level = "trace", skip(redis_connection), ret, err(Debug))]
 async fn cache_rss_item_by_link(
     mut redis_connection: MultiplexedConnection,
     link: &str,
@@ -224,7 +224,7 @@ async fn cache_rss_item_by_link(
         })
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 fn parse_article(
     html: String,
     link: String,

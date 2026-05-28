@@ -82,7 +82,7 @@ pub enum LoadConfigError {
     Deserialize(#[from] toml::de::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), ret, err)]
+#[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), ret, err(Debug))]
 pub fn load_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, LoadConfigError> {
     let bytes = fs::read(path)?;
     toml::from_slice(&bytes).map_err(Into::into)
@@ -96,7 +96,7 @@ pub enum WriteConfigError {
     Serialize(#[from] toml::ser::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), err)]
+#[tracing::instrument(level = "trace", skip_all, fields(path = %path.as_ref().display()), err(Debug))]
 pub fn write_config_into_file<P: AsRef<Path>>(
     path: P,
     config: &Config,

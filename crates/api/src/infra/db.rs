@@ -15,7 +15,7 @@ impl<'c, T: Executor<'c, Database = Database>> DatabaseExecutor<'c> for T {}
 
 pub type DatabaseQueryResult = SqliteQueryResult;
 
-#[tracing::instrument(level = "trace", err)]
+#[tracing::instrument(level = "trace", err(Debug))]
 pub async fn database_connect(database_url: &str) -> sqlx::Result<DatabasePool> {
     let options = SqliteConnectOptions::from_str(database_url)?
         .create_if_missing(true)
@@ -35,7 +35,7 @@ pub async fn database_close(pool: &DatabasePool) {
     tracing::info!("database connections pool closed");
 }
 
-#[tracing::instrument(level = "trace", skip_all, err)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn database_migrate<'a, A>(migrator: A) -> Result<(), sqlx::migrate::MigrateError>
 where
     A: Acquire<'a>,
