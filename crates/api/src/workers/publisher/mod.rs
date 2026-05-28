@@ -74,7 +74,7 @@ async fn process_command(
     let (payload, queue) = match command {
         PublisherCommand::ProcessArticle(payload) => (
             serde_json::to_vec(&payload)?,
-            state.config().article_processor_queue().clone(),
+            state.config().article_processor_queue().as_str(),
         ),
     };
     tracing::trace!(payload_bytes = payload.len(), ?queue);
@@ -82,7 +82,7 @@ async fn process_command(
     channel
         .basic_publish(
             "".into(),
-            queue,
+            queue.into(),
             BasicPublishOptions::default(),
             &payload,
             BasicProperties::default(),

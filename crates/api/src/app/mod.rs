@@ -56,8 +56,8 @@ pub async fn run() -> Result<(), RunError> {
     let amqp_connection = amqp_connect(&config).await?;
     {
         let channel = amqp_connection.create_channel().await?;
-        declare_durable_queue(&channel, config.rss_articles_queue().clone()).await?;
-        declare_durable_queue(&channel, config.article_processor_queue().clone()).await?;
+        declare_durable_queue(&channel, config.rss_articles_queue().as_str().into()).await?;
+        declare_durable_queue(&channel, config.article_processor_queue().as_str().into()).await?;
         channel.close(200, "setup completed".into()).await?;
     }
 

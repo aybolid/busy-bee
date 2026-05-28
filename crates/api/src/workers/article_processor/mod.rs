@@ -32,7 +32,7 @@ pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleP
 
     let mut consumer = channel
         .basic_consume(
-            state.config().article_processor_queue().clone(),
+            state.config().article_processor_queue().as_str().into(),
             "article_processor_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),

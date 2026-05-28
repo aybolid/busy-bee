@@ -6,17 +6,17 @@ use std::{
     str::FromStr,
 };
 
-use lapin::types::ShortString;
+use types::{NonEmpty, TrimmedString};
 use url::Url;
 
 pub struct Config {
     api_addr: SocketAddr,
     amqp_url: Url,
-    rss_articles_queue: ShortString,
-    article_processor_queue: ShortString,
+    rss_articles_queue: NonEmpty<TrimmedString>,
+    article_processor_queue: NonEmpty<TrimmedString>,
     database_url: Url,
-    ai_model: String,
-    ai_api_key: String,
+    ai_model: NonEmpty<TrimmedString>,
+    ai_api_key: TrimmedString,
 }
 
 impl Debug for Config {
@@ -49,14 +49,6 @@ impl Config {
         self.amqp_url.as_ref()
     }
 
-    pub fn rss_articles_queue(&self) -> &ShortString {
-        &self.rss_articles_queue
-    }
-
-    pub fn article_processor_queue(&self) -> &ShortString {
-        &self.article_processor_queue
-    }
-
     pub fn database_url(&self) -> &str {
         self.database_url.as_ref()
     }
@@ -67,6 +59,14 @@ impl Config {
 
     pub fn ai_api_key(&self) -> &str {
         &self.ai_api_key
+    }
+
+    pub fn rss_articles_queue(&self) -> &NonEmpty<TrimmedString> {
+        &self.rss_articles_queue
+    }
+
+    pub fn article_processor_queue(&self) -> &NonEmpty<TrimmedString> {
+        &self.article_processor_queue
     }
 }
 
@@ -87,16 +87,23 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     let amqp_url = parse_or_else::<Url>("AMQP_URL", || {
         Url::parse("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
     });
-    let rss_articles_queue = ShortString::try_new(get_or("RSS_ARTICLES_QUEUE", &"rss_articles"))?;
-    let article_processor_queue =
-        ShortString::try_new(get_or("ARTICLE_PROCESSOR_QUEUE", &"article_processor"))?;
+    let rss_articles_queue = parse_or_else("RSS_ARTICLES_QUEUE", || {
+        NonEmpty::new(TrimmedString::new("rss_articles"))
+            .expect("default rss articles queue value is not empty")
+    });
+    let article_processor_queue = parse_or_else("ARTICLE_PROCESSOR_QUEUE", || {
+        NonEmpty::new(TrimmedString::new("qrticle_processor"))
+            .expect("default article processor queue value is not empty")
+    });
 
     let database_url = parse_or_else("DB_URL", || {
         Url::parse("sqlite://data.db").expect("default database url must parse")
     });
 
-    let ai_model = get_or("AI_MODEL", &"gemma4");
-    let ai_api_key = get_or("AI_API_KEY", &"");
+    let ai_model = parse_or_else("AI_MODEL", || {
+        NonEmpty::new(TrimmedString::new("gemma4")).expect("default ai model value is not empty")
+    });
+    let ai_api_key = parse_or("AI_API_KEY", "");
 
     Ok(Config {
         api_addr,
@@ -118,19 +125,45 @@ fn load_dotenv() {
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
-fn get_or(key: impl AsRef<OsStr>, default: &impl ToString) -> String {
-    env::var(key).unwrap_or_else(|error| {
-        if matches!(error, VarError::NotUnicode(_)) {
-            tracing::error!(?error);
-        } else {
-            tracing::warn!("not found");
-        }
+// #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
+// fn get_or(key: impl AsRef<OsStr>, default: &impl ToString) -> String {
+//     env::var(key).unwrap_or_else(|error| {
+//         if matches!(error, VarError::NotUnicode(_)) {
+//             tracing::error!(?error);
+//         } else {
+//             tracing::warn!("not found");
+//         }
 
-        let default = default.to_string();
-        tracing::warn!(default, "using default value");
-        default
-    })
+//         let default = default.to_string();
+//         tracing::warn!(default, "using default value");
+//         default
+//     })
+// }
+
+#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
+fn parse_or<T: FromStr + Debug + Display>(key: impl AsRef<OsStr>, default: impl Into<T>) -> T
+where
+    <T as FromStr>::Err: std::error::Error,
+{
+    env::var(key)
+        .inspect_err(|error| {
+            if matches!(error, VarError::NotUnicode(_)) {
+                tracing::error!(?error);
+            } else {
+                tracing::warn!("not found");
+            }
+        })
+        .ok()
+        .and_then(|val| {
+            val.parse()
+                .inspect_err(|error| tracing::error!(?error))
+                .ok()
+        })
+        .unwrap_or_else(|| {
+            let default = default.into();
+            tracing::warn!(%default, "using default value");
+            default
+        })
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]

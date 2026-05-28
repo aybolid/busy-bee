@@ -27,7 +27,7 @@ pub async fn run_rss_articles_consumer(
 
     let mut consumer = channel
         .basic_consume(
-            state.config().rss_articles_queue().clone(),
+            state.config().rss_articles_queue().as_str().into(),
             "rss_articles_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),

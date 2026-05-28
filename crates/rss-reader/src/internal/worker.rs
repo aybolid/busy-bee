@@ -155,8 +155,12 @@ async fn process_rss_feed_item(
     // Article parsing is a CPU-bound task so we need to do it on seperate thread
     // where blocking is acceptable. Othewise, it will freeze async executor.
     let owned_link = link.to_owned();
-    let article = tokio::task::spawn_blocking(|| parse_article(html, owned_link)).await??;
+    let mut article = tokio::task::spawn_blocking(|| parse_article(html, owned_link)).await??;
     tracing::trace!("article parsed");
+
+    if article.url.is_none() {
+        article.url = Some(link.to_owned());
+    }
 
     tracing::trace!(article_title = article.title, article_len = article.length);
 

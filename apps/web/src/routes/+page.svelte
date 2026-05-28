@@ -144,6 +144,7 @@
         {#snippet li(
             /** @type {import('$lib/api/articles').ArticleStatus} */ status,
             /** @type {number} */ count,
+            /** @type {string} */ description,
         )}
             {@const value = (count / total) * 100}
             <li>
@@ -159,14 +160,25 @@
                 <Progress>
                     <ProgressIndicator {value} class={[status === "error" && "bg-destructive"]} />
                 </Progress>
+                <div class="pt-2 text-xs text-muted-foreground">
+                    {description}
+                </div>
             </li>
         {/snippet}
 
         <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {@render li("new", articleStats.data.new)}
-            {@render li("pending", articleStats.data.pending)}
-            {@render li("processed", articleStats.data.processed)}
-            {@render li("error", articleStats.data.error)}
+            {@render li("new", articleStats.data.new, "Newly added articles")}
+            {@render li("pending", articleStats.data.pending, "Articles that are being processed")}
+            {@render li(
+                "processed",
+                articleStats.data.processed,
+                "Articles that were processed at least once",
+            )}
+            {@render li(
+                "error",
+                articleStats.data.error,
+                "Something went wrong during latest processing",
+            )}
         </ul>
     {/if}
 </div>
@@ -182,13 +194,14 @@
                 <TableHead>Published</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
+                <TableHead>External</TableHead>
                 <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
                     <!-- Actions -->
                 </TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 8}
+            {@const colspan = 9}
             {#if articles.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -266,6 +279,24 @@
                             >
                                 {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
                             </Badge>
+                        </TableCell>
+                        <TableCell>
+                            {#if article.url && article.url.startsWith("http")}
+                                <Action
+                                    anchor
+                                    href={article.url}
+                                    target="_blank"
+                                    variant="link"
+                                    size="xs"
+                                >
+                                    <ExternalLink />
+                                    <span>
+                                        {article.url}
+                                    </span>
+                                </Action>
+                            {:else}
+                                <span>--</span>
+                            {/if}
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
                             {@render articleMenu(article)}
