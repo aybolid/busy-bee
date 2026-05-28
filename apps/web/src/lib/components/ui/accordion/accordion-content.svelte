@@ -2,7 +2,7 @@
     import { cn } from "../utils";
     import { getAccordionContext } from "./context";
     import { getAccordionItemContext } from "./item-context";
-    import { slide } from "svelte/transition"; // 1. Import slide
+    import { slide } from "svelte/transition";
 
     /** @type {import('svelte/elements').HTMLAttributes<HTMLDivElement>} */
     const { children, ...props } = $props();

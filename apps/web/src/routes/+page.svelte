@@ -36,6 +36,7 @@
     import { getArticlesQueryOptions, getArticleStatsQueryOptions } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
+    import relative from "dayjs/plugin/relativeTime";
     import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
     import Lock from "$lib/components/ui/icons/lock.svelte";
     import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
@@ -46,6 +47,8 @@
     import { goto } from "$app/navigation";
     import { dev } from "$app/environment";
     import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
+
+    dayjs.extend(relative);
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -62,6 +65,24 @@
 
     const articles = createQuery(() => articlesQueryOptions);
     const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
+
+    let lastUpdatedString = $state("Last updated a few seconds ago");
+
+    $effect(() => {
+        if (articles.dataUpdatedAt) {
+            lastUpdatedString = `Last updated ${dayjs(articles.dataUpdatedAt).fromNow()}`;
+        } else {
+            lastUpdatedString = "Last updated a few seconds ago";
+        }
+
+        const interval = setInterval(() => {
+            lastUpdatedString = `Last updated ${dayjs(articles.dataUpdatedAt).fromNow()}`;
+        }, 1000 * 60);
+
+        return () => {
+            clearInterval(interval);
+        };
+    });
 
     /** @type {ReturnType<typeof setTimeout>} */
     let refreshTimeout;
@@ -112,30 +133,35 @@
 
 <div class="flex items-baseline justify-between gap-8">
     <h1 class="text-4xl font-bold">Articles</h1>
-    <Action
-        button
-        variant="secondary"
-        disabled={!canRefresh || articles.isFetching || articleStats.isFetching}
-        onclick={refresh}
-    >
-        {#if articles.isFetching || articleStats.isFetching}
-            <Spinner />
-        {:else if !canRefresh}
-            <Lock />
-        {:else}
-            <Refresh />
-        {/if}
-        <span>Refresh</span>
-    </Action>
+    <div class="flex flex-col items-end gap-1">
+        <Action
+            button
+            variant="secondary"
+            disabled={!canRefresh || articles.isFetching || articleStats.isFetching}
+            onclick={refresh}
+        >
+            {#if articles.isFetching || articleStats.isFetching}
+                <Spinner />
+            {:else if !canRefresh}
+                <Lock />
+            {:else}
+                <Refresh />
+            {/if}
+            <span>Refresh</span>
+        </Action>
+        <div class="text-xs text-muted-foreground">
+            {lastUpdatedString}
+        </div>
+    </div>
 </div>
 
 <div class="py-8">
     {#if articleStats.isPending}
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Skeleton class="h-9" />
-            <Skeleton class="h-9" />
-            <Skeleton class="h-9" />
-            <Skeleton class="h-9" />
+            <Skeleton class="h-15" />
+            <Skeleton class="h-15" />
+            <Skeleton class="h-15" />
+            <Skeleton class="h-15" />
         </div>
     {:else if articleStats.isError}
         <ErrorAlert error={articleStats.error} />

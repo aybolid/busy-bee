@@ -53,6 +53,24 @@
 
     const outputs = createQuery(() => outputsQueryOptions);
 
+    let lastUpdatedString = $state("Last updated a few seconds ago");
+
+    $effect(() => {
+        if (outputs.dataUpdatedAt) {
+            lastUpdatedString = `Last updated ${dayjs(outputs.dataUpdatedAt).fromNow()}`;
+        } else {
+            lastUpdatedString = "Last updated a few seconds ago";
+        }
+
+        const interval = setInterval(() => {
+            lastUpdatedString = `Last updated ${dayjs(outputs.dataUpdatedAt).fromNow()}`;
+        }, 1000 * 60);
+
+        return () => {
+            clearInterval(interval);
+        };
+    });
+
     /** @type {ReturnType<typeof setTimeout>} */
     let refreshTimeout;
     let canRefresh = $state(true);
@@ -101,21 +119,26 @@
 
 <div class="flex items-baseline justify-between gap-8">
     <h1 class="text-4xl font-bold">Outputs</h1>
-    <Action
-        button
-        variant="secondary"
-        disabled={!canRefresh || outputs.isFetching}
-        onclick={refresh}
-    >
-        {#if outputs.isFetching}
-            <Spinner />
-        {:else if !canRefresh}
-            <Lock />
-        {:else}
-            <Refresh />
-        {/if}
-        <span>Refresh</span>
-    </Action>
+    <div class="flex flex-col items-end gap-1">
+        <Action
+            button
+            variant="secondary"
+            disabled={!canRefresh || outputs.isFetching}
+            onclick={refresh}
+        >
+            {#if outputs.isFetching}
+                <Spinner />
+            {:else if !canRefresh}
+                <Lock />
+            {:else}
+                <Refresh />
+            {/if}
+            <span>Refresh</span>
+        </Action>
+        <div class="text-xs text-muted-foreground">
+            {lastUpdatedString}
+        </div>
+    </div>
 </div>
 
 <TableContainer class="my-8">
@@ -182,7 +205,7 @@
                             </p>
                         </TableCell>
                         <TableCell>
-                            <Badge>
+                            <Badge variant="secondary">
                                 {output.model}
                             </Badge>
                         </TableCell>
