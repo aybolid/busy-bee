@@ -1,6 +1,7 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
     import { createDeleteArticleMutation } from "$lib/query/articles";
+    import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
     import AlertDialogContent from "./ui/alert-dialog/alert-dialog-content.svelte";
     import AlertDialogContinueAction from "./ui/alert-dialog/alert-dialog-continue-action.svelte";
@@ -30,7 +31,11 @@
 
     function deleteArticle() {
         deleteMutation.mutate([ky, { params: { id: articleId } }], {
-            onError: (err) => alert(err.message),
+            onError: (err) =>
+                toaster.push("Failed to delete article", {
+                    description: err.message,
+                    props: { variant: "destructive" },
+                }),
             onSuccess: async () => {
                 await onSuccess?.();
                 void queryClient.invalidateQueries({

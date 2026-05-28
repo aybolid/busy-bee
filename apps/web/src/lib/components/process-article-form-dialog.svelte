@@ -22,6 +22,7 @@
     import { processArticleJsonSchema } from "$lib/api/articles";
     import { isHTTPError } from "ky";
     import { getApiError } from "$lib/api/error";
+    import { toaster } from "./toaster/store";
 
     /**
      * @typedef {Object} FormProps
@@ -60,7 +61,10 @@
                                 return;
                             }
                         }
-                        alert(err.message);
+                        toaster.push("Failed to request article processing", {
+                            description: err.message,
+                            props: { variant: "destructive" },
+                        });
                     },
                     onSuccess: () => {
                         void queryClient.invalidateQueries({

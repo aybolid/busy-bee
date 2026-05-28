@@ -7,6 +7,7 @@
 
     import Action from "$lib/components/ui/action.svelte";
     import { setGlobalContext } from "$lib/global-context";
+    import Toaster from "$lib/components/toaster/toaster.svelte";
 
     /** @type {import('./$types').LayoutProps} */
     let { children, data } = $props();
@@ -28,18 +29,19 @@
 </svelte:head>
 
 <QueryClientProvider client={data.queryClient}>
-    <header class="mx-auto max-w-7xl px-4 pt-16">
-        <nav class="flex gap-2">
-            <Action anchor href="/" variant="link">Articles</Action>
-            <Action anchor href="/outputs" variant="link">Outputs</Action>
-        </nav>
-    </header>
+    <Toaster>
+        <header class="mx-auto max-w-7xl px-4 pt-16">
+            <nav class="flex gap-2">
+                <Action anchor href="/" variant="link">Articles</Action>
+                <Action anchor href="/outputs" variant="link">Outputs</Action>
+            </nav>
+        </header>
 
-    <main class="mx-auto max-w-7xl px-4 py-8">
-        {@render children()}
-    </main>
+        <main class="mx-auto max-w-7xl px-4 py-8">
+            {@render children()}
+        </main>
 
-    <footer class="mx-auto max-w-7xl px-4 pb-16"></footer>
-
+        <footer class="mx-auto max-w-7xl px-4 pb-16"></footer>
+    </Toaster>
     <SvelteQueryDevtools />
 </QueryClientProvider>
