@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use sqlx::Row;
-use types::{NonEmpty, TrimmedString};
+use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
 use crate::infra::db::{DatabaseExecutor, DatabaseRow};
@@ -45,7 +45,7 @@ pub struct RssFeed {
     #[serde(flatten)]
     status: RssFeedStatus,
 
-    url: String,
+    url: Url,
     max_concurrent_requests: u8,
     fetch_interval_seconds: i64,
 }
@@ -92,7 +92,7 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for RssFeed {
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
 pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<RssFeed>> {
     let query = sqlx::query_as("SELECT * FROM rss_feeds ORDER BY created_at;");
 
@@ -102,7 +102,7 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 #[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
 pub async fn create_rss_feed<'c>(
     executor: impl DatabaseExecutor<'c>,
-    url: &str,
+    url: &Url,
     max_concurrent_requests: u8,
     fetch_interval_seconds: i64,
 ) -> sqlx::Result<RssFeed> {

@@ -6,8 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use types::{NonEmpty, TrimmedString};
-use url::Url;
+use types::{NonEmpty, TrimmedString, Url};
 
 pub struct Config {
     api_addr: SocketAddr,
@@ -85,7 +84,7 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     });
 
     let amqp_url = parse_or_else::<Url>("AMQP_URL", || {
-        Url::parse("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
+        Url::try_new("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
     });
     let rss_articles_queue = parse_or_else("RSS_ARTICLES_QUEUE", || {
         NonEmpty::new(TrimmedString::new("rss_articles"))
@@ -97,7 +96,7 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     });
 
     let database_url = parse_or_else("DB_URL", || {
-        Url::parse("sqlite://data.db").expect("default database url must parse")
+        Url::try_new("sqlite://data.db").expect("default database url must parse")
     });
 
     let ai_model = parse_or_else("AI_MODEL", || {

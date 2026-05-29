@@ -264,10 +264,17 @@
                                 "bg-destructive/10 hover:bg-destructive/15",
                         ]}
                     >
-                        <TableCell class="max-w-80 truncate font-medium">
-                            <a href="/articles/{article.id}" class="hover:underline">
-                                {article.title}
-                            </a>
+                        <TableCell>
+                            <Action anchor href="/articles/{article.id}" variant="link">
+                                {#if article.favicon}
+                                    <div class="size-4">
+                                        <img src={article.favicon} alt="favicon" loading="lazy" />
+                                    </div>
+                                {/if}
+                                <span class="max-w-80 truncate">
+                                    {article.title}
+                                </span>
+                            </Action>
                         </TableCell>
                         <TableCell>
                             <p
@@ -316,7 +323,7 @@
                                     size="xs"
                                 >
                                     <ExternalLink />
-                                    <span>
+                                    <span class="max-w-56 truncate">
                                         {article.url}
                                     </span>
                                 </Action>

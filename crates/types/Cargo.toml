@@ -5,12 +5,13 @@ edition = "2024"
 
 [dependencies]
 thiserror = { workspace = true }
+url = { version = "2.5.8" }
 
 serde = { workspace = true, optional = true }
 sqlx = { workspace = true, optional = true }
 
 [features]
-serde = [ "dep:serde" ]
+serde = [ "dep:serde", "url/serde" ]
 sqlx = [ "dep:sqlx" ]
 
 [lints.clippy]

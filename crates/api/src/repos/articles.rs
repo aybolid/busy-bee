@@ -1,7 +1,7 @@
 use std::num::NonZeroU8;
 
 use chrono::{DateTime, Utc};
-use types::{NonEmpty, TrimmedString};
+use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
 use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult};
@@ -35,9 +35,9 @@ pub type ArticleTextContent = NonEmpty<TrimmedString>;
 pub type ArticleExcerpt = NonEmpty<TrimmedString>;
 pub type ArticleSiteName = NonEmpty<TrimmedString>;
 pub type ArticleLang = NonEmpty<TrimmedString>;
-pub type ArticleImage = NonEmpty<TrimmedString>;
-pub type ArticleFavicon = NonEmpty<TrimmedString>;
-pub type ArticleUrl = NonEmpty<TrimmedString>;
+pub type ArticleImageUrl = Url;
+pub type ArticleFaviconUrl = Url;
+pub type ArticleUrl = Url;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
@@ -92,8 +92,8 @@ pub struct Article {
     lang: Option<ArticleLang>,
     published_time: Option<DateTime<Utc>>,
     modified_time: Option<DateTime<Utc>>,
-    image: Option<ArticleImage>,
-    favicon: Option<ArticleFavicon>,
+    image: Option<ArticleImageUrl>,
+    favicon: Option<ArticleFaviconUrl>,
     url: Option<ArticleUrl>,
 }
 
@@ -109,14 +109,10 @@ impl Article {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FromParsedArticeError {
-    #[error(transparent)]
-    DateParseError(#[from] chrono::ParseError),
     #[error("got empty string in the {0} field")]
     EmptyString(&'static str),
     #[error(transparent)]
     LengthError(#[from] std::num::TryFromIntError),
-    #[error(transparent)]
-    UnknownTextDirection(#[from] UnknownTextDirection),
 }
 
 impl TryFrom<rss_reader::ParsedArticle> for Article {
@@ -147,30 +143,44 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
             .site_name
             .and_then(|s| ArticleSiteName::new(TrimmedString::from(s)));
 
-        let dir = value.dir.map(|s| s.parse()).transpose()?;
+        let dir = value.dir.and_then(|s| {
+            s.parse()
+                .inspect_err(|error| tracing::warn!(?error, field = "dir"))
+                .ok()
+        });
 
         let lang = value
             .lang
             .and_then(|s| ArticleLang::new(TrimmedString::from(s)));
 
-        let published_time = value
-            .published_time
-            .and_then(|s| s.parse().inspect_err(|error| tracing::warn!(?error)).ok());
-        let modified_time = value
-            .modified_time
-            .and_then(|s| s.parse().inspect_err(|error| tracing::warn!(?error)).ok());
+        let published_time = value.published_time.and_then(|s| {
+            s.parse()
+                .inspect_err(|error| tracing::warn!(?error, field = "published_time"))
+                .ok()
+        });
+        let modified_time = value.modified_time.and_then(|s| {
+            s.parse()
+                .inspect_err(|error| tracing::warn!(?error, field = "modified_time"))
+                .ok()
+        });
 
-        let image = value
-            .image
-            .and_then(|s| ArticleImage::new(TrimmedString::from(s)));
+        let image = value.image.and_then(|s| {
+            ArticleImageUrl::try_new(&s)
+                .inspect_err(|error| tracing::warn!(?error, field = "image"))
+                .ok()
+        });
 
-        let favicon = value
-            .favicon
-            .and_then(|s| ArticleFavicon::new(TrimmedString::from(s)));
+        let favicon = value.favicon.and_then(|s| {
+            ArticleFaviconUrl::try_new(&s)
+                .inspect_err(|error| tracing::warn!(?error, field = "favicon"))
+                .ok()
+        });
 
-        let url = value
-            .url
-            .and_then(|s| ArticleUrl::new(TrimmedString::from(s)));
+        let url = value.url.and_then(|s| {
+            ArticleUrl::try_new(&s)
+                .inspect_err(|error| tracing::warn!(?error, field = "url"))
+                .ok()
+        });
 
         Ok(Self {
             id: ArticleId::new(),

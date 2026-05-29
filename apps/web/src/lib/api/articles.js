@@ -32,9 +32,9 @@ const articleSchema = z
         lang: z.string().nullable(),
         published_time: z.coerce.date().nullable(),
         modified_time: z.coerce.date().nullable(),
-        image: z.string().nullable(),
-        favicon: z.string().nullable(),
-        url: z.string().nullable(),
+        image: z.url().nullable(),
+        favicon: z.url().nullable(),
+        url: z.url().nullable(),
     })
     .strict();
 

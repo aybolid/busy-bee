@@ -165,7 +165,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "types",
- "url",
  "uuid",
 ]
 
@@ -4052,6 +4051,7 @@ dependencies = [
  "serde",
  "sqlx",
  "thiserror",
+ "url",
 ]
 
 [[package]]
