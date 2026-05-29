@@ -33,3 +33,26 @@ export async function getRssFeeds(ky) {
     const json = await ky.get("rss_feeds").json();
     return unwrapData(z.array(rssFeedSchema)).parse(json);
 }
+
+export const createRssFeedJsonSchema = z
+    .object({
+        url: z.httpUrl(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof createRssFeedJsonSchema>} CreateRssFeedJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ json: CreateRssFeedJson }} payload Request payload.
+ *
+ * @returns {Promise<RssFeed>}
+ */
+export async function createRssFeed(ky, payload) {
+    const json = await ky
+        .post("rss_feeds", {
+            json: createRssFeedJsonSchema.parse(payload.json),
+        })
+        .json();
+    return unwrapData(rssFeedSchema).parse(json);
+}

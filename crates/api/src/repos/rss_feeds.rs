@@ -108,7 +108,7 @@ pub async fn create_rss_feed<'c>(
 ) -> sqlx::Result<RssFeed> {
     let query = sqlx::query_as(
         "
-        INSERT INTO article_processing_outputs
+        INSERT INTO rss_feeds
             (
                 id, url, max_concurrent_requests,
                 fetch_interval_seconds, status

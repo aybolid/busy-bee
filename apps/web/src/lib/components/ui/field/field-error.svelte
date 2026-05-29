@@ -15,7 +15,7 @@
         {...props}
         role="alert"
         data-slot="field-error"
-        class={cn("text-sm font-normal text-destructive", props.class)}
+        class={cn("text-start text-sm font-normal text-destructive", props.class)}
     >
         {#if children}
             {@render children()}

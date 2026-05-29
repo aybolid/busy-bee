@@ -181,10 +181,10 @@
                             <Empty>
                                 <EmptyHeader>
                                     <EmptyTitle>No outputs</EmptyTitle>
+                                    <EmptyDescription>
+                                        There are no outputs to display.
+                                    </EmptyDescription>
                                 </EmptyHeader>
-                                <EmptyDescription>
-                                    There are no outputs to display.
-                                </EmptyDescription>
                             </Empty>
                         </TableCell>
                     </TableRow>

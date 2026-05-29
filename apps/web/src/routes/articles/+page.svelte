@@ -249,10 +249,10 @@
                             <Empty>
                                 <EmptyHeader>
                                     <EmptyTitle>No articles</EmptyTitle>
+                                    <EmptyDescription>
+                                        There are no articles to display.
+                                    </EmptyDescription>
                                 </EmptyHeader>
-                                <EmptyDescription>
-                                    There are no articles to display.
-                                </EmptyDescription>
                             </Empty>
                         </TableCell>
                     </TableRow>
@@ -332,7 +332,7 @@
                                     href={article.url}
                                     target="_blank"
                                     variant="link"
-                                    size="xs"
+                                    class="text-muted-foreground"
                                 >
                                     <ExternalLink />
                                     <span class="max-w-56 truncate">

@@ -5,6 +5,6 @@
     const { children, ...props } = $props();
 </script>
 
-<div {...props} data-slot="dialog-header" class={cn("flex flex-col gap-2", props.class)}>
+<div {...props} data-slot="dialog-header" class={cn("flex flex-col gap-2 text-start", props.class)}>
     {@render children?.()}
 </div>

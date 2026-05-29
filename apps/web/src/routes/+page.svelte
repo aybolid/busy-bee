@@ -20,6 +20,9 @@
     import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
     import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
     import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
+    import Plus from "$lib/components/ui/icons/plus.svelte";
+    import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
+    import CreateFeedFormDialog from "./create-feed-form-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -29,6 +32,16 @@
 
 <div class="flex items-baseline justify-between gap-8 pb-8">
     <h1 class="text-4xl font-bold">RSS feeds</h1>
+    {#if (feeds.data?.length ?? 0) !== 0}
+        <CreateFeedFormDialog>
+            {#snippet trigger(props)}
+                <Action button {...props}>
+                    <Plus />
+                    <span>RSS feed</span>
+                </Action>
+            {/snippet}
+        </CreateFeedFormDialog>
+    {/if}
 </div>
 
 {#if feeds.isPending}
@@ -40,8 +53,18 @@
         <Empty>
             <EmptyHeader>
                 <EmptyTitle>No RSS feeds</EmptyTitle>
+                <EmptyDescription>There are no feeds to display.</EmptyDescription>
             </EmptyHeader>
-            <EmptyDescription>There are no feeds to display.</EmptyDescription>
+            <EmptyContent>
+                <CreateFeedFormDialog>
+                    {#snippet trigger(props)}
+                        <Action button {...props}>
+                            <Plus />
+                            <span>RSS feed</span>
+                        </Action>
+                    {/snippet}
+                </CreateFeedFormDialog>
+            </EmptyContent>
         </Empty>
     {:else}
         <div class="grid grid-cols-3 gap-4">
