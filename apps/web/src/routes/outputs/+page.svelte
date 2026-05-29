@@ -34,7 +34,10 @@
     import { getArticleProcessingOutputsQueryOptions } from "$lib/query/article-processing-outputs";
     import Badge from "$lib/components/ui/badge.svelte";
     import dayjs from "dayjs";
+    import relative from "dayjs/plugin/relativeTime";
     import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
+
+    dayjs.extend(relative);
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -210,7 +213,7 @@
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            <ViewTokenUsageDialog {output}>
+                            <ViewTokenUsageDialog usage={output.usage} model={output.model}>
                                 {#snippet trigger(props)}
                                     <Action button variant="outline" size="xs" {...props}>
                                         Usage
@@ -284,7 +287,7 @@
             <MenuGroup>
                 <MenuLabel>Output actions</MenuLabel>
                 <MenuActionItem anchor href="/outputs/{output.id}">View</MenuActionItem>
-                <ViewTokenUsageDialog {output}>
+                <ViewTokenUsageDialog usage={output.usage} model={output.model}>
                     {#snippet trigger(props)}
                         <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
                     {/snippet}

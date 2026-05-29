@@ -46,16 +46,8 @@ pub struct ArticleProcessingOutput {
     output_text: OutputText,
 
     model: NonEmpty<TrimmedString>,
-    prompt_tokens: Option<i32>,
-    prompt_cache_creation_tokens: Option<i32>,
-    prompt_cached_tokens: Option<i32>,
-    prompt_audio_tokens: Option<i32>,
-    completion_tokens: Option<i32>,
-    completion_accepted_prediction_tokens: Option<i32>,
-    completion_rejected_prediction_tokens: Option<i32>,
-    completion_reasoning_tokens: Option<i32>,
-    completion_audio_tokens: Option<i32>,
-    total_tokens: Option<i32>,
+    #[sqlx(json)]
+    usage: genai::chat::Usage,
 }
 
 #[tracing::instrument(level = "trace", skip(executor), err(Debug))]
@@ -112,16 +104,12 @@ pub async fn create_article_processing_output<'c>(
         "
         INSERT INTO article_processing_outputs
             (
-                id, article_id, user_context, output_text,
-                model, prompt_tokens, prompt_cache_creation_tokens, prompt_cached_tokens,
-                prompt_audio_tokens, completion_tokens, completion_accepted_prediction_tokens, completion_rejected_prediction_tokens,
-                completion_reasoning_tokens, completion_audio_tokens, total_tokens
+                id, article_id, user_context,
+                output_text, model, usage
             )
         VALUES
             (
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
+                ?, ?, ?,
                 ?, ?, ?
             )
         ",
@@ -131,16 +119,7 @@ pub async fn create_article_processing_output<'c>(
     .bind(user_context)
     .bind(output_text)
     .bind(model)
-    .bind(usage.prompt_tokens)
-    .bind(usage.prompt_tokens_details.as_ref().map(|d| d.cache_creation_tokens))
-    .bind(usage.prompt_tokens_details.as_ref().map(|d| d.cached_tokens))
-    .bind(usage.prompt_tokens_details.as_ref().map(|d| d.audio_tokens))
-    .bind(usage.completion_tokens)
-    .bind(usage.completion_tokens_details.as_ref().map(|d| d.accepted_prediction_tokens))
-    .bind(usage.completion_tokens_details.as_ref().map(|d| d.rejected_prediction_tokens))
-    .bind(usage.completion_tokens_details.as_ref().map(|d| d.reasoning_tokens))
-    .bind(usage.completion_tokens_details.as_ref().map(|d| d.audio_tokens))
-    .bind(usage.total_tokens);
+    .bind(sqlx::types::Json(usage));
 
     query.execute(executor).await
 }

@@ -6,6 +6,33 @@ const articleProcessingOutputIdSchema = z.uuidv7().brand("articleProcessingOutpu
 
 /** @typedef {z.infer<typeof articleProcessingOutputIdSchema>} ArticleProcessingOutputId */
 
+const usageSchema = z
+    .object({
+        prompt_tokens: z.int().positive().optional(),
+        prompt_tokens_details: z
+            .object({
+                cache_creation_tokens: z.int().positive().optional(),
+                cached_tokens: z.int().positive().optional(),
+                audio_tokens: z.int().positive().optional(),
+            })
+            .strict()
+            .optional(),
+        completion_tokens: z.int().positive().optional(),
+        completion_tokens_details: z
+            .object({
+                accepted_prediction_tokens: z.int().positive().optional(),
+                rejected_prediction_tokens: z.int().positive().optional(),
+                reasoning_tokens: z.int().positive().optional(),
+                audio_tokens: z.int().positive().optional(),
+            })
+            .strict()
+            .optional(),
+        total_tokens: z.int().positive().optional(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof usageSchema>} Usage */
+
 const articleProcessingOutputSchema = z
     .object({
         id: articleProcessingOutputIdSchema,
@@ -18,16 +45,7 @@ const articleProcessingOutputSchema = z
         output_text: z.string(),
 
         model: z.string(),
-        prompt_tokens: z.int().nullable(),
-        prompt_cache_creation_tokens: z.int().nullable(),
-        prompt_cached_tokens: z.int().nullable(),
-        prompt_audio_tokens: z.int().nullable(),
-        completion_tokens: z.int().nullable(),
-        completion_accepted_prediction_tokens: z.int().nullable(),
-        completion_rejected_prediction_tokens: z.int().nullable(),
-        completion_reasoning_tokens: z.int().nullable(),
-        completion_audio_tokens: z.int().nullable(),
-        total_tokens: z.int().nullable(),
+        usage: usageSchema,
     })
     .strict();
 

@@ -97,16 +97,7 @@ CREATE TABLE article_processing_outputs (
   output_text TEXT NOT NULL,
   --
   model TEXT NOT NULL,
-  prompt_tokens INTEGER,
-  prompt_cache_creation_tokens INTEGER,
-  prompt_cached_tokens INTEGER,
-  prompt_audio_tokens INTEGER,
-  completion_tokens INTEGER,
-  completion_accepted_prediction_tokens INTEGER,
-  completion_rejected_prediction_tokens INTEGER,
-  completion_reasoning_tokens INTEGER,
-  completion_audio_tokens INTEGER,
-  total_tokens INTEGER
+  usage TEXT NOT NULL -- JSON
 );
 
 CREATE TRIGGER trigger_outputs_updated_at AFTER

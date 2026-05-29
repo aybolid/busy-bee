@@ -29,11 +29,12 @@
 
     /**
      * @typedef {Object} Props
-     * @property {import('$lib/api/article-processing-outputs').ArticleProcessingOutput} output
+     * @property {import('$lib/api/article-processing-outputs').Usage} usage
+     * @property {string} model
      */
 
     /** @type {Omit<import('$lib/components/ui/dialog/dialog.svelte').DialogProps, 'children' | 'ref'> & Props} */
-    let { output, ...props } = $props();
+    let { usage, model, ...props } = $props();
 </script>
 
 <Dialog {...props}>
@@ -42,7 +43,7 @@
         <DialogHeader>
             <DialogTitle>Token usage</DialogTitle>
             <DialogDescription>
-                <code>{output.model}</code>
+                <code>{model}</code>
             </DialogDescription>
         </DialogHeader>
 
@@ -53,16 +54,19 @@
                         <span>Prompt tokens</span>
                         <Badge variant="secondary">
                             <code>
-                                {formatNumberOrUnknown(output.prompt_tokens)}
+                                {formatNumberOrUnknown(usage.prompt_tokens)}
                             </code>
                         </Badge>
                     </AccordionTrigger>
                 </AccordionHeader>
                 <AccordionContent>
                     <ul class="flex flex-col gap-1">
-                        {@render li("Cache creation", output.prompt_cache_creation_tokens)}
-                        {@render li("Cached", output.prompt_cached_tokens)}
-                        {@render li("Audio", output.prompt_audio_tokens)}
+                        {@render li(
+                            "Cache creation",
+                            usage.prompt_tokens_details?.cache_creation_tokens,
+                        )}
+                        {@render li("Cached", usage.prompt_tokens_details?.cached_tokens)}
+                        {@render li("Audio", usage.prompt_tokens_details?.audio_tokens)}
                     </ul>
                 </AccordionContent>
             </AccordionItem>
@@ -72,7 +76,7 @@
                         <span>Completion tokens</span>
                         <Badge variant="secondary">
                             <code>
-                                {formatNumberOrUnknown(output.completion_tokens)}
+                                {formatNumberOrUnknown(usage.completion_tokens)}
                             </code>
                         </Badge>
                     </AccordionTrigger>
@@ -81,21 +85,21 @@
                     <ul class="flex flex-col gap-1">
                         {@render li(
                             "Prediciton (accepted)",
-                            output.completion_accepted_prediction_tokens,
+                            usage.completion_tokens_details?.accepted_prediction_tokens,
                         )}
                         {@render li(
                             "Prediction (rejected)",
-                            output.completion_rejected_prediction_tokens,
+                            usage.completion_tokens_details?.rejected_prediction_tokens,
                         )}
-                        {@render li("Reasoning", output.completion_reasoning_tokens)}
-                        {@render li("Audio", output.completion_audio_tokens)}
+                        {@render li("Reasoning", usage.completion_tokens_details?.reasoning_tokens)}
+                        {@render li("Audio", usage.completion_tokens_details?.audio_tokens)}
                     </ul>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
 
         <div class="text-end text-xs text-muted-foreground">
-            Total used: {formatNumberOrUnknown(output.total_tokens)} tokens
+            Total used: {formatNumberOrUnknown(usage.total_tokens)} tokens
         </div>
 
         <DialogFooter>

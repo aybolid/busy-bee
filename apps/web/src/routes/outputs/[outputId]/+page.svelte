@@ -62,7 +62,7 @@
         <MenuContent>
             <MenuGroup>
                 <MenuLabel>Output actions</MenuLabel>
-                <ViewTokenUsageDialog {output}>
+                <ViewTokenUsageDialog usage={output.usage} model={output.model}>
                     {#snippet trigger(props)}
                         <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
                     {/snippet}
