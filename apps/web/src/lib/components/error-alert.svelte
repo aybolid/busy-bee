@@ -1,3 +1,7 @@
+<script module>
+    /** @typedef {{ error?: Error | null, title?: string, description?: string, stack?: string }} ErrorData */
+</script>
+
 <script>
     import { dev } from "$app/environment";
     import AlertDescription from "./ui/alert/alert-description.svelte";
@@ -5,7 +9,7 @@
     import Alert from "./ui/alert/alert.svelte";
     import Bug from "./ui/icons/bug.svelte";
 
-    /** @type {Omit<import('./ui/alert/alert.svelte').AlertProps, 'children'> & { error?: Error | null, title?: string, description?: string, stack?: string }} */
+    /** @type {Omit<import('./ui/alert/alert.svelte').AlertProps, 'children'> & ErrorData} */
     const props = $props();
 
     const { title, description, stack } = $derived({

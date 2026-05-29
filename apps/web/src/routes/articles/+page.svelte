@@ -47,6 +47,8 @@
     import { goto } from "$app/navigation";
     import { dev } from "$app/environment";
     import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
+    import Popover from "$lib/components/ui/popover/popover.svelte";
+    import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
 
     dayjs.extend(relative);
 
@@ -282,11 +284,19 @@
                         </TableCell>
                         <TableCell>
                             {#if article.status === "error"}
-                                <ErrorAlert
-                                    class="w-96 *:data-[slot=alert-description]:line-clamp-1"
-                                    title="Processing error"
-                                    description={article.error_reason}
-                                />
+                                <Popover>
+                                    {#snippet trigger(props)}
+                                        <button {...props}>
+                                            <ArticleStatus status="error" />
+                                        </button>
+                                    {/snippet}
+                                    <PopoverContent class="max-w-96">
+                                        <ErrorAlert
+                                            title="Processing error"
+                                            description={article.error_reason}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             {:else}
                                 <ArticleStatus status={article.status} />
                             {/if}

@@ -19,6 +19,8 @@
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import ProcessArticleFormDialog from "$lib/components/process-article-form-dialog.svelte";
+    import Popover from "$lib/components/ui/popover/popover.svelte";
+    import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -37,14 +39,6 @@
 {:else if article.isError}
     <ErrorAlert error={article.error} />
 {:else if article.isSuccess}
-    {#if article.data.status === "error"}
-        <ErrorAlert
-            class="sticky top-4"
-            title="Processing error"
-            description={article.data.error_reason}
-        />
-    {/if}
-
     <article class="mx-auto prose max-w-4xl py-8 prose-neutral dark:prose-invert">
         {#if article.data.favicon}
             <div class="size-8 pb-16">
@@ -65,7 +59,24 @@
                     {dayjs(article.data.published_time).format("MMM DD, YYYY, HH:mm")}
                 </Badge>
             {/if}
-            <ArticleStatus status={article.data.status} />
+
+            {#if article.data.status === "error"}
+                <Popover position="top">
+                    {#snippet trigger(props)}
+                        <button {...props}>
+                            <ArticleStatus status="error" />
+                        </button>
+                    {/snippet}
+                    <PopoverContent class="max-w-96">
+                        <ErrorAlert
+                            title="Processing error"
+                            description={article.data.error_reason}
+                        />
+                    </PopoverContent>
+                </Popover>
+            {:else}
+                <ArticleStatus status={article.data.status} />
+            {/if}
         </div>
 
         {@render menu(article.data)}
