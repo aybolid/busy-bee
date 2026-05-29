@@ -37,6 +37,14 @@
 {:else if article.isError}
     <ErrorAlert error={article.error} />
 {:else if article.isSuccess}
+    {#if article.data.status === "error"}
+        <ErrorAlert
+            class="sticky top-4"
+            title="Processing error"
+            description={article.data.error_reason}
+        />
+    {/if}
+
     <article class="mx-auto prose max-w-4xl py-8 prose-neutral dark:prose-invert">
         {#if article.data.favicon}
             <div class="size-8 pb-16">

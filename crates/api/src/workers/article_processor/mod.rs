@@ -11,7 +11,7 @@ use crate::{
     app::state::SharedAppState,
     repos::{
         article_processing_outputs,
-        articles::{self, ArticleId},
+        articles::{self, ArticleErrorReason, ArticleId},
     },
 };
 
@@ -109,7 +109,12 @@ async fn process_article_delivery(
     tracing::trace!(article_id = ?payload.article_id, context = ?payload.context);
 
     if let Err(error) = process_article(state, &payload).await {
-        articles::mark_article_as_error(state.db_pool(), payload.article_id).await?;
+        articles::mark_article_as_error(
+            state.db_pool(),
+            payload.article_id,
+            ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+        )
+        .await?;
         // Acknowledge the message since the "error state" has been safely recorded in the database.
         delivery.ack(BasicAckOptions::default()).await?;
         return Err(error);

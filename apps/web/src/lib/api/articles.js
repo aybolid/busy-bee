@@ -9,36 +9,37 @@ const textDirSchema = z.enum(["ltr", "rtl"]);
 
 /** @typedef {z.infer<typeof textDirSchema>} TextDir */
 
-const articleStatusSchema = z.enum(["new", "pending", "processed", "error"]);
+const baseArticleSchema = {
+    id: articleIdSchema,
+    created_at: z.coerce.date(),
+    updated_at: z.coerce.date(),
 
-/** @typedef {z.infer<typeof articleStatusSchema>} ArticleStatus */
+    title: z.string(),
+    byline: z.string().nullable(),
+    content: z.string(),
+    text_content: z.string(),
+    length: z.number(),
+    excerpt: z.string().nullable(),
+    site_name: z.string().nullable(),
+    dir: textDirSchema.nullable(),
+    lang: z.string().nullable(),
+    published_time: z.coerce.date().nullable(),
+    modified_time: z.coerce.date().nullable(),
+    image: z.url().nullable(),
+    favicon: z.url().nullable(),
+    url: z.url().nullable(),
+};
 
-const articleSchema = z
-    .object({
-        id: articleIdSchema,
-        created_at: z.coerce.date(),
-        updated_at: z.coerce.date(),
-
-        status: articleStatusSchema,
-
-        title: z.string(),
-        byline: z.string().nullable(),
-        content: z.string(),
-        text_content: z.string(),
-        length: z.number(),
-        excerpt: z.string().nullable(),
-        site_name: z.string().nullable(),
-        dir: textDirSchema.nullable(),
-        lang: z.string().nullable(),
-        published_time: z.coerce.date().nullable(),
-        modified_time: z.coerce.date().nullable(),
-        image: z.url().nullable(),
-        favicon: z.url().nullable(),
-        url: z.url().nullable(),
-    })
-    .strict();
+const articleSchema = z.discriminatedUnion("status", [
+    z
+        .object({ ...baseArticleSchema, status: z.literal("error"), error_reason: z.string() })
+        .strict(),
+    z.object({ ...baseArticleSchema, status: z.enum(["new", "pending", "processed"]) }).strict(),
+]);
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
+
+/** @typedef {Article['status']} ArticleStatus */
 
 const articleStatsSchema = z.object({
     total: z.int().nonnegative(),

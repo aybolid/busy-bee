@@ -39,6 +39,7 @@ CREATE TABLE articles (
   status TEXT NOT NULL CHECK (
     status IN ('new', 'pending', 'processed', 'error')
   ),
+  error_reason TEXT,
   --
   title TEXT NOT NULL,
   byline TEXT,
@@ -53,7 +54,26 @@ CREATE TABLE articles (
   modified_time DATETIME,
   image TEXT,
   favicon TEXT,
-  url TEXT
+  url TEXT,
+  --
+  CONSTRAINT check_error_reason CHECK (
+    (
+      status = 'error'
+      AND error_reason IS NOT NULL
+    )
+    OR (
+      status = 'new'
+      AND error_reason IS NULL
+    )
+    OR (
+      status = 'pending'
+      AND error_reason IS NULL
+    )
+    OR (
+      status = 'processed'
+      AND error_reason IS NULL
+    )
+  )
 );
 
 CREATE TRIGGER trigger_articles_updated_at AFTER

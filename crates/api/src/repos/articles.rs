@@ -1,10 +1,11 @@
 use std::num::NonZeroU8;
 
 use chrono::{DateTime, Utc};
+use sqlx::Row;
 use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
-use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult};
+use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult, DatabaseRow};
 
 #[derive(
     Debug,
@@ -63,22 +64,35 @@ impl std::str::FromStr for TextDirection {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, sqlx::Type)]
-#[serde(rename_all = "lowercase")]
-#[sqlx(rename_all = "lowercase")]
+pub type ArticleErrorReason = NonEmpty<TrimmedString>;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(tag = "status", content = "error_reason", rename_all = "lowercase")]
 pub enum ArticleStatus {
     New,
     Pending,
-    Error,
+    Error(ArticleErrorReason),
     Processed,
 }
 
-#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+impl ArticleStatus {
+    pub fn as_status(&self) -> &str {
+        match self {
+            ArticleStatus::New => "new",
+            ArticleStatus::Pending => "pending",
+            ArticleStatus::Error(_) => "error",
+            ArticleStatus::Processed => "processed",
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
 pub struct Article {
     id: ArticleId,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 
+    #[serde(flatten)]
     status: ArticleStatus,
 
     title: ArticleTitle,
@@ -95,6 +109,75 @@ pub struct Article {
     image: Option<ArticleImageUrl>,
     favicon: Option<ArticleFaviconUrl>,
     url: Option<ArticleUrl>,
+}
+
+impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
+    fn from_row(row: &'r DatabaseRow) -> Result<Self, sqlx::Error> {
+        let raw_status: String = row.try_get("status")?;
+
+        let raw_reason: Option<ArticleErrorReason> = row.try_get("error_reason")?;
+
+        let status = match raw_status.as_str() {
+            "new" => {
+                if raw_reason.is_some() {
+                    return Err(sqlx::Error::Decode(
+                        "invariant broken: 'new' feed cannot have an error_reason".into(),
+                    ));
+                }
+                ArticleStatus::New
+            }
+            "pending" => {
+                if raw_reason.is_some() {
+                    return Err(sqlx::Error::Decode(
+                        "invariant broken: 'pending' feed cannot have an error_reason".into(),
+                    ));
+                }
+                ArticleStatus::Pending
+            }
+            "processed" => {
+                if raw_reason.is_some() {
+                    return Err(sqlx::Error::Decode(
+                        "invariant broken: 'processed' feed cannot have an error_reason".into(),
+                    ));
+                }
+                ArticleStatus::Processed
+            }
+            "error" => {
+                let reason = raw_reason.ok_or_else(|| {
+                    sqlx::Error::Decode(
+                        "invariant broken: 'error' feed must have an error_reason".into(),
+                    )
+                })?;
+                ArticleStatus::Error(reason)
+            }
+            _ => {
+                return Err(sqlx::Error::Decode(
+                    format!("unknown status: {raw_status}").into(),
+                ));
+            }
+        };
+
+        Ok(Self {
+            id: row.try_get("id")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+            status,
+            title: row.try_get("title")?,
+            byline: row.try_get("byline")?,
+            content: row.try_get("content")?,
+            text_content: row.try_get("text_content")?,
+            length: row.try_get("length")?,
+            excerpt: row.try_get("excerpt")?,
+            site_name: row.try_get("site_name")?,
+            dir: row.try_get("dir")?,
+            lang: row.try_get("lang")?,
+            published_time: row.try_get("published_time")?,
+            modified_time: row.try_get("modified_time")?,
+            image: row.try_get("image")?,
+            favicon: row.try_get("favicon")?,
+            url: row.try_get("url")?,
+        })
+    }
 }
 
 impl Article {
@@ -253,7 +336,8 @@ pub async fn mark_article_as_pending<'c>(
         "
         UPDATE articles
         SET
-            status = 'pending'
+            status = 'pending',
+            error_reason = NULL
         WHERE
             id = ? AND status != 'pending'
         RETURNING id;
@@ -268,17 +352,20 @@ pub async fn mark_article_as_pending<'c>(
 pub async fn mark_article_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
+    error_reason: Option<&ArticleErrorReason>,
 ) -> sqlx::Result<Option<ArticleId>> {
     let query = sqlx::query_scalar(
         "
         UPDATE articles
         SET
-            status = 'error'
+            status = 'error',
+            error_reason = ?
         WHERE
             id = ? AND status != 'error'
         RETURNING id;
         ",
     )
+    .bind(error_reason.map_or("Unknown error", |s| s.as_str()))
     .bind(id);
 
     query.fetch_optional(executor).await
@@ -293,7 +380,8 @@ pub async fn mark_article_as_processed<'c>(
         "
         UPDATE articles
         SET
-            status = 'processed'
+            status = 'processed',
+            error_reason = NULL
         WHERE
             id = ? AND status == 'pending'
         RETURNING id;
@@ -383,7 +471,7 @@ pub async fn create_article<'c>(
         ",
     )
     .bind(article.id)
-    .bind(article.status)
+    .bind(article.status.as_status())
     .bind(&article.title)
     .bind(&article.byline)
     .bind(&article.content)

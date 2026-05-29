@@ -257,13 +257,7 @@
                 {/if}
 
                 {#each articles.data.data as article (article.id)}
-                    <TableRow
-                        class={[
-                            "group",
-                            article.status === "error" &&
-                                "bg-destructive/10 hover:bg-destructive/15",
-                        ]}
-                    >
+                    <TableRow>
                         <TableCell>
                             <Action anchor href="/articles/{article.id}" variant="link">
                                 {#if article.favicon}
@@ -287,7 +281,15 @@
                             {article.byline || "--"}
                         </TableCell>
                         <TableCell>
-                            <ArticleStatus status={article.status} />
+                            {#if article.status === "error"}
+                                <ErrorAlert
+                                    class="w-96 *:data-[slot=alert-description]:line-clamp-1"
+                                    title="Processing error"
+                                    description={article.error_reason}
+                                />
+                            {:else}
+                                <ArticleStatus status={article.status} />
+                            {/if}
                         </TableCell>
                         <TableCell>
                             {#if article.published_time}

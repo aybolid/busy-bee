@@ -3,16 +3,17 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use types::TrimmedString;
 
 use crate::{
     app::state::SharedAppState,
-    repos::articles::{self, ArticleId},
-    workers::api::{
-        err::{HandlerError, HandlerResult},
-        req::{Pagination, ReqJson, ReqPath},
-        resp::{Metadata, data, data_with_meta},
-    },
+    repos::articles::{self, ArticleErrorReason, ArticleId},
     workers::{
+        api::{
+            err::{HandlerError, HandlerResult},
+            req::{Pagination, ReqJson, ReqPath},
+            resp::{Metadata, data, data_with_meta},
+        },
         article_processor::{AdditionalContext, ArticleDeliveryPayload},
         publisher::PublisherCommand,
     },
@@ -94,7 +95,12 @@ pub async fn process_article(
     });
 
     if let Err(error) = state.publisher_tx().send(command).await {
-        articles::mark_article_as_error(state.db_pool(), article_id).await?;
+        articles::mark_article_as_error(
+            state.db_pool(),
+            article_id,
+            ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+        )
+        .await?;
         Err(error.into())
     } else {
         Ok(StatusCode::ACCEPTED)

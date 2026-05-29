@@ -16,6 +16,10 @@
     import Action from "$lib/components/ui/action.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
     import CardFooter from "$lib/components/ui/card/card-footer.svelte";
+    import Empty from "$lib/components/ui/empty/empty.svelte";
+    import EmptyHeader from "$lib/components/ui/empty/empty-header.svelte";
+    import EmptyTitle from "$lib/components/ui/empty/empty-title.svelte";
+    import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -32,49 +36,58 @@
 {:else if feeds.isError}
     <ErrorAlert error={feeds.error} />
 {:else if feeds.isSuccess}
-    <div class="grid grid-cols-3 gap-4">
-        {#each feeds.data as feed (feed.id)}
-            {@const url = new URL(feed.url)}
-            <Card class={cn(feed.status === "error" && "ring-2 ring-destructive/30")} size="sm">
-                <CardHeader>
-                    <div class="flex items-baseline gap-2">
-                        <Badge
-                            class="capitalize"
-                            variant={feed.status === "error" ? "destructive" : "default"}
-                        >
-                            {feed.status}
-                        </Badge>
-                        <CardTitle>{url.hostname}</CardTitle>
-                    </div>
-                </CardHeader>
-                <CardContent class="flex h-full flex-col gap-4">
-                    <ul class="space-y-1">
-                        <li class="flex items-baseline justify-between gap-4">
-                            <span class="text-muted-foreground">Max concurrency</span>
-                            <Badge variant="secondary">
-                                {NUMBER_FORMAT.format(feed.max_concurrent_requests)}
+    {#if feeds.data.length === 0}
+        <Empty>
+            <EmptyHeader>
+                <EmptyTitle>No RSS feeds</EmptyTitle>
+            </EmptyHeader>
+            <EmptyDescription>There are no feeds to display.</EmptyDescription>
+        </Empty>
+    {:else}
+        <div class="grid grid-cols-3 gap-4">
+            {#each feeds.data as feed (feed.id)}
+                {@const url = new URL(feed.url)}
+                <Card class={cn(feed.status === "error" && "ring-2 ring-destructive/30")} size="sm">
+                    <CardHeader>
+                        <div class="flex items-baseline gap-2">
+                            <Badge
+                                class="capitalize"
+                                variant={feed.status === "error" ? "destructive" : "default"}
+                            >
+                                {feed.status}
                             </Badge>
-                        </li>
-                        <li class="flex items-baseline justify-between gap-4">
-                            <span class="text-muted-foreground">Fetch interval</span>
-                            <Badge variant="secondary">
-                                {NUMBER_FORMAT.format(feed.fetch_interval_seconds)}s
-                            </Badge>
-                        </li>
-                    </ul>
-                    {#if feed.status === "error"}
-                        <ErrorAlert description={feed.error_reason} />
-                    {/if}
-                </CardContent>
-                <CardFooter>
-                    <Action anchor href={feed.url} variant="link" size="xs" target="_blank">
-                        <ExternalLink />
-                        <span>
-                            {feed.url}
-                        </span>
-                    </Action>
-                </CardFooter>
-            </Card>
-        {/each}
-    </div>
+                            <CardTitle>{url.hostname}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent class="flex h-full flex-col gap-4">
+                        <ul class="space-y-1">
+                            <li class="flex items-baseline justify-between gap-4">
+                                <span class="text-muted-foreground">Max concurrency</span>
+                                <Badge variant="secondary">
+                                    {NUMBER_FORMAT.format(feed.max_concurrent_requests)}
+                                </Badge>
+                            </li>
+                            <li class="flex items-baseline justify-between gap-4">
+                                <span class="text-muted-foreground">Fetch interval</span>
+                                <Badge variant="secondary">
+                                    {NUMBER_FORMAT.format(feed.fetch_interval_seconds)}s
+                                </Badge>
+                            </li>
+                        </ul>
+                        {#if feed.status === "error"}
+                            <ErrorAlert description={feed.error_reason} />
+                        {/if}
+                    </CardContent>
+                    <CardFooter>
+                        <Action anchor href={feed.url} variant="link" size="xs" target="_blank">
+                            <ExternalLink />
+                            <span>
+                                {feed.url}
+                            </span>
+                        </Action>
+                    </CardFooter>
+                </Card>
+            {/each}
+        </div>
+    {/if}
 {/if}
