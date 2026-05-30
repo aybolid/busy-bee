@@ -1,4 +1,4 @@
-use std::num::NonZeroU8;
+use std::num::{NonZeroU8, NonZeroU32};
 
 use axum::{extract::State, response::IntoResponse};
 use sqlx::error::DatabaseError;
@@ -27,6 +27,7 @@ pub async fn get_rss_feeds(
 pub struct CreateRssFeedJson {
     url: Url,
     max_concurrent_requests: NonZeroU8,
+    fetch_interval_seconds: NonZeroU32,
 }
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -34,22 +35,26 @@ pub async fn create_rss_feed(
     State(state): State<SharedAppState>,
     ReqJson(json): ReqJson<CreateRssFeedJson>,
 ) -> HandlerResult<impl IntoResponse> {
-    let feed =
-        rss_feeds::create_rss_feed(&state.db_pool, &json.url, json.max_concurrent_requests, 300)
-            .await
-            .map_err(|error| -> HandlerError {
-                if error
-                    .as_database_error()
-                    .is_some_and(DatabaseError::is_unique_violation)
-                {
-                    HandlerError::validation_with_source(
-                        "rss feed with the given url already exists",
-                        "url",
-                    )
-                } else {
-                    error.into()
-                }
-            })?;
+    let feed = rss_feeds::create_rss_feed(
+        &state.db_pool,
+        &json.url,
+        json.max_concurrent_requests,
+        json.fetch_interval_seconds,
+    )
+    .await
+    .map_err(|error| -> HandlerError {
+        if error
+            .as_database_error()
+            .is_some_and(DatabaseError::is_unique_violation)
+        {
+            HandlerError::validation_with_source(
+                "rss feed with the given url already exists",
+                "url",
+            )
+        } else {
+            error.into()
+        }
+    })?;
 
     Ok(data(feed))
 }

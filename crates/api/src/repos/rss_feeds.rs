@@ -106,7 +106,7 @@ pub async fn create_rss_feed<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &Url,
     max_concurrent_requests: NonZeroU8,
-    fetch_interval_seconds: i64,
+    fetch_interval_seconds: NonZeroU32,
 ) -> sqlx::Result<RssFeed> {
     let query = sqlx::query_as(
         "

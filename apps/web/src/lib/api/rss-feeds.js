@@ -38,6 +38,7 @@ export const createRssFeedJsonSchema = z
     .object({
         url: z.httpUrl(),
         max_concurrent_requests: z.int().positive().max(255),
+        fetch_interval_seconds: z.int().positive().max(4_294_967_295), // max u32
     })
     .strict();
 

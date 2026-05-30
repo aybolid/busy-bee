@@ -1,3 +1,21 @@
+<script module>
+    const INTERVAL_OPTIONS =
+        /** @type {const} */
+        ([
+            { label: "5 mins", seconds: 300 },
+            { label: "10 mins", seconds: 600 },
+            { label: "15 mins", seconds: 900 },
+            { label: "1 hour", seconds: 3600 },
+            { label: "2 hours", seconds: 7200 },
+            { label: "4 hours", seconds: 14400 },
+            { label: "8 hours", seconds: 28800 },
+            { label: "16 hours", seconds: 57600 },
+            { label: "1 day", seconds: 86400 },
+            { label: "3 days", seconds: 259200 },
+            { label: "7 days", seconds: 604800 },
+        ]);
+</script>
+
 <script>
     import { createForm } from "@tanstack/svelte-form";
     import Dialog from "$lib/components/ui/dialog/dialog.svelte";
@@ -22,6 +40,8 @@
     import { getApiError } from "$lib/api/error";
     import { toaster } from "$lib/components/toaster/store";
     import FieldDescription from "$lib/components/ui/field/field-description.svelte";
+    import NativeSelect from "$lib/components/ui/native-select/native-select.svelte";
+    import NativeSelectOption from "$lib/components/ui/native-select/native-select-option.svelte";
 
     /** @type {Omit<import('$lib/components/ui/dialog/dialog.svelte').DialogProps, 'children' | 'ref'>} */
     let props = $props();
@@ -34,7 +54,11 @@
     const createMutation = createCreateRssFeedMutation();
 
     const form = createForm(() => ({
-        defaultValues: { url: "", max_concurrent_requests: 5 },
+        defaultValues: {
+            url: "",
+            max_concurrent_requests: 5,
+            fetch_interval_seconds: /** @type {number} */ (INTERVAL_OPTIONS[2].seconds),
+        },
         validators: {
             onSubmit: createRssFeedJsonSchema,
         },
@@ -46,6 +70,7 @@
                         json: {
                             url: value.url,
                             max_concurrent_requests: value.max_concurrent_requests,
+                            fetch_interval_seconds: value.fetch_interval_seconds,
                         },
                     },
                 ],
@@ -107,7 +132,7 @@
                     {#snippet children(field)}
                         {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
                         <Field data-invalid={isInvalid}>
-                            <FieldLabel>Feed URL</FieldLabel>
+                            <FieldLabel for={field.name}>Feed URL</FieldLabel>
                             <Input
                                 id={field.name}
                                 name={field.name}
@@ -131,7 +156,7 @@
                     {#snippet children(field)}
                         {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
                         <Field data-invalid={isInvalid}>
-                            <FieldLabel>Max requests</FieldLabel>
+                            <FieldLabel for={field.name}>Max requests</FieldLabel>
                             <Input
                                 type="number"
                                 step="1"
@@ -150,6 +175,37 @@
                                 Maximum number of concurrent requests to make when fetching the feed
                                 articles.
                             </FieldDescription>
+                            {#if isInvalid}
+                                <FieldError errors={field.state.meta.errors} />
+                            {/if}
+                        </Field>
+                    {/snippet}
+                </form.Field>
+            </FieldGroup>
+
+            <FieldGroup>
+                <form.Field name="fetch_interval_seconds">
+                    {#snippet children(field)}
+                        {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
+                        <Field data-invalid={isInvalid}>
+                            <FieldLabel for={field.name}>Fetch interval</FieldLabel>
+                            <NativeSelect
+                                id={field.name}
+                                name={field.name}
+                                value={field.state.value}
+                                onblur={field.handleBlur}
+                                aria-invalid={isInvalid}
+                                onchange={(e) =>
+                                    field.handleChange(parseInt(e.currentTarget.value, 10))}
+                            >
+                                <NativeSelectOption disabled>Select interval</NativeSelectOption>
+                                {#each INTERVAL_OPTIONS as option}
+                                    <NativeSelectOption value={option.seconds}>
+                                        {option.label}
+                                    </NativeSelectOption>
+                                {/each}
+                            </NativeSelect>
+                            <FieldDescription>Interval between fetching the feed.</FieldDescription>
                             {#if isInvalid}
                                 <FieldError errors={field.state.meta.errors} />
                             {/if}
