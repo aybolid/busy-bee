@@ -1,7 +1,7 @@
 use std::num::NonZeroU8;
 
 use chrono::{DateTime, Utc};
-use sqlx::Row;
+use sqlx::{QueryBuilder, Row};
 use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
@@ -108,7 +108,7 @@ pub struct Article {
     pub modified_time: Option<DateTime<Utc>>,
     pub image: Option<ArticleImageUrl>,
     pub favicon: Option<ArticleFaviconUrl>,
-    pub url: Option<ArticleUrl>,
+    pub url: ArticleUrl,
 }
 
 impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
@@ -181,30 +181,33 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum FromParsedArticeError {
+pub enum FromReadabilityArticeError {
     #[error("got empty string in the {0} field")]
     EmptyString(&'static str),
     #[error(transparent)]
     LengthError(#[from] std::num::TryFromIntError),
+    #[error("missing article url")]
+    MissingArticleUrl,
 }
 
-impl TryFrom<rss_reader::ParsedArticle> for Article {
-    type Error = FromParsedArticeError;
+impl TryFrom<dom_smoothie::Article> for Article {
+    type Error = FromReadabilityArticeError;
 
-    fn try_from(value: rss_reader::ParsedArticle) -> Result<Self, Self::Error> {
+    fn try_from(value: dom_smoothie::Article) -> Result<Self, Self::Error> {
         let now = Utc::now();
 
         let title = ArticleTitle::try_new(TrimmedString::from(value.title))
-            .map_err(|_| FromParsedArticeError::EmptyString("title"))?;
+            .map_err(|_| FromReadabilityArticeError::EmptyString("title"))?;
 
         let byline = value
             .byline
             .and_then(|s| ArticleByLine::new(TrimmedString::from(s)));
 
-        let content = ArticleTitle::try_new(TrimmedString::from(value.content))
-            .map_err(|_| FromParsedArticeError::EmptyString("content"))?;
-        let text_content = ArticleTitle::try_new(TrimmedString::from(value.text_content))
-            .map_err(|_| FromParsedArticeError::EmptyString("text_content"))?;
+        let content = ArticleTitle::try_new(TrimmedString::from(value.content.to_string()))
+            .map_err(|_| FromReadabilityArticeError::EmptyString("content"))?;
+        let text_content =
+            ArticleTitle::try_new(TrimmedString::from(value.text_content.to_string()))
+                .map_err(|_| FromReadabilityArticeError::EmptyString("text_content"))?;
 
         let length = i64::try_from(text_content.chars().count())?;
 
@@ -249,11 +252,14 @@ impl TryFrom<rss_reader::ParsedArticle> for Article {
                 .ok()
         });
 
-        let url = value.url.and_then(|s| {
-            ArticleUrl::try_new(&s)
-                .inspect_err(|error| tracing::warn!(?error, field = "url"))
-                .ok()
-        });
+        let url = value
+            .url
+            .and_then(|s| {
+                ArticleUrl::try_new(&s)
+                    .inspect_err(|error| tracing::warn!(?error, field = "url"))
+                    .ok()
+            })
+            .ok_or(FromReadabilityArticeError::MissingArticleUrl)?;
 
         Ok(Self {
             id: ArticleId::new(),
@@ -289,7 +295,7 @@ pub struct ArticleStats {
     processed: usize,
 }
 
-#[tracing::instrument(level = "trace", skip_all, err, ret)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug), ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn get_article_stats<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -317,7 +323,7 @@ pub async fn get_article_stats<'c>(
     })
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_pending<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -338,7 +344,7 @@ pub async fn mark_article_as_pending<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -351,7 +357,7 @@ pub async fn mark_article_as_error<'c>(
             status = 'error',
             error_reason = ?
         WHERE
-            id = ? AND status != 'error'
+            id = ?
         RETURNING id;
         ",
     )
@@ -361,7 +367,7 @@ pub async fn mark_article_as_error<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip(executor), err, ret)]
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_processed<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -382,7 +388,7 @@ pub async fn mark_article_as_processed<'c>(
     query.fetch_optional(executor).await
 }
 
-#[tracing::instrument(level = "trace", skip_all, err, ret)]
+#[tracing::instrument(level = "trace", skip_all, err(Debug), ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM articles;");
@@ -438,44 +444,53 @@ pub async fn delete_article_by_id<'c>(
 }
 
 #[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
-pub async fn create_article<'c>(
+pub async fn create_articles_bulk<'c>(
     executor: impl DatabaseExecutor<'c>,
-    article: &Article,
+    articles: &NonEmpty<Vec<Article>>,
 ) -> sqlx::Result<DatabaseQueryResult> {
-    let query = sqlx::query(
-        "
-        INSERT INTO articles (
+    let mut query_builder = QueryBuilder::new(
+        "INSERT INTO articles (
             id, status, title, byline,
             content, text_content, length,
             excerpt, site_name, dir,
             lang, published_time, modified_time,
             image, favicon, url
-        )
-        VALUES (
-            ?, ?, ?, ?,
-            ?, ?, ?,
-            ?, ?, ?,
-            ?, ?, ?,
-            ?, ?, ?
-        )
-        ",
-    )
-    .bind(article.id)
-    .bind(article.status.as_status())
-    .bind(&article.title)
-    .bind(&article.byline)
-    .bind(&article.content)
-    .bind(&article.text_content)
-    .bind(article.length)
-    .bind(&article.excerpt)
-    .bind(&article.site_name)
-    .bind(article.dir)
-    .bind(&article.lang)
-    .bind(article.published_time)
-    .bind(article.modified_time)
-    .bind(&article.image)
-    .bind(&article.favicon)
-    .bind(&article.url);
+        ) ",
+    );
+
+    query_builder.push_values(articles.iter(), |mut b, article| {
+        b.push_bind(article.id)
+            .push_bind(article.status.as_status())
+            .push_bind(&article.title)
+            .push_bind(&article.byline)
+            .push_bind(&article.content)
+            .push_bind(&article.text_content)
+            .push_bind(article.length)
+            .push_bind(&article.excerpt)
+            .push_bind(&article.site_name)
+            .push_bind(article.dir)
+            .push_bind(&article.lang)
+            .push_bind(article.published_time)
+            .push_bind(article.modified_time)
+            .push_bind(&article.image)
+            .push_bind(&article.favicon)
+            .push_bind(&article.url);
+    });
+
+    let query = query_builder.build();
 
     query.execute(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
+pub async fn check_article_exists_by_url<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    url: &str,
+) -> sqlx::Result<bool> {
+    let query =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM articles WHERE url = ?);").bind(url);
+
+    // query_scalar with EXISTS automatically maps the 0/1 (or true/false)
+    // returned by the database into a Rust `bool`.
+    query.fetch_one(executor).await
 }

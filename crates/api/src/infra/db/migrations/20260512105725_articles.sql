@@ -3,7 +3,7 @@ CREATE TABLE rss_feeds (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   --
-  status TEXT NOT NULL CHECK (status IN ('healthy', 'error')),
+  status TEXT NOT NULL CHECK (status IN ('new', 'healthy', 'error')),
   error_reason TEXT, -- Exists only if status == error. Enforced by constraint below.
   url TEXT NOT NULL UNIQUE,
   max_concurrent_requests INTEGER NOT NULL,
@@ -13,6 +13,10 @@ CREATE TABLE rss_feeds (
     (
       status = 'error'
       AND error_reason IS NOT NULL
+    )
+    OR (
+      status = 'new'
+      AND error_reason IS NULL
     )
     OR (
       status = 'healthy'
@@ -54,7 +58,7 @@ CREATE TABLE articles (
   modified_time DATETIME,
   image TEXT,
   favicon TEXT,
-  url TEXT,
+  url TEXT NOT NULL UNIQUE,
   --
   CONSTRAINT check_error_reason CHECK (
     (

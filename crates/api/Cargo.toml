@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rss-reader = { workspace = true }
 types = { workspace = true, features = ["serde", "sqlx"] }
 
 redis = { workspace = true }
@@ -25,6 +24,9 @@ uuid = { version = "1.23.1", features = ["serde", "v7"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 serde_path_to_error = "0.1.20"
 genai = "0.5.3"
+dom_smoothie = "0.17.0"
+reqwest = "0.13.3"
+rss = "2.0.12"
 
 [lints.clippy]
 pedantic = "warn"

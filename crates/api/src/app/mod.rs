@@ -15,7 +15,6 @@ use crate::{
         api::run_api_server,
         article_processor::run_article_processor,
         publisher::{create_publisher_mpsc_channel, run_publisher},
-        rss_consumer::run_rss_articles_consumer,
         rss_reader::run_rss_reader,
     },
 };
@@ -31,8 +30,6 @@ pub enum RunError {
     Amqp(#[from] lapin::Error),
     #[error(transparent)]
     Task(#[from] tokio::task::JoinError),
-    #[error(transparent)]
-    RssArtcilesConsumer(#[from] crate::workers::rss_consumer::RssArticlesConsumerError),
     #[error(transparent)]
     ArtcileProcessor(#[from] crate::workers::article_processor::ArticleProcessorError),
     #[error(transparent)]
@@ -84,7 +81,6 @@ pub async fn run() -> Result<(), RunError> {
 
     tasks.spawn(worker(run_publisher(state.clone(), publisher_rx)));
     tasks.spawn(worker(run_api_server(state.clone())));
-    tasks.spawn(worker(run_rss_articles_consumer(state.clone())));
     tasks.spawn(worker(run_article_processor(state.clone())));
     tasks.spawn(worker(run_rss_reader(state.clone())));
 

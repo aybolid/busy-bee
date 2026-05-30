@@ -5,7 +5,7 @@ use std::{
 };
 
 use tokio::{
-    sync::watch,
+    sync::{Semaphore, watch},
     task::{AbortHandle, JoinSet},
 };
 use types::Url;
@@ -14,6 +14,8 @@ use crate::{
     app::state::SharedAppState,
     repos::rss_feeds::{self, RssFeed, RssFeedId},
 };
+
+mod read;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RssFeedConfig {
@@ -59,6 +61,8 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
     let mut worker_tasks = JoinSet::new();
     let mut active_configs: HashMap<RssFeedId, (AbortHandle, RssFeedConfig)> = HashMap::new();
 
+    let http_client = reqwest::Client::default();
+
     let mut iter_ids = HashSet::new();
     loop {
         {
@@ -73,15 +77,21 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
                         abort_handle.abort();
                         tracing::trace!("previous worker aborted");
 
-                        let new_handle =
-                            worker_tasks.spawn(rss_feed_worker(state.clone(), config.clone()));
+                        let new_handle = worker_tasks.spawn(rss_feed_worker(
+                            state.clone(),
+                            config.clone(),
+                            http_client.clone(),
+                        ));
 
                         active_configs.insert(config.id, (new_handle, config.clone()));
                     }
                 } else {
                     tracing::trace!(id = ?config.id, "got new config");
-                    let new_handle =
-                        worker_tasks.spawn(rss_feed_worker(state.clone(), config.clone()));
+                    let new_handle = worker_tasks.spawn(rss_feed_worker(
+                        state.clone(),
+                        config.clone(),
+                        http_client.clone(),
+                    ));
                     active_configs.insert(config.id, (new_handle, config.clone()));
                 }
             }
@@ -115,7 +125,11 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
 }
 
 #[tracing::instrument(level = "trace", skip_all, fields(id = ?config.id, url = config.url.as_str()))]
-async fn rss_feed_worker(_state: SharedAppState, config: RssFeedConfig) {
+async fn rss_feed_worker(
+    state: SharedAppState,
+    config: RssFeedConfig,
+    http_client: reqwest::Client,
+) {
     tracing::trace!("started");
 
     let interval_duration = Duration::from_secs(u64::from(config.fetch_interval_seconds.get()));
@@ -123,10 +137,16 @@ async fn rss_feed_worker(_state: SharedAppState, config: RssFeedConfig) {
 
     let mut interval = tokio::time::interval(interval_duration);
 
+    let worker_state = read::SharedRssReaderWorkerState::new(read::RssReaderWorkerState {
+        app_state: state,
+        http_client,
+        request_semaphore: Semaphore::new(usize::from(config.max_concurrent_requests.get())),
+        config,
+    });
+
     loop {
         interval.tick().await;
-
-        tracing::trace!("doing smth!"); // TODO
+        read::read_rss_feed(worker_state.clone()).await;
     }
 }
 

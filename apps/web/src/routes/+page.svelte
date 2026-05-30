@@ -24,6 +24,7 @@
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
     import CreateFeedFormDialog from "./create-feed-form-dialog.svelte";
     import Trash from "$lib/components/ui/icons/trash.svelte";
+    import RssFeedStatus from "$lib/components/rss-feed-status.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -74,12 +75,7 @@
                 <Card class={cn(feed.status === "error" && "ring-2 ring-destructive/30")} size="sm">
                     <CardHeader>
                         <div class="flex items-baseline gap-2">
-                            <Badge
-                                class="capitalize"
-                                variant={feed.status === "error" ? "destructive" : "default"}
-                            >
-                                {feed.status}
-                            </Badge>
+                            <RssFeedStatus status={feed.status} />
                             <CardTitle>{url.hostname}</CardTitle>
                         </div>
                     </CardHeader>

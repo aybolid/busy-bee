@@ -16,13 +16,15 @@ const baseRssFeedSchema = {
 };
 
 const rssFeedSchema = z.discriminatedUnion("status", [
-    z.object({ ...baseRssFeedSchema, status: z.literal("healthy") }).strict(),
+    z.object({ ...baseRssFeedSchema, status: z.enum(["healthy", "new"]) }).strict(),
     z
         .object({ ...baseRssFeedSchema, status: z.literal("error"), error_reason: z.string() })
         .strict(),
 ]);
 
 /** @typedef {z.infer<typeof rssFeedSchema>} RssFeed */
+
+/** @typedef {RssFeed['status']} RssFeedStatus */
 
 /**
  * @param {import('ky').KyInstance} ky `KyInstance` to use.

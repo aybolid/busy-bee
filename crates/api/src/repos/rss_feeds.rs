@@ -32,6 +32,7 @@ impl RssFeedId {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "status", content = "error_reason", rename_all = "lowercase")]
 pub enum RssFeedStatus {
+    New,
     Healthy,
     Error(RssFeedErrorReason),
 }
@@ -59,6 +60,14 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for RssFeed {
         let raw_reason: Option<RssFeedErrorReason> = row.try_get("error_reason")?;
 
         let status = match raw_status.as_str() {
+            "new" => {
+                if raw_reason.is_some() {
+                    return Err(sqlx::Error::Decode(
+                        "invariant broken: 'new' feed cannot have an error_reason".into(),
+                    ));
+                }
+                RssFeedStatus::New
+            }
             "healthy" => {
                 if raw_reason.is_some() {
                     return Err(sqlx::Error::Decode(
@@ -94,11 +103,55 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for RssFeed {
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<RssFeed>> {
     let query = sqlx::query_as("SELECT * FROM rss_feeds ORDER BY created_at;");
 
     query.fetch_all(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
+pub async fn mark_rss_feed_as_healthy<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: RssFeedId,
+) -> sqlx::Result<Option<RssFeedId>> {
+    let query = sqlx::query_scalar(
+        "
+        UPDATE rss_feeds
+        SET
+            status = 'healthy',
+            error_reason = NULL
+        WHERE
+            id = ?
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
+pub async fn mark_rss_feed_as_error<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: RssFeedId,
+    error_reason: Option<&RssFeedErrorReason>,
+) -> sqlx::Result<Option<RssFeedId>> {
+    let query = sqlx::query_scalar(
+        "
+        UPDATE rss_feeds
+        SET
+            status = 'error',
+            error_reason = ?
+        WHERE
+            id = ?
+        RETURNING id;
+        ",
+    )
+    .bind(error_reason.map_or("Unknown error", |s| s.as_str()))
+    .bind(id);
+
+    query.fetch_optional(executor).await
 }
 
 #[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
@@ -127,7 +180,7 @@ pub async fn create_rss_feed<'c>(
     .bind(url)
     .bind(max_concurrent_requests)
     .bind(fetch_interval_seconds)
-    .bind("healthy");
+    .bind("new");
 
     query.fetch_one(executor).await
 }
