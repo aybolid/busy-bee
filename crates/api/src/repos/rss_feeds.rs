@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use chrono::{DateTime, Utc};
 use sqlx::Row;
 use types::{NonEmpty, TrimmedString, Url};
@@ -46,7 +48,7 @@ pub struct RssFeed {
     status: RssFeedStatus,
 
     url: Url,
-    max_concurrent_requests: u8,
+    max_concurrent_requests: NonZeroU8,
     fetch_interval_seconds: i64,
 }
 
@@ -103,7 +105,7 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 pub async fn create_rss_feed<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &Url,
-    max_concurrent_requests: u8,
+    max_concurrent_requests: NonZeroU8,
     fetch_interval_seconds: i64,
 ) -> sqlx::Result<RssFeed> {
     let query = sqlx::query_as(

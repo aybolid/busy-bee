@@ -23,6 +23,7 @@
     import Plus from "$lib/components/ui/icons/plus.svelte";
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
     import CreateFeedFormDialog from "./create-feed-form-dialog.svelte";
+    import Trash from "$lib/components/ui/icons/trash.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -101,12 +102,15 @@
                             <ErrorAlert description={feed.error_reason} />
                         {/if}
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter class="justify-between gap-4">
                         <Action anchor href={feed.url} variant="link" size="xs" target="_blank">
                             <ExternalLink />
                             <span>
                                 {feed.url}
                             </span>
+                        </Action>
+                        <Action button size="icon-xs" variant="destructive">
+                            <Trash />
                         </Action>
                     </CardFooter>
                 </Card>

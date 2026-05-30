@@ -37,6 +37,7 @@ export async function getRssFeeds(ky) {
 export const createRssFeedJsonSchema = z
     .object({
         url: z.httpUrl(),
+        max_concurrent_requests: z.int().positive().max(255),
     })
     .strict();
 

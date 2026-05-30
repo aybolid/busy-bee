@@ -21,6 +21,7 @@
     import { isHTTPError } from "ky";
     import { getApiError } from "$lib/api/error";
     import { toaster } from "$lib/components/toaster/store";
+    import FieldDescription from "$lib/components/ui/field/field-description.svelte";
 
     /** @type {Omit<import('$lib/components/ui/dialog/dialog.svelte').DialogProps, 'children' | 'ref'>} */
     let props = $props();
@@ -33,41 +34,56 @@
     const createMutation = createCreateRssFeedMutation();
 
     const form = createForm(() => ({
-        defaultValues: { url: "" },
+        defaultValues: { url: "", max_concurrent_requests: 5 },
         validators: {
             onSubmit: createRssFeedJsonSchema,
         },
         onSubmit: async ({ value, formApi }) => {
-            await createMutation.mutateAsync([ky, { json: { url: value.url } }], {
-                onError: (err) => {
-                    if (isHTTPError(err)) {
-                        const apiError = getApiError(err);
-                        if (apiError) {
-                            if (apiError.kind === "validation" && apiError.source) {
-                                formApi.setErrorMap({
-                                    onSubmit: { fields: { [apiError.source]: apiError } },
-                                });
-                            } else {
-                                toaster.push("Failed to create RSS feed", {
-                                    description: apiError.message,
-                                    props: { variant: "destructive" },
-                                });
+            await createMutation.mutateAsync(
+                [
+                    ky,
+                    {
+                        json: {
+                            url: value.url,
+                            max_concurrent_requests: value.max_concurrent_requests,
+                        },
+                    },
+                ],
+                {
+                    onError: (err) => {
+                        if (isHTTPError(err)) {
+                            const apiError = getApiError(err);
+                            if (apiError) {
+                                if (
+                                    apiError.kind === "validation" &&
+                                    apiError.source &&
+                                    apiError.source !== "."
+                                ) {
+                                    formApi.setErrorMap({
+                                        onSubmit: { fields: { [apiError.source]: apiError } },
+                                    });
+                                } else {
+                                    toaster.push("Failed to create RSS feed", {
+                                        description: apiError.message,
+                                        props: { variant: "destructive" },
+                                    });
+                                }
                             }
-                            return;
+                        } else {
+                            toaster.push("Failed to create RSS feed", {
+                                description: err.message,
+                                props: { variant: "destructive" },
+                            });
                         }
-                    }
-                    toaster.push("Failed to create RSS feed", {
-                        description: err.message,
-                        props: { variant: "destructive" },
-                    });
+                    },
+                    onSuccess: () => {
+                        void queryClient.invalidateQueries({
+                            queryKey: ["rss_feeds"],
+                        });
+                        dialog.close();
+                    },
                 },
-                onSuccess: () => {
-                    void queryClient.invalidateQueries({
-                        queryKey: ["rss_feeds"],
-                    });
-                    dialog.close();
-                },
-            });
+            );
         },
     }));
 </script>
@@ -111,7 +127,35 @@
             </FieldGroup>
 
             <FieldGroup>
-                <FieldError errors={form.state.errors} />
+                <form.Field name="max_concurrent_requests">
+                    {#snippet children(field)}
+                        {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
+                        <Field data-invalid={isInvalid}>
+                            <FieldLabel>Max requests</FieldLabel>
+                            <Input
+                                type="number"
+                                step="1"
+                                min="1"
+                                max="255"
+                                id={field.name}
+                                name={field.name}
+                                value={field.state.value}
+                                onblur={field.handleBlur}
+                                onchange={(e) => field.handleChange(e.currentTarget.valueAsNumber)}
+                                aria-invalid={isInvalid}
+                                placeholder="5"
+                                autocomplete="off"
+                            />
+                            <FieldDescription>
+                                Maximum number of concurrent requests to make when fetching the feed
+                                articles.
+                            </FieldDescription>
+                            {#if isInvalid}
+                                <FieldError errors={field.state.meta.errors} />
+                            {/if}
+                        </Field>
+                    {/snippet}
+                </form.Field>
             </FieldGroup>
 
             <DialogFooter>
