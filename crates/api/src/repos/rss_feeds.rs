@@ -1,4 +1,4 @@
-use std::num::NonZeroU8;
+use std::num::{NonZeroU8, NonZeroU32};
 
 use chrono::{DateTime, Utc};
 use sqlx::Row;
@@ -49,7 +49,25 @@ pub struct RssFeed {
 
     url: Url,
     max_concurrent_requests: NonZeroU8,
-    fetch_interval_seconds: i64,
+    fetch_interval_seconds: NonZeroU32,
+}
+
+impl RssFeed {
+    pub fn id(&self) -> RssFeedId {
+        self.id
+    }
+
+    pub fn into_url(self) -> Url {
+        self.url
+    }
+
+    pub fn max_concurrent_requests(&self) -> std::num::NonZero<u8> {
+        self.max_concurrent_requests
+    }
+
+    pub fn fetch_interval_seconds(&self) -> std::num::NonZero<u32> {
+        self.fetch_interval_seconds
+    }
 }
 
 impl<'r> sqlx::FromRow<'r, DatabaseRow> for RssFeed {

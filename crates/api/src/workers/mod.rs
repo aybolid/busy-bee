@@ -2,3 +2,4 @@ pub mod api;
 pub mod article_processor;
 pub mod publisher;
 pub mod rss_consumer;
+pub mod rss_reader;
