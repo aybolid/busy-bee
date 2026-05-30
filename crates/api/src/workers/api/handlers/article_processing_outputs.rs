@@ -22,13 +22,13 @@ pub async fn get_article_processing_outputs(
     let limit = pagination.limit();
 
     let data = article_processing_outputs::get_article_processing_outputs(
-        state.db_pool(),
+        &state.db_pool,
         page_index,
         limit,
     )
     .await?;
     let count =
-        article_processing_outputs::count_article_processing_outputs(state.db_pool()).await?;
+        article_processing_outputs::count_article_processing_outputs(&state.db_pool).await?;
 
     Ok(data_with_meta(
         data,
@@ -47,7 +47,7 @@ pub async fn get_article_processing_output(
     ReqPath(output_id): ReqPath<ArticleProcessingOutputId>,
 ) -> HandlerResult<impl IntoResponse> {
     let output =
-        article_processing_outputs::get_article_processing_output_by_id(state.db_pool(), output_id)
+        article_processing_outputs::get_article_processing_output_by_id(&state.db_pool, output_id)
             .await?
             .ok_or_else(|| HandlerError::not_found("output not found"))?;
 

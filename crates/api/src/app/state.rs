@@ -9,65 +9,15 @@ use crate::{
 };
 
 pub struct AppState {
-    config: Config,
+    pub config: Config,
 
-    db_pool: DatabasePool,
-    amqp_connection: Connection,
-    ai_client: Client,
+    pub db_pool: DatabasePool,
+    pub amqp_connection: Connection,
+    pub ai_client: Client,
 
-    publisher_tx: Sender<PublisherCommand>,
+    pub publisher_tx: Sender<PublisherCommand>,
 
-    cancel_token: CancellationToken,
-}
-
-impl AppState {
-    pub fn new(
-        config: Config,
-
-        db_pool: DatabasePool,
-        amqp_connection: Connection,
-        ai_client: Client,
-
-        publisher_tx: Sender<PublisherCommand>,
-
-        cancel_token: CancellationToken,
-    ) -> Self {
-        Self {
-            config,
-
-            db_pool,
-            amqp_connection,
-            ai_client,
-
-            publisher_tx,
-
-            cancel_token,
-        }
-    }
-
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    pub fn db_pool(&self) -> &DatabasePool {
-        &self.db_pool
-    }
-
-    pub fn amqp_connection(&self) -> &Connection {
-        &self.amqp_connection
-    }
-
-    pub fn ai_client(&self) -> &Client {
-        &self.ai_client
-    }
-
-    pub fn publisher_tx(&self) -> &Sender<PublisherCommand> {
-        &self.publisher_tx
-    }
-
-    pub fn cancel_token(&self) -> &CancellationToken {
-        &self.cancel_token
-    }
+    pub cancel_token: CancellationToken,
 }
 
 pub type SharedAppState = Arc<AppState>;

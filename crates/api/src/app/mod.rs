@@ -59,26 +59,26 @@ pub async fn run() -> Result<(), RunError> {
     let amqp_connection = amqp_connect(&config).await?;
     {
         let channel = amqp_connection.create_channel().await?;
-        declare_durable_queue(&channel, config.rss_articles_queue().as_str().into()).await?;
-        declare_durable_queue(&channel, config.article_processor_queue().as_str().into()).await?;
+        declare_durable_queue(&channel, config.rss_articles_queue.as_str().into()).await?;
+        declare_durable_queue(&channel, config.article_processor_queue.as_str().into()).await?;
         channel.close(200, "setup completed".into()).await?;
     }
 
-    let db_pool = database_connect(config.database_url()).await?;
+    let db_pool = database_connect(config.database_url.as_str()).await?;
     database_migrate(&db_pool).await?;
 
     let ai_client = ai::Client::try_new(&config).await?;
 
     let (publisher_tx, publisher_rx) = create_publisher_mpsc_channel();
 
-    let state = SharedAppState::new(AppState::new(
+    let state = SharedAppState::new(AppState {
         config,
         db_pool,
         amqp_connection,
         ai_client,
         publisher_tx,
         cancel_token,
-    ));
+    });
 
     let mut tasks = JoinSet::new();
 
@@ -92,11 +92,11 @@ pub async fn run() -> Result<(), RunError> {
         result??;
     }
 
-    _ = amqp_close(state.amqp_connection())
+    _ = amqp_close(&state.amqp_connection)
         .await
         .inspect_err(|error| tracing::error!(?error));
 
-    database_close(state.db_pool()).await;
+    database_close(&state.db_pool).await;
 
     tracing::info!("bye!");
     Ok(())

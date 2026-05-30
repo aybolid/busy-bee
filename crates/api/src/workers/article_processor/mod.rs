@@ -27,12 +27,12 @@ pub enum ArticleProcessorError {
 pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleProcessorError> {
     tracing::trace!("started");
 
-    let channel = state.amqp_connection().create_channel().await?;
+    let channel = state.amqp_connection.create_channel().await?;
     tracing::trace!("amqp channel created");
 
     let mut consumer = channel
         .basic_consume(
-            state.config().article_processor_queue().as_str().into(),
+            state.config.article_processor_queue.as_str().into(),
             "article_processor_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -58,7 +58,7 @@ pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleP
                     }
                 }
             }
-            () = state.cancel_token().cancelled() => {
+            () = state.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
@@ -110,7 +110,7 @@ async fn process_article_delivery(
 
     if let Err(error) = process_article(state, &payload).await {
         articles::mark_article_as_error(
-            state.db_pool(),
+            &state.db_pool,
             payload.article_id,
             ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
         )
@@ -130,7 +130,7 @@ async fn process_article(
     state: &SharedAppState,
     payload: &ArticleDeliveryPayload,
 ) -> Result<(), ProcessArticleDeliveryError> {
-    let article = articles::get_article_by_id(state.db_pool(), payload.article_id)
+    let article = articles::get_article_by_id(&state.db_pool, payload.article_id)
         .await?
         .ok_or(ProcessArticleDeliveryError::ArticleNotFound(
             payload.article_id,
@@ -144,29 +144,29 @@ async fn process_article(
             context.as_str()
         )));
     }
-    chat_request = chat_request.append_message(ChatMessage::user(article.text_content().as_str()));
+    chat_request = chat_request.append_message(ChatMessage::user(article.text_content.as_str()));
 
-    let chat_response = state.ai_client().exec_chat(chat_request).await?;
+    let chat_response = state.ai_client.exec_chat(chat_request).await?;
 
     let usage = chat_response.usage.clone();
     let text = chat_response.into_texts().join("");
     let output_text = NonEmpty::try_new(TrimmedString::from(text))?;
 
-    let mut tx = state.db_pool().begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     article_processing_outputs::create_article_processing_output(
         &mut *tx,
-        article.id(),
-        state.ai_client().model(),
+        article.id,
+        &state.ai_client.model,
         &output_text,
         payload.context.as_ref(),
         &usage,
     )
     .await?;
 
-    articles::mark_article_as_processed(&mut *tx, article.id())
+    articles::mark_article_as_processed(&mut *tx, article.id)
         .await?
-        .ok_or(ProcessArticleDeliveryError::ArticleNotFound(article.id()))?;
+        .ok_or(ProcessArticleDeliveryError::ArticleNotFound(article.id))?;
 
     tx.commit().await?;
 

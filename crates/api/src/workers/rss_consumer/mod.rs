@@ -22,12 +22,12 @@ pub async fn run_rss_articles_consumer(
 ) -> Result<(), RssArticlesConsumerError> {
     tracing::trace!("started");
 
-    let channel = state.amqp_connection().create_channel().await?;
+    let channel = state.amqp_connection.create_channel().await?;
     tracing::trace!("amqp channel created");
 
     let mut consumer = channel
         .basic_consume(
-            state.config().rss_articles_queue().as_str().into(),
+            state.config.rss_articles_queue.as_str().into(),
             "rss_articles_consumer".into(),
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -53,7 +53,7 @@ pub async fn run_rss_articles_consumer(
                     }
                 }
             }
-            () = state.cancel_token().cancelled() => {
+            () = state.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
@@ -88,7 +88,7 @@ async fn process_rss_delivery(
 
     let article = Article::try_from(parsed_article)?;
 
-    articles::create_article(state.db_pool(), &article).await?;
+    articles::create_article(&state.db_pool, &article).await?;
 
     Ok(())
 }

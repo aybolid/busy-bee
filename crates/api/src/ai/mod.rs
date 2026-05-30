@@ -9,8 +9,8 @@ use crate::app::config::Config;
 
 #[derive(Debug, Clone)]
 pub struct Client {
+    pub model: NonEmpty<TrimmedString>,
     client: genai::Client,
-    model: NonEmpty<TrimmedString>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -23,7 +23,7 @@ pub enum ClientInitError {
 
 impl Client {
     pub async fn try_new(config: &Config) -> Result<Self, ClientInitError> {
-        let api_key = config.ai_api_key().as_str().to_owned();
+        let api_key = config.ai_api_key.as_str().to_owned();
         let auth_resolver = AuthResolver::from_resolver_fn(
             |_| -> Result<Option<AuthData>, genai::resolver::Error> {
                 Ok(Some(AuthData::Key(api_key)))
@@ -34,15 +34,17 @@ impl Client {
             .with_auth_resolver(auth_resolver)
             .build();
 
-        let target = client.resolve_service_target(config.ai_model()).await?;
+        let target = client
+            .resolve_service_target(config.ai_model.as_str())
+            .await?;
         tracing::info!(model = ?target.model);
 
-        if target.model.adapter_kind != AdapterKind::Ollama && config.ai_api_key().is_empty() {
+        if target.model.adapter_kind != AdapterKind::Ollama && config.ai_api_key.is_empty() {
             Err(ClientInitError::ApiKeyNotFound)
         } else {
             Ok(Self {
+                model: config.ai_model.clone(),
                 client,
-                model: config.ai_model().clone(),
             })
         }
     }
@@ -53,9 +55,5 @@ impl Client {
             .exec_chat(self.model.as_str(), request, None)
             .await
             .inspect(|resp| tracing::trace!(usage = ?resp.usage))
-    }
-
-    pub fn model(&self) -> &NonEmpty<TrimmedString> {
-        &self.model
     }
 }

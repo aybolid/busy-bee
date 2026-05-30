@@ -9,7 +9,7 @@ use crate::app::config::Config;
 
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn amqp_connect(config: &Config) -> lapin::Result<Connection> {
-    Connection::connect(config.amqp_url(), ConnectionProperties::default())
+    Connection::connect(config.amqp_url.as_str(), ConnectionProperties::default())
         .await
         .inspect(|_| tracing::info!("amqp connection created"))
 }

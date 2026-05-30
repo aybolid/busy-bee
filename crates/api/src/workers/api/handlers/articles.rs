@@ -27,8 +27,8 @@ pub async fn get_articles(
     let page_index = pagination.page_index();
     let limit = pagination.limit();
 
-    let data = articles::get_articles(state.db_pool(), page_index, limit).await?;
-    let count = articles::count_articles(state.db_pool()).await?;
+    let data = articles::get_articles(&state.db_pool, page_index, limit).await?;
+    let count = articles::count_articles(&state.db_pool).await?;
 
     Ok(data_with_meta(
         data,
@@ -46,7 +46,7 @@ pub async fn get_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
 ) -> HandlerResult<impl IntoResponse> {
-    let article = articles::get_article_by_id(state.db_pool(), article_id)
+    let article = articles::get_article_by_id(&state.db_pool, article_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
@@ -58,7 +58,7 @@ pub async fn delete_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
 ) -> HandlerResult<impl IntoResponse> {
-    articles::delete_article_by_id(state.db_pool(), article_id)
+    articles::delete_article_by_id(&state.db_pool, article_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
@@ -69,7 +69,7 @@ pub async fn delete_article(
 pub async fn get_article_stats(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
-    let article_stats = articles::get_article_stats(state.db_pool()).await?;
+    let article_stats = articles::get_article_stats(&state.db_pool).await?;
 
     Ok(data(article_stats))
 }
@@ -85,7 +85,7 @@ pub async fn process_article(
     ReqPath(article_id): ReqPath<ArticleId>,
     ReqJson(json): ReqJson<ProcessArticleJson>,
 ) -> HandlerResult<impl IntoResponse> {
-    articles::mark_article_as_pending(state.db_pool(), article_id)
+    articles::mark_article_as_pending(&state.db_pool, article_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
@@ -94,9 +94,9 @@ pub async fn process_article(
         context: json.context,
     });
 
-    if let Err(error) = state.publisher_tx().send(command).await {
+    if let Err(error) = state.publisher_tx.send(command).await {
         articles::mark_article_as_error(
-            state.db_pool(),
+            &state.db_pool,
             article_id,
             ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
         )

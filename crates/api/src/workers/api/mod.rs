@@ -17,10 +17,10 @@ mod routers;
 
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_api_server(state: SharedAppState) -> io::Result<()> {
-    let cancel_token = state.cancel_token().clone();
+    let cancel_token = state.cancel_token.clone();
 
-    let listener = TcpListener::bind(state.config().api_addr()).await?;
-    tracing::info!("listening on {}", state.config().api_addr());
+    let listener = TcpListener::bind(state.config.api_addr).await?;
+    tracing::info!("listening on {}", state.config.api_addr);
 
     let router = create_api_router(state);
 

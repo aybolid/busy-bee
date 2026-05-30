@@ -29,7 +29,7 @@ pub async fn run_publisher(
 ) -> Result<(), PublisherError> {
     tracing::trace!("started");
 
-    let channel = state.amqp_connection().create_channel().await?;
+    let channel = state.amqp_connection.create_channel().await?;
     tracing::trace!("amqp channel created");
 
     tracing::trace!("processing mpsc messages");
@@ -45,7 +45,7 @@ pub async fn run_publisher(
                     break;
                 }
             },
-            () = state.cancel_token().cancelled() => {
+            () = state.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 rx.close();
                 tracing::trace!("publisher mpsc receiver closed");
@@ -74,7 +74,7 @@ async fn process_command(
     let (payload, queue) = match command {
         PublisherCommand::ProcessArticle(payload) => (
             serde_json::to_vec(&payload)?,
-            state.config().article_processor_queue().as_str(),
+            state.config.article_processor_queue.as_str(),
         ),
     };
     tracing::trace!(payload_bytes = payload.len(), ?queue);

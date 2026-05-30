@@ -26,10 +26,10 @@ struct RssFeedConfig {
 impl From<RssFeed> for RssFeedConfig {
     fn from(value: RssFeed) -> Self {
         Self {
-            id: value.id(),
-            max_concurrent_requests: value.max_concurrent_requests(),
-            fetch_interval_seconds: value.fetch_interval_seconds(),
-            url: value.into_url(),
+            id: value.id,
+            url: value.url,
+            max_concurrent_requests: value.max_concurrent_requests,
+            fetch_interval_seconds: value.fetch_interval_seconds,
         }
     }
 }
@@ -106,7 +106,7 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
                     break;
                 }
             }
-            () = state.cancel_token().cancelled() => {
+            () = state.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
@@ -143,13 +143,13 @@ async fn db_poller(state: SharedAppState, tx: watch::Sender<Vec<RssFeedConfig>>)
     loop {
         tokio::select! {
             _ = interval.tick() => {}
-            () = state.cancel_token().cancelled() => {
+            () = state.cancel_token.cancelled() => {
                 tracing::trace!("got shutdown signal");
                 break;
             }
         }
 
-        match rss_feeds::get_rss_feeds(state.db_pool()).await {
+        match rss_feeds::get_rss_feeds(&state.db_pool).await {
             Ok(feeds) => {
                 let configs = feeds
                     .into_iter()

@@ -40,34 +40,16 @@ pub type RssFeedErrorReason = NonEmpty<TrimmedString>;
 
 #[derive(Debug, serde::Serialize)]
 pub struct RssFeed {
-    id: RssFeedId,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: RssFeedId,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     #[serde(flatten)]
-    status: RssFeedStatus,
+    pub status: RssFeedStatus,
 
-    url: Url,
-    max_concurrent_requests: NonZeroU8,
-    fetch_interval_seconds: NonZeroU32,
-}
-
-impl RssFeed {
-    pub fn id(&self) -> RssFeedId {
-        self.id
-    }
-
-    pub fn into_url(self) -> Url {
-        self.url
-    }
-
-    pub fn max_concurrent_requests(&self) -> std::num::NonZero<u8> {
-        self.max_concurrent_requests
-    }
-
-    pub fn fetch_interval_seconds(&self) -> std::num::NonZero<u32> {
-        self.fetch_interval_seconds
-    }
+    pub url: Url,
+    pub max_concurrent_requests: NonZeroU8,
+    pub fetch_interval_seconds: NonZeroU32,
 }
 
 impl<'r> sqlx::FromRow<'r, DatabaseRow> for RssFeed {

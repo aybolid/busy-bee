@@ -9,13 +9,13 @@ use std::{
 use types::{NonEmpty, TrimmedString, Url};
 
 pub struct Config {
-    api_addr: SocketAddr,
-    amqp_url: Url,
-    rss_articles_queue: NonEmpty<TrimmedString>,
-    article_processor_queue: NonEmpty<TrimmedString>,
-    database_url: Url,
-    ai_model: NonEmpty<TrimmedString>,
-    ai_api_key: TrimmedString,
+    pub api_addr: SocketAddr,
+    pub amqp_url: Url,
+    pub rss_articles_queue: NonEmpty<TrimmedString>,
+    pub article_processor_queue: NonEmpty<TrimmedString>,
+    pub database_url: Url,
+    pub ai_model: NonEmpty<TrimmedString>,
+    pub ai_api_key: TrimmedString,
 }
 
 impl Debug for Config {
@@ -36,36 +36,6 @@ impl Debug for Config {
                 },
             )
             .finish()
-    }
-}
-
-impl Config {
-    pub fn api_addr(&self) -> SocketAddr {
-        self.api_addr
-    }
-
-    pub fn amqp_url(&self) -> &str {
-        self.amqp_url.as_ref()
-    }
-
-    pub fn database_url(&self) -> &str {
-        self.database_url.as_ref()
-    }
-
-    pub fn ai_model(&self) -> &NonEmpty<TrimmedString> {
-        &self.ai_model
-    }
-
-    pub fn ai_api_key(&self) -> &TrimmedString {
-        &self.ai_api_key
-    }
-
-    pub fn rss_articles_queue(&self) -> &NonEmpty<TrimmedString> {
-        &self.rss_articles_queue
-    }
-
-    pub fn article_processor_queue(&self) -> &NonEmpty<TrimmedString> {
-        &self.article_processor_queue
     }
 }
 

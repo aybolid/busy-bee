@@ -36,18 +36,18 @@ pub type OutputText = NonEmpty<TrimmedString>;
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct ArticleProcessingOutput {
-    id: ArticleProcessingOutputId,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: ArticleProcessingOutputId,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
-    article_id: Option<ArticleId>,
+    pub article_id: Option<ArticleId>,
 
-    user_context: Option<AdditionalContext>,
-    output_text: OutputText,
+    pub user_context: Option<AdditionalContext>,
+    pub output_text: OutputText,
 
-    model: NonEmpty<TrimmedString>,
+    pub model: NonEmpty<TrimmedString>,
     #[sqlx(json)]
-    usage: genai::chat::Usage,
+    pub usage: genai::chat::Usage,
 }
 
 #[tracing::instrument(level = "trace", skip(executor), err(Debug))]

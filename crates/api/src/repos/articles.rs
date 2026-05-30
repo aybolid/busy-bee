@@ -88,27 +88,27 @@ impl ArticleStatus {
 
 #[derive(Debug, serde::Serialize)]
 pub struct Article {
-    id: ArticleId,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: ArticleId,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     #[serde(flatten)]
-    status: ArticleStatus,
+    pub status: ArticleStatus,
 
-    title: ArticleTitle,
-    byline: Option<ArticleByLine>,
-    content: ArticleContent,
-    text_content: ArticleTextContent,
-    length: i64, // Using i64 so it can be stored in Sqlite
-    excerpt: Option<ArticleExcerpt>,
-    site_name: Option<ArticleSiteName>,
-    dir: Option<TextDirection>,
-    lang: Option<ArticleLang>,
-    published_time: Option<DateTime<Utc>>,
-    modified_time: Option<DateTime<Utc>>,
-    image: Option<ArticleImageUrl>,
-    favicon: Option<ArticleFaviconUrl>,
-    url: Option<ArticleUrl>,
+    pub title: ArticleTitle,
+    pub byline: Option<ArticleByLine>,
+    pub content: ArticleContent,
+    pub text_content: ArticleTextContent,
+    pub length: i64, // Using i64 so it can be stored in Sqlite
+    pub excerpt: Option<ArticleExcerpt>,
+    pub site_name: Option<ArticleSiteName>,
+    pub dir: Option<TextDirection>,
+    pub lang: Option<ArticleLang>,
+    pub published_time: Option<DateTime<Utc>>,
+    pub modified_time: Option<DateTime<Utc>>,
+    pub image: Option<ArticleImageUrl>,
+    pub favicon: Option<ArticleFaviconUrl>,
+    pub url: Option<ArticleUrl>,
 }
 
 impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
@@ -177,16 +177,6 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
             favicon: row.try_get("favicon")?,
             url: row.try_get("url")?,
         })
-    }
-}
-
-impl Article {
-    pub fn id(&self) -> ArticleId {
-        self.id
-    }
-
-    pub fn text_content(&self) -> &TrimmedString {
-        &self.text_content
     }
 }
 
