@@ -1,10 +1,5 @@
 use genai::chat::{ChatMessage, ChatRequest};
-use lapin::{
-    message::Delivery,
-    options::{BasicAckOptions, BasicConsumeOptions, BasicRejectOptions},
-    types::FieldTable,
-};
-use tokio_stream::StreamExt;
+use tokio::sync::mpsc;
 use types::{NonEmpty, NonEmptyMaxLength, TrimmedString};
 
 use crate::{
@@ -15,47 +10,49 @@ use crate::{
     },
 };
 
-const POST_SYSTEM_PROMPT: &str = include_str!("prompts/post.md");
+const ARTICLE_PROCESSING_CHANNEL_CAPACITY: usize = 100;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ArticleProcessorError {
-    #[error(transparent)]
-    Amqp(#[from] lapin::Error),
+pub type ArticleProcessingSender = mpsc::Sender<ArticleProcessingRequest>;
+pub type ArticleProcessingReceiver = mpsc::Receiver<ArticleProcessingRequest>;
+
+#[tracing::instrument(level = "trace", skip_all)]
+pub fn create_article_processing_channel() -> (ArticleProcessingSender, ArticleProcessingReceiver) {
+    tracing::trace!(ARTICLE_PROCESSING_CHANNEL_CAPACITY);
+
+    let channel = mpsc::channel(ARTICLE_PROCESSING_CHANNEL_CAPACITY);
+    tracing::trace!("channel created");
+
+    channel
 }
 
+pub type ProcessArticleUserContext = NonEmptyMaxLength<500, TrimmedString>;
+
+#[derive(Debug)]
+pub struct ArticleProcessingRequest {
+    pub article_id: ArticleId,
+    pub context: Option<ProcessArticleUserContext>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ArticleProcessorError {}
+
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleProcessorError> {
+pub async fn run_article_processor(
+    state: SharedAppState,
+    mut rx: mpsc::Receiver<ArticleProcessingRequest>,
+) -> Result<(), ArticleProcessorError> {
     tracing::trace!("started");
 
-    let channel = state.amqp_connection.create_channel().await?;
-    tracing::trace!("amqp channel created");
-
-    let mut consumer = channel
-        .basic_consume(
-            state.config.article_processor_queue.as_str().into(),
-            "article_processor_consumer".into(),
-            BasicConsumeOptions::default(),
-            FieldTable::default(),
-        )
-        .await?;
-    tracing::trace!("consumer created");
-
-    tracing::info!("processing delivery");
+    tracing::trace!("listening for processing requests");
     loop {
         tokio::select! {
-            delivery_result = consumer.next() => {
-                match delivery_result {
-                    Some(Ok(delivery)) => {
-                        // Error logged by `tracing::instrument`
-                        _ =  process_article_delivery(&state, delivery).await;
-                    }
-                    Some(Err(error)) => {
-                        tracing::error!(?error);
-                    }
-                    None => {
-                        tracing::error!("consumer stream ended unexpectedly");
-                        break;
-                    }
+            request = rx.recv() => {
+                if let Some(request) = request {
+                    tracing::trace!(?request);
+                    handle_article_processing(&state, request).await;
+                } else {
+                    tracing::trace!("mpsc channel closed");
+                    break;
                 }
             }
             () = state.cancel_token.cancelled() => {
@@ -68,12 +65,30 @@ pub async fn run_article_processor(state: SharedAppState) -> Result<(), ArticleP
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip_all)]
+#[allow(clippy::collapsible_if)]
+async fn handle_article_processing(state: &SharedAppState, request: ArticleProcessingRequest) {
+    let article_id = request.article_id;
+
+    if let Err(error) = process_article(state, request).await {
+        if !matches!(error, ProcessArticleError::ArticleNotFound(_)) {
+            if let Err(error) = articles::mark_article_as_error(
+                &state.db_pool,
+                article_id,
+                ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+            )
+            .await
+            {
+                tracing::error!(?error);
+            }
+        }
+    }
+}
+
+const POST_SYSTEM_PROMPT: &str = include_str!("prompts/post.md");
+
 #[derive(Debug, thiserror::Error)]
-pub enum ProcessArticleDeliveryError {
-    #[error(transparent)]
-    Amqp(#[from] lapin::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
+pub enum ProcessArticleError {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error("article {0:?} not found")]
@@ -84,61 +99,18 @@ pub enum ProcessArticleDeliveryError {
     InvalidOutputLength(#[from] types::LengthBoundError),
 }
 
-#[allow(clippy::identity_op)]
-pub type AdditionalContext = NonEmptyMaxLength<500, TrimmedString>;
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct ArticleDeliveryPayload {
-    pub article_id: ArticleId,
-    pub context: Option<AdditionalContext>,
-}
-
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
-async fn process_article_delivery(
-    state: &SharedAppState,
-    delivery: Delivery,
-) -> Result<(), ProcessArticleDeliveryError> {
-    let payload = match serde_json::from_slice::<ArticleDeliveryPayload>(&delivery.data) {
-        Ok(p) => p,
-        Err(e) => {
-            // Reject unparseable messages without requeuing to avoid poison pill loops
-            _ = delivery.reject(BasicRejectOptions { requeue: false }).await;
-            return Err(e.into());
-        }
-    };
-    tracing::trace!(article_id = ?payload.article_id, context = ?payload.context);
-
-    if let Err(error) = process_article(state, &payload).await {
-        articles::mark_article_as_error(
-            &state.db_pool,
-            payload.article_id,
-            ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
-        )
-        .await?;
-        // Acknowledge the message since the "error state" has been safely recorded in the database.
-        delivery.ack(BasicAckOptions::default()).await?;
-        return Err(error);
-    }
-
-    // Acknowledge on full success
-    delivery.ack(BasicAckOptions::default()).await?;
-    Ok(())
-}
-
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn process_article(
     state: &SharedAppState,
-    payload: &ArticleDeliveryPayload,
-) -> Result<(), ProcessArticleDeliveryError> {
-    let article = articles::get_article_by_id(&state.db_pool, payload.article_id)
+    request: ArticleProcessingRequest,
+) -> Result<(), ProcessArticleError> {
+    let article = articles::get_article_by_id(&state.db_pool, request.article_id)
         .await?
-        .ok_or(ProcessArticleDeliveryError::ArticleNotFound(
-            payload.article_id,
-        ))?;
+        .ok_or(ProcessArticleError::ArticleNotFound(request.article_id))?;
 
     let mut chat_request = ChatRequest::default().with_system(POST_SYSTEM_PROMPT);
 
-    if let Some(context) = payload.context.as_ref() {
+    if let Some(context) = request.context.as_ref() {
         chat_request = chat_request.append_message(ChatMessage::user(format!(
             "Additional context: {}",
             context.as_str()
@@ -159,14 +131,14 @@ async fn process_article(
         article.id,
         &state.ai_client.model,
         &output_text,
-        payload.context.as_ref(),
+        request.context.as_ref(),
         &usage,
     )
     .await?;
 
     articles::mark_article_as_processed(&mut *tx, article.id)
         .await?
-        .ok_or(ProcessArticleDeliveryError::ArticleNotFound(article.id))?;
+        .ok_or(ProcessArticleError::ArticleNotFound(article.id))?;
 
     tx.commit().await?;
 

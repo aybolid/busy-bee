@@ -10,9 +10,6 @@ use types::{NonEmpty, TrimmedString, Url};
 
 pub struct Config {
     pub api_addr: SocketAddr,
-    pub amqp_url: Url,
-    pub rss_articles_queue: NonEmpty<TrimmedString>,
-    pub article_processor_queue: NonEmpty<TrimmedString>,
     pub database_url: Url,
     pub ai_model: NonEmpty<TrimmedString>,
     pub ai_api_key: TrimmedString,
@@ -22,9 +19,6 @@ impl Debug for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Config")
             .field("api_addr", &self.api_addr)
-            .field("amqp_url", &self.amqp_url.as_str())
-            .field("rss_articles_queue", &self.rss_articles_queue)
-            .field("article_processor_queue", &self.article_processor_queue)
             .field("database_url", &self.database_url.as_str())
             .field("ai_model", &self.ai_model)
             .field(
@@ -39,30 +33,12 @@ impl Debug for Config {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum LoadConfigError {
-    #[error(transparent)]
-    ShortStringError(#[from] lapin::types::ShortStringError),
-}
-
-#[tracing::instrument(level = "trace", ret, err(Debug))]
-pub(super) fn load_config() -> Result<Config, LoadConfigError> {
+#[tracing::instrument(level = "trace", ret)]
+pub(super) fn load_config() -> Config {
     load_dotenv();
 
     let api_addr = parse_or_else::<SocketAddr>("API_ADDR", || {
         SocketAddr::from_str("0.0.0.0:3000").expect("default api addr must parse")
-    });
-
-    let amqp_url = parse_or_else::<Url>("AMQP_URL", || {
-        Url::try_new("amqp://user:password@127.0.0.1:5672").expect("default amqp url must parse")
-    });
-    let rss_articles_queue = parse_or_else("RSS_ARTICLES_QUEUE", || {
-        NonEmpty::new(TrimmedString::new("rss_articles"))
-            .expect("default rss articles queue value is not empty")
-    });
-    let article_processor_queue = parse_or_else("ARTICLE_PROCESSOR_QUEUE", || {
-        NonEmpty::new(TrimmedString::new("article_processor"))
-            .expect("default article processor queue value is not empty")
     });
 
     let database_url = parse_or_else("DB_URL", || {
@@ -74,15 +50,12 @@ pub(super) fn load_config() -> Result<Config, LoadConfigError> {
     });
     let ai_api_key = parse_or("AI_API_KEY", "");
 
-    Ok(Config {
+    Config {
         api_addr,
-        amqp_url,
-        rss_articles_queue,
-        article_processor_queue,
         database_url,
         ai_model,
         ai_api_key,
-    })
+    }
 }
 
 #[tracing::instrument(level = "trace")]
@@ -93,21 +66,6 @@ fn load_dotenv() {
         tracing::warn!("env file not found. using existing environment");
     }
 }
-
-// #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
-// fn get_or(key: impl AsRef<OsStr>, default: &impl ToString) -> String {
-//     env::var(key).unwrap_or_else(|error| {
-//         if matches!(error, VarError::NotUnicode(_)) {
-//             tracing::error!(?error);
-//         } else {
-//             tracing::warn!("not found");
-//         }
-
-//         let default = default.to_string();
-//         tracing::warn!(default, "using default value");
-//         default
-//     })
-// }
 
 #[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
 fn parse_or<T: FromStr + Debug + Display>(key: impl AsRef<OsStr>, default: impl Into<T>) -> T

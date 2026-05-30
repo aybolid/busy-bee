@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
     repos::articles::ArticleId,
-    workers::article_processor::AdditionalContext,
+    workers::article_processor::ProcessArticleUserContext,
 };
 
 #[derive(
@@ -42,7 +42,7 @@ pub struct ArticleProcessingOutput {
 
     pub article_id: Option<ArticleId>,
 
-    pub user_context: Option<AdditionalContext>,
+    pub user_context: Option<ProcessArticleUserContext>,
     pub output_text: OutputText,
 
     pub model: NonEmpty<TrimmedString>,
@@ -97,7 +97,7 @@ pub async fn create_article_processing_output<'c>(
     article_id: ArticleId,
     model: &NonEmpty<TrimmedString>,
     output_text: &OutputText,
-    user_context: Option<&AdditionalContext>,
+    user_context: Option<&ProcessArticleUserContext>,
     usage: &genai::chat::Usage,
 ) -> sqlx::Result<DatabaseQueryResult> {
     let query = sqlx::query(

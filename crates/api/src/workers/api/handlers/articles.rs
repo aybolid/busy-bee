@@ -14,8 +14,7 @@ use crate::{
             req::{Pagination, ReqJson, ReqPath},
             resp::{Metadata, data, data_with_meta},
         },
-        article_processor::{AdditionalContext, ArticleDeliveryPayload},
-        publisher::PublisherCommand,
+        article_processor::{ArticleProcessingRequest, ProcessArticleUserContext},
     },
 };
 
@@ -76,7 +75,7 @@ pub async fn get_article_stats(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
-    context: Option<AdditionalContext>,
+    context: Option<ProcessArticleUserContext>,
 }
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -89,12 +88,12 @@ pub async fn process_article(
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
-    let command = PublisherCommand::ProcessArticle(ArticleDeliveryPayload {
+    let request = ArticleProcessingRequest {
         article_id,
         context: json.context,
-    });
+    };
 
-    if let Err(error) = state.publisher_tx.send(command).await {
+    if let Err(error) = state.article_processing_tx.send(request).await {
         articles::mark_article_as_error(
             &state.db_pool,
             article_id,
