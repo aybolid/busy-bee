@@ -3,10 +3,13 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use types::TrimmedString;
+use types::{TrimmedString, nonempty_trimmed_string};
 
 use crate::{
-    app::state::SharedAppState,
+    app::{
+        events::{AppEvent, NotificationData, NotificationString, NotificationVariant},
+        state::SharedAppState,
+    },
     repos::articles::{self, ArticleErrorReason, ArticleId},
     workers::{
         api::{
@@ -100,6 +103,21 @@ pub async fn process_article(
             ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
         )
         .await?;
+
+        if let Err(error) =
+            state
+                .app_events_broadcaster
+                .send(AppEvent::Notification(NotificationData {
+                    variant: NotificationVariant::Error,
+                    title: NotificationString(nonempty_trimmed_string!(
+                        "Failed to process article"
+                    )),
+                    description: NotificationString::new("Article was not processed successfully"),
+                }))
+        {
+            tracing::error!(?error);
+        }
+
         Err(error.into())
     } else {
         Ok(StatusCode::ACCEPTED)

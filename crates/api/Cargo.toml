@@ -15,7 +15,7 @@ serde_json = { workspace = true }
 tokio-util = { workspace = true }
 sqlx = { workspace = true, features = ["runtime-tokio", "sqlite", "migrate", "uuid", "chrono"] }
 
-tokio-stream = "0.1.18"
+tokio-stream = { version = "0.1.18", features = ["sync"] }
 dotenvy = "0.15.7"
 axum = "0.8.9"
 uuid = { version = "1.23.1", features = ["serde", "v7"] }

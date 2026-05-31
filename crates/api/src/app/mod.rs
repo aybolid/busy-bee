@@ -5,6 +5,7 @@ use crate::{
     ai,
     app::{
         config::load_config,
+        events::create_app_events_broadcaster,
         state::{AppState, SharedAppState},
     },
     infra::db::{database_close, database_connect, database_migrate},
@@ -16,6 +17,7 @@ use crate::{
 };
 
 pub mod config;
+pub mod events;
 pub mod state;
 
 #[derive(Debug, thiserror::Error)]
@@ -49,12 +51,14 @@ pub async fn run() -> Result<(), RunError> {
     let ai_client = ai::Client::try_new(&config).await?;
 
     let (article_processing_tx, article_processing_rx) = create_article_processing_channel();
+    let app_events_broadcaster = create_app_events_broadcaster();
 
     let state = SharedAppState::new(AppState {
         config,
         db_pool,
         ai_client,
         article_processing_tx,
+        app_events_broadcaster,
         cancel_token,
     });
 

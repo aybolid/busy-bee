@@ -4,6 +4,8 @@ mod length_check;
 mod trimmed;
 mod url;
 
+pub mod macros;
+
 pub use length_check::{
     ExactLength, LengthBoundError, LengthBounded, LengthBoundedParseError, LengthCheck, MaxLength,
     MinLength, NonEmpty, NonEmptyMaxLength,

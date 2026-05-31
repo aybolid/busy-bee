@@ -8,6 +8,7 @@
     import Action from "$lib/components/ui/action.svelte";
     import { setGlobalContext } from "$lib/global-context";
     import Toaster from "$lib/components/toaster/toaster.svelte";
+    import { sseListener } from "$lib/api/sse";
 
     /** @type {import('./$types').LayoutProps} */
     let { children, data } = $props();
@@ -19,6 +20,10 @@
         get queryClient() {
             return data.queryClient;
         },
+    });
+
+    $effect(() => {
+        return sseListener();
     });
 </script>
 

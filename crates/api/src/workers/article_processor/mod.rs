@@ -1,9 +1,12 @@
 use genai::chat::{ChatMessage, ChatRequest};
 use tokio::sync::mpsc;
-use types::{NonEmpty, NonEmptyMaxLength, TrimmedString};
+use types::{NonEmpty, NonEmptyMaxLength, TrimmedString, nonempty_trimmed_string};
 
 use crate::{
-    app::state::SharedAppState,
+    app::{
+        events::{AppEvent, NotificationData, NotificationString, NotificationVariant},
+        state::SharedAppState,
+    },
     repos::{
         article_processing_outputs,
         articles::{self, ArticleErrorReason, ArticleId},
@@ -81,6 +84,22 @@ async fn handle_article_processing(state: &SharedAppState, request: ArticleProce
             {
                 tracing::error!(?error);
             }
+
+            if let Err(error) =
+                state
+                    .app_events_broadcaster
+                    .send(AppEvent::Notification(NotificationData {
+                        variant: NotificationVariant::Error,
+                        title: NotificationString(nonempty_trimmed_string!(
+                            "Failed to process article"
+                        )),
+                        description: NotificationString::new(
+                            "Article was not processed successfully",
+                        ),
+                    }))
+            {
+                tracing::error!(?error);
+            }
         }
     }
 }
@@ -141,6 +160,21 @@ async fn process_article(
         .ok_or(ProcessArticleError::ArticleNotFound(article.id))?;
 
     tx.commit().await?;
+
+    if let Err(error) =
+        state
+            .app_events_broadcaster
+            .send(AppEvent::Notification(NotificationData {
+                variant: NotificationVariant::Info,
+                title: NotificationString(nonempty_trimmed_string!("Article processed")),
+                description: NotificationString::new(format!(
+                    "Article {:?} was processed successfully",
+                    article.title.as_str()
+                )),
+            }))
+    {
+        tracing::error!(?error);
+    }
 
     Ok(())
 }
