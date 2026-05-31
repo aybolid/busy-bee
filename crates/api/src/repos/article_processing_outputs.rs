@@ -5,6 +5,7 @@ use types::{NonEmpty, TrimmedString};
 use uuid::Uuid;
 
 use crate::{
+    ai::{ModelName, Usage},
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
     repos::articles::ArticleId,
     workers::article_processor::ProcessArticleUserContext,
@@ -45,9 +46,9 @@ pub struct ArticleProcessingOutput {
     pub user_context: Option<ProcessArticleUserContext>,
     pub output_text: OutputText,
 
-    pub model: NonEmpty<TrimmedString>,
+    pub model: ModelName,
     #[sqlx(json)]
-    pub usage: genai::chat::Usage,
+    pub usage: Usage,
 }
 
 #[tracing::instrument(level = "trace", skip(executor), err(Debug))]
@@ -95,10 +96,10 @@ pub async fn get_article_processing_outputs<'c>(
 pub async fn create_article_processing_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,
+    user_context: Option<&ProcessArticleUserContext>,
     model: &NonEmpty<TrimmedString>,
     output_text: &OutputText,
-    user_context: Option<&ProcessArticleUserContext>,
-    usage: &genai::chat::Usage,
+    usage: &Usage,
 ) -> sqlx::Result<DatabaseQueryResult> {
     let query = sqlx::query(
         "

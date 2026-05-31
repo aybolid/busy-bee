@@ -6,34 +6,22 @@ use std::{
     str::FromStr,
 };
 
-use types::{NonEmpty, TrimmedString, Url};
+use types::{Url, nonempty_trimmed_string};
+
+use crate::ai;
+
+pub struct AiConfig {
+    pub model: ai::ModelName,
+    pub api_key: ai::ApiKey,
+}
 
 pub struct Config {
     pub api_addr: SocketAddr,
     pub database_url: Url,
-    pub ai_model: NonEmpty<TrimmedString>,
-    pub ai_api_key: TrimmedString,
+    pub ai: AiConfig,
 }
 
-impl Debug for Config {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Config")
-            .field("api_addr", &self.api_addr)
-            .field("database_url", &self.database_url.as_str())
-            .field("ai_model", &self.ai_model)
-            .field(
-                "ai_api_key",
-                if self.ai_api_key.is_empty() {
-                    &""
-                } else {
-                    &"[REDACTED]"
-                },
-            )
-            .finish()
-    }
-}
-
-#[tracing::instrument(level = "trace", ret)]
+#[tracing::instrument(level = "trace")]
 pub(super) fn load_config() -> Config {
     load_dotenv();
 
@@ -45,16 +33,20 @@ pub(super) fn load_config() -> Config {
         Url::try_new("sqlite://data.db").expect("default database url must parse")
     });
 
-    let ai_model = parse_or_else("AI_MODEL", || {
-        NonEmpty::new(TrimmedString::new("gemma4")).expect("default ai model value is not empty")
-    });
-    let ai_api_key = parse_or("AI_API_KEY", "");
-
     Config {
         api_addr,
         database_url,
-        ai_model,
-        ai_api_key,
+        ai: load_ai_config(),
+    }
+}
+
+#[tracing::instrument(level = "trace")]
+fn load_ai_config() -> AiConfig {
+    AiConfig {
+        model: ai::ModelName(parse_or_else("AI_MODEL", || {
+            nonempty_trimmed_string!("gemma4")
+        })),
+        api_key: ai::ApiKey(parse_or("AI_API_KEY", "")),
     }
 }
 

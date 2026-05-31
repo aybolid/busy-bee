@@ -237,6 +237,18 @@ impl<const MIN: usize, const MAX: usize, T: LengthCheck> std::borrow::Borrow<T>
     }
 }
 
+impl<const MIN: usize, const MAX: usize> AsRef<str> for LengthBounded<MIN, MAX, String> {
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
+impl<const MIN: usize, const MAX: usize> AsRef<str> for LengthBounded<MIN, MAX, TrimmedString> {
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
 /// A type alias for a value that is guaranteed to have a length of at least `{ usize::MIN + 1 }`.
 #[allow(clippy::identity_op)]
 pub type NonEmpty<T> = LengthBounded<{ usize::MIN + 1 }, { usize::MAX }, T>;

@@ -8,26 +8,9 @@ const articleProcessingOutputIdSchema = z.uuidv7().brand("articleProcessingOutpu
 
 const usageSchema = z
     .object({
-        prompt_tokens: z.int().positive().optional(),
-        prompt_tokens_details: z
-            .object({
-                cache_creation_tokens: z.int().positive().optional(),
-                cached_tokens: z.int().positive().optional(),
-                audio_tokens: z.int().positive().optional(),
-            })
-            .strict()
-            .optional(),
-        completion_tokens: z.int().positive().optional(),
-        completion_tokens_details: z
-            .object({
-                accepted_prediction_tokens: z.int().positive().optional(),
-                rejected_prediction_tokens: z.int().positive().optional(),
-                reasoning_tokens: z.int().positive().optional(),
-                audio_tokens: z.int().positive().optional(),
-            })
-            .strict()
-            .optional(),
-        total_tokens: z.int().positive().optional(),
+        prompt_tokens: z.int(),
+        completion_tokens: z.int(),
+        total_tokens: z.int(),
     })
     .strict();
 

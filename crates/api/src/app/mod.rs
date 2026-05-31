@@ -35,7 +35,7 @@ pub enum RunError {
     #[error(transparent)]
     Migrate(#[from] sqlx::migrate::MigrateError),
     #[error(transparent)]
-    Ai(#[from] ai::ClientInitError),
+    Genai(#[from] genai::Error),
 }
 
 #[tracing::instrument(level = "trace", err(Debug))]
@@ -48,7 +48,7 @@ pub async fn run() -> Result<(), RunError> {
     let db_pool = database_connect(config.database_url.as_str()).await?;
     database_migrate(&db_pool).await?;
 
-    let ai_client = ai::Client::try_new(&config).await?;
+    let ai = ai::create_ai_client(&config.ai).await?;
 
     let (article_processing_tx, article_processing_rx) = create_article_processing_channel();
     let app_events_broadcaster = create_app_events_broadcaster();
@@ -56,7 +56,7 @@ pub async fn run() -> Result<(), RunError> {
     let state = SharedAppState::new(AppState {
         config,
         db_pool,
-        ai_client,
+        ai,
         article_processing_tx,
         app_events_broadcaster,
         cancel_token,

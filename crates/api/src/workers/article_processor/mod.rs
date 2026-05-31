@@ -1,8 +1,8 @@
-use genai::chat::{ChatMessage, ChatRequest};
 use tokio::sync::mpsc;
-use types::{NonEmpty, NonEmptyMaxLength, TrimmedString, nonempty_trimmed_string};
+use types::{NonEmptyMaxLength, TrimmedString, nonempty_trimmed_string};
 
 use crate::{
+    ai::{ChatMessage, ChatRequest, ExecChatError, Message},
     app::{
         events::{AppEvent, NotificationData, NotificationString, NotificationVariant},
         state::SharedAppState,
@@ -104,8 +104,6 @@ async fn handle_article_processing(state: &SharedAppState, request: ArticleProce
     }
 }
 
-const POST_SYSTEM_PROMPT: &str = include_str!("prompts/post.md");
-
 #[derive(Debug, thiserror::Error)]
 pub enum ProcessArticleError {
     #[error(transparent)]
@@ -113,7 +111,7 @@ pub enum ProcessArticleError {
     #[error("article {0:?} not found")]
     ArticleNotFound(ArticleId),
     #[error(transparent)]
-    Genai(#[from] genai::Error),
+    Chat(#[from] ExecChatError),
     #[error(transparent)]
     InvalidOutputLength(#[from] types::LengthBoundError),
 }
@@ -127,31 +125,27 @@ async fn process_article(
         .await?
         .ok_or(ProcessArticleError::ArticleNotFound(request.article_id))?;
 
-    let mut chat_request = ChatRequest::default().with_system(POST_SYSTEM_PROMPT);
-
+    let mut chat_request = ChatRequest::default().with_system(Message(nonempty_trimmed_string!(
+        "Write a post based on an article"
+    )));
     if let Some(context) = request.context.as_ref() {
-        chat_request = chat_request.append_message(ChatMessage::user(format!(
-            "Additional context: {}",
-            context.as_str()
-        )));
+        chat_request.push_message(ChatMessage::user(
+            Message::new(format!("Additional context: {context}")).unwrap(),
+        ));
     }
-    chat_request = chat_request.append_message(ChatMessage::user(article.text_content.as_str()));
+    chat_request.push_message(ChatMessage::user(Message(article.text_content)));
 
-    let chat_response = state.ai_client.exec_chat(chat_request).await?;
-
-    let usage = chat_response.usage.clone();
-    let text = chat_response.into_texts().join("");
-    let output_text = NonEmpty::try_new(TrimmedString::from(text))?;
+    let chat_response = state.ai.exec_chat(chat_request).await?;
 
     let mut tx = state.db_pool.begin().await?;
 
     article_processing_outputs::create_article_processing_output(
         &mut *tx,
         article.id,
-        &state.ai_client.model,
-        &output_text,
         request.context.as_ref(),
-        &usage,
+        &state.ai.model,
+        &chat_response.content.0,
+        &chat_response.usage,
     )
     .await?;
 

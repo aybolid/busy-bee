@@ -13,7 +13,7 @@ pub struct AppState {
     pub config: Config,
 
     pub db_pool: DatabasePool,
-    pub ai_client: Client,
+    pub ai: Client,
 
     pub article_processing_tx: ArticleProcessingSender,
     pub app_events_broadcaster: AppEventsBroadcaster,
