@@ -45,7 +45,7 @@ pub async fn run() -> Result<(), RunError> {
     let cancel_token = CancellationToken::new();
     tokio::spawn(shutdown_signal_listener(cancel_token.clone()));
 
-    let db_pool = database_connect(config.database_url.as_str()).await?;
+    let db_pool = database_connect(&config.database_url).await?;
     database_migrate(&db_pool).await?;
 
     let ai = ai::create_ai_client(&config.ai).await?;

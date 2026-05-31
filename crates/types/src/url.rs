@@ -1,21 +1,32 @@
+/// A validated, strongly-typed URL.
+///
+/// This is a newtype wrapper around [`url::Url`]. It provides transparent integration
+/// with serialization (`serde`) and database operations (`sqlx`) while ensuring
+/// that the underlying string is always a correctly formatted URL.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Url(url::Url);
 
+/// Represents an error encountered while attempting to parse a URL.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error(transparent)]
 pub struct UrlError(#[from] url::ParseError);
 
 impl Url {
+    /// Attempts to parse a string slice into a new [`Url`].
+    ///
+    /// Returns [`None`] if the provided string is not a valid URL.
     #[must_use]
     pub fn new(s: &str) -> Option<Self> {
         Self::try_new(s).ok()
     }
 
+    /// Attempts to parse a string slice into a new [`Url`], returning a detailed error on failure.
+    ///
     /// # Errors
     ///
-    /// Returns [`UrlError`] if URL parsing failed.
+    /// Returns a [`UrlError`] if the input string violates URL formatting rules.
     pub fn try_new(s: &str) -> Result<Self, UrlError> {
         let url = url::Url::parse(s)?;
         Ok(Self(url))

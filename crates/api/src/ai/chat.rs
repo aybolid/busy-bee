@@ -1,5 +1,3 @@
-use std::num::{NonZeroI32, NonZeroU32};
-
 use types::{NonEmpty, TrimmedString, nonempty_trimmed_string};
 
 /// A validated, non-empty text message used in chat interactions.
