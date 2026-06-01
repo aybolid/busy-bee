@@ -67,7 +67,7 @@
                             <ArticleStatus status="error" />
                         </button>
                     {/snippet}
-                    <PopoverContent class="max-w-96">
+                    <PopoverContent class="w-72">
                         <ErrorAlert
                             title="Processing error"
                             description={article.data.error_reason}

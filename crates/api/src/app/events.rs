@@ -9,6 +9,29 @@ use types::{NonEmpty, TrimmedString};
 pub enum AppEvent {
     /// An event signaling that a notification should be presented to the user.
     Notification(NotificationData),
+    /// An event signaling that there is some data that can be refetched as it was updated.
+    RefetchTrigger(RefetchTriggerType),
+}
+
+/// The type of data that can be refetched as it was updated.
+#[derive(Debug, Clone, Copy)]
+pub enum RefetchTriggerType {
+    /// Articles related data.
+    Articles,
+    /// Rss feeds related data.
+    RssFeeds,
+    /// Article processing outputs related data.
+    ArticleProcessingOutputs,
+}
+
+impl AsRef<str> for RefetchTriggerType {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Articles => "articles",
+            Self::RssFeeds => "rss_feeds",
+            Self::ArticleProcessingOutputs => "article_processing_outputs",
+        }
+    }
 }
 
 /// The visual or semantic category of a notification.
@@ -111,6 +134,18 @@ impl AppEventsBroadcaster {
         _ = self
             .sender
             .send(AppEvent::Notification(data))
+            .inspect_err(|error| tracing::warn!(?error));
+    }
+
+    /// Dispatches a refetch trigger event to all active subscribers.
+    ///
+    /// This should be used to tell clients that data needs to be refetched only when client
+    /// has no other way to know that data needs to be refetched.
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub fn send_refetch_trigger(&self, trigger_type: RefetchTriggerType) {
+        _ = self
+            .sender
+            .send(AppEvent::RefetchTrigger(trigger_type))
             .inspect_err(|error| tracing::warn!(?error));
     }
 

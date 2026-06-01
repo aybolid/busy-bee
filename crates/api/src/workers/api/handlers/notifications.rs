@@ -29,6 +29,9 @@ pub async fn sse(
                         None
                     }
                 }
+                AppEvent::RefetchTrigger(trigger_type) => Some(Ok(Event::default()
+                    .event("refetch_trigger")
+                    .data(trigger_type))),
             }
         }
         Err(error) => {

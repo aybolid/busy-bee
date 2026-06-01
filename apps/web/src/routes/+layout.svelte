@@ -23,7 +23,7 @@
     });
 
     $effect(() => {
-        return sseListener();
+        return sseListener(data.queryClient);
     });
 </script>
 

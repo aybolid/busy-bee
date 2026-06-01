@@ -4,7 +4,7 @@ use types::{NonEmptyMaxLength, TrimmedString, nonempty_trimmed_string};
 use crate::{
     ai::{ChatMessage, ChatRequest, ExecChatError, Message},
     app::{
-        events::{NotificationData, NotificationString},
+        events::{NotificationData, NotificationString, RefetchTriggerType},
         state::SharedAppState,
     },
     repos::{
@@ -75,15 +75,16 @@ async fn handle_article_processing(state: &SharedAppState, request: ArticleProce
 
     if let Err(error) = process_article(state, request).await {
         if !matches!(error, ProcessArticleError::ArticleNotFound(_)) {
-            if let Err(error) = articles::mark_article_as_error(
+            _ = articles::mark_article_as_error(
                 &state.db_pool,
                 article_id,
                 ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
             )
-            .await
-            {
-                tracing::error!(?error);
-            }
+            .await;
+
+            state
+                .app_events_broadcaster
+                .send_refetch_trigger(RefetchTriggerType::Articles);
 
             state.app_events_broadcaster.send_notification(
                 NotificationData::error(NotificationString(nonempty_trimmed_string!(
@@ -147,6 +148,13 @@ async fn process_article(
         .ok_or(ProcessArticleError::ArticleNotFound(article.id))?;
 
     tx.commit().await?;
+
+    state
+        .app_events_broadcaster
+        .send_refetch_trigger(RefetchTriggerType::Articles);
+    state
+        .app_events_broadcaster
+        .send_refetch_trigger(RefetchTriggerType::ArticleProcessingOutputs);
 
     state.app_events_broadcaster.send_notification(
         NotificationData::info(NotificationString(nonempty_trimmed_string!(

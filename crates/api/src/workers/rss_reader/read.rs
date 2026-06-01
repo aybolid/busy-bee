@@ -6,7 +6,7 @@ use types::{NonEmpty, TrimmedString, nonempty_trimmed_string};
 
 use crate::{
     app::{
-        events::{NotificationData, NotificationString},
+        events::{NotificationData, NotificationString, RefetchTriggerType},
         state::SharedAppState,
     },
     repos::{
@@ -55,6 +55,11 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
 
                         let new_count = query_result.rows_affected();
                         if new_count > 0 {
+                            state
+                                .app_state
+                                .app_events_broadcaster
+                                .send_refetch_trigger(RefetchTriggerType::Articles);
+
                             state.app_state.app_events_broadcaster.send_notification(
                                 NotificationData::info(NotificationString(
                                     nonempty_trimmed_string!("New articles from RSS feed"),
@@ -109,6 +114,11 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
             );
         }
     }
+
+    state
+        .app_state
+        .app_events_broadcaster
+        .send_refetch_trigger(RefetchTriggerType::RssFeeds);
 }
 
 #[derive(Debug, thiserror::Error)]
