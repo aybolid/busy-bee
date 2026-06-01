@@ -2,10 +2,13 @@ use std::sync::Arc;
 
 use dom_smoothie::Readability;
 use tokio::{sync::Semaphore, task::JoinSet};
-use types::{NonEmpty, TrimmedString};
+use types::{NonEmpty, TrimmedString, nonempty_trimmed_string};
 
 use crate::{
-    app::state::SharedAppState,
+    app::{
+        events::{NotificationData, NotificationString},
+        state::SharedAppState,
+    },
     repos::{
         articles::{self, Article, FromReadabilityArticeError},
         rss_feeds::{self, RssFeedErrorReason},
@@ -41,10 +44,50 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
 
             #[allow(clippy::collapsible_if)]
             if let Some(feed_articles) = NonEmpty::new(feed_articles) {
-                // errors logged by `tracing::instrument`
-                _ = articles::create_articles_bulk(&state.app_state.db_pool, &feed_articles).await;
-                _ = rss_feeds::mark_rss_feed_as_healthy(&state.app_state.db_pool, state.config.id)
-                    .await;
+                match articles::create_articles_bulk(&state.app_state.db_pool, &feed_articles).await
+                {
+                    Ok(query_result) => {
+                        _ = rss_feeds::mark_rss_feed_as_healthy(
+                            &state.app_state.db_pool,
+                            state.config.id,
+                        )
+                        .await;
+
+                        let new_count = query_result.rows_affected();
+                        if new_count > 0 {
+                            state.app_state.app_events_broadcaster.send_notification(
+                                NotificationData::info(NotificationString(
+                                    nonempty_trimmed_string!("New articles from RSS feed"),
+                                ))
+                                .with_description(
+                                    NotificationString::new(format!(
+                                        "{new_count} article(s) created",
+                                    )),
+                                ),
+                            );
+                        }
+                    }
+                    Err(error) => {
+                        _ = rss_feeds::mark_rss_feed_as_error(
+                            &state.app_state.db_pool,
+                            state.config.id,
+                            RssFeedErrorReason::new(TrimmedString::from(error.to_string()))
+                                .as_ref(),
+                        )
+                        .await;
+
+                        state.app_state.app_events_broadcaster.send_notification(
+                            NotificationData::error(NotificationString(nonempty_trimmed_string!(
+                                "RSS feed error"
+                            )))
+                            .with_description(
+                                NotificationString::new(
+                                    "Something went wrong during latest RSS feed read",
+                                ),
+                            ),
+                        );
+                    }
+                }
             };
         }
         Err(error) => {
@@ -55,6 +98,15 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
                 RssFeedErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
             )
             .await;
+
+            state.app_state.app_events_broadcaster.send_notification(
+                NotificationData::error(NotificationString(nonempty_trimmed_string!(
+                    "RSS feed error"
+                )))
+                .with_description(NotificationString::new(
+                    "Something went wrong during latest RSS feed read",
+                )),
+            );
         }
     }
 }
@@ -86,7 +138,7 @@ async fn process_rss_feed_item(
     };
 
     if articles::check_article_exists_by_url(&state.app_state.db_pool, &link).await? {
-        tracing::warn!("article already exists");
+        tracing::trace!("article already exists");
         return Ok(None);
     }
 

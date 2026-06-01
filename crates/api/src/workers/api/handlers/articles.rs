@@ -7,7 +7,7 @@ use types::{TrimmedString, nonempty_trimmed_string};
 
 use crate::{
     app::{
-        events::{AppEvent, NotificationData, NotificationString, NotificationVariant},
+        events::{NotificationData, NotificationString},
         state::SharedAppState,
     },
     repos::articles::{self, ArticleErrorReason, ArticleId},
@@ -104,19 +104,14 @@ pub async fn process_article(
         )
         .await?;
 
-        if let Err(error) =
-            state
-                .app_events_broadcaster
-                .send(AppEvent::Notification(NotificationData {
-                    variant: NotificationVariant::Error,
-                    title: NotificationString(nonempty_trimmed_string!(
-                        "Failed to process article"
-                    )),
-                    description: NotificationString::new("Article was not processed successfully"),
-                }))
-        {
-            tracing::error!(?error);
-        }
+        state.app_events_broadcaster.send_notification(
+            NotificationData::error(NotificationString(nonempty_trimmed_string!(
+                "Failed to process article"
+            )))
+            .with_description(NotificationString::new(
+                "Article was not processed successfully",
+            )),
+        );
 
         Err(error.into())
     } else {
