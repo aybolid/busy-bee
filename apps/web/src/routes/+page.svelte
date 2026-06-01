@@ -35,6 +35,13 @@
     import CardDescription from "$lib/components/ui/card/card-description.svelte";
     import CreateFeedFormDialog from "$lib/components/create-feed-form-dialog.svelte";
     import DeleteRssFeedDialog from "$lib/components/delete-rss-feed-dialog.svelte";
+    import ItemGroup from "$lib/components/ui/item/item-group.svelte";
+    import Item from "$lib/components/ui/item/item.svelte";
+    import ItemHeader from "$lib/components/ui/item/item-header.svelte";
+    import ItemTitle from "$lib/components/ui/item/item-title.svelte";
+    import ItemContent from "$lib/components/ui/item/item-content.svelte";
+    import ItemDescription from "$lib/components/ui/item/item-description.svelte";
+    import ItemActions from "$lib/components/ui/item/item-actions.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -179,26 +186,22 @@
                             </EmptyHeader>
                         </Empty>
                     {:else}
-                        <div class="grid grid-cols-3 gap-4">
+                        <ItemGroup class="grid grid-cols-3 gap-2">
                             {#each awesomeFeeds.data as feed}
                                 {@const url = new URL(feed.url)}
                                 {@const isExistingFeed = existingFeedUrls.has(feed.url)}
 
-                                <Card size="sm">
-                                    <CardHeader>
-                                        <CardTitle>{feed.title}</CardTitle>
-                                        <CardDescription>
+                                <Item variant={isExistingFeed ? "default" : "outline"}>
+                                    <ItemContent>
+                                        <ItemTitle>{feed.title}</ItemTitle>
+                                        <ItemDescription>{feed.description}</ItemDescription>
+                                        <ItemDescription>
                                             <a href={feed.url} target="_blank">
                                                 {url.hostname}
                                             </a>
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent class="h-full">
-                                        <p class="text-muted-foreground">
-                                            {feed.description}
-                                        </p>
-                                    </CardContent>
-                                    <CardFooter>
+                                        </ItemDescription>
+                                    </ItemContent>
+                                    <ItemActions>
                                         <CreateFeedFormDialog defaultUrl={feed.url}>
                                             {#snippet trigger(props)}
                                                 <Action
@@ -217,10 +220,10 @@
                                                 </Action>
                                             {/snippet}
                                         </CreateFeedFormDialog>
-                                    </CardFooter>
-                                </Card>
+                                    </ItemActions>
+                                </Item>
                             {/each}
-                        </div>
+                        </ItemGroup>
                     {/if}
                 {/if}
             </div>
