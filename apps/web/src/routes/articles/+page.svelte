@@ -326,22 +326,18 @@
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            {#if article.url && article.url.startsWith("http")}
-                                <Action
-                                    anchor
-                                    href={article.url}
-                                    target="_blank"
-                                    variant="link"
-                                    class="text-muted-foreground"
-                                >
-                                    <ExternalLink />
-                                    <span class="max-w-56 truncate">
-                                        {article.url}
-                                    </span>
-                                </Action>
-                            {:else}
-                                <span>--</span>
-                            {/if}
+                            <Action
+                                anchor
+                                href={article.url}
+                                target="_blank"
+                                variant="link"
+                                class="text-muted-foreground"
+                            >
+                                <ExternalLink />
+                                <span class="max-w-56 truncate">
+                                    {article.url}
+                                </span>
+                            </Action>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
                             {@render articleMenu(article)}
@@ -389,12 +385,10 @@
             <MenuGroup>
                 <MenuLabel>Article actions</MenuLabel>
                 <MenuActionItem anchor href="/articles/{article.id}">View</MenuActionItem>
-                {#if article.url && article.url.startsWith("http")}
-                    <MenuActionItem anchor href={article.url} target="_blank">
-                        <ExternalLink />
-                        <span>View external</span>
-                    </MenuActionItem>
-                {/if}
+                <MenuActionItem anchor href={article.url} target="_blank">
+                    <ExternalLink />
+                    <span>View external</span>
+                </MenuActionItem>
                 {#if article.status !== "pending"}
                     <ProcessArticleFormDialog articleId={article.id}>
                         {#snippet trigger(props)}

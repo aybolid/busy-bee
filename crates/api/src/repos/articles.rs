@@ -477,7 +477,7 @@ pub async fn create_articles_bulk<'c>(
             .push_bind(&article.url);
     });
 
-    query_builder.push(" ON CONFLICT (id) DO NOTHING");
+    query_builder.push(" ON CONFLICT (url) DO NOTHING");
 
     let query = query_builder.build();
 

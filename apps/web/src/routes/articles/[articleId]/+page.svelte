@@ -94,12 +94,10 @@
         <MenuContent>
             <MenuGroup>
                 <MenuLabel>Article actions</MenuLabel>
-                {#if article.url && article.url.startsWith("http")}
-                    <MenuActionItem anchor href={article.url} target="_blank">
-                        <ExternalLink />
-                        <span>View external</span>
-                    </MenuActionItem>
-                {/if}
+                <MenuActionItem anchor href={article.url} target="_blank">
+                    <ExternalLink />
+                    <span>View external</span>
+                </MenuActionItem>
                 {#if article.status !== "pending"}
                     <ProcessArticleFormDialog articleId={article.id}>
                         {#snippet trigger(props)}

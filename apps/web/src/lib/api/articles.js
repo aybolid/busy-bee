@@ -27,7 +27,7 @@ const baseArticleSchema = {
     modified_time: z.coerce.date().nullable(),
     image: z.url().nullable(),
     favicon: z.url().nullable(),
-    url: z.url().nullable(),
+    url: z.url(),
 };
 
 const articleSchema = z.discriminatedUnion("status", [
