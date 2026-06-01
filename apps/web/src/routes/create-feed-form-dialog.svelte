@@ -43,8 +43,8 @@
     import NativeSelect from "$lib/components/ui/native-select/native-select.svelte";
     import NativeSelectOption from "$lib/components/ui/native-select/native-select-option.svelte";
 
-    /** @type {Omit<import('$lib/components/ui/dialog/dialog.svelte').DialogProps, 'children' | 'ref'>} */
-    let props = $props();
+    /** @type {Omit<import('$lib/components/ui/dialog/dialog.svelte').DialogProps, 'children' | 'ref'> & { defaultUrl?: string }} */
+    let { defaultUrl = "", ...props } = $props();
     const { ky, queryClient } = getGlobalContext();
 
     /** @type {HTMLDialogElement} */
@@ -55,7 +55,7 @@
 
     const form = createForm(() => ({
         defaultValues: {
-            url: "",
+            url: defaultUrl,
             max_concurrent_requests: 5,
             fetch_interval_seconds: /** @type {number} */ (INTERVAL_OPTIONS[2].seconds),
         },
@@ -118,7 +118,7 @@
         <DialogX />
         <DialogHeader>
             <DialogTitle>New RSS feed</DialogTitle>
-            <DialogDescription>Create RSS feed with configuration details below</DialogDescription>
+            <DialogDescription>Create RSS feed with configuration details below.</DialogDescription>
         </DialogHeader>
         <form
             class="contents"
@@ -134,6 +134,7 @@
                         <Field data-invalid={isInvalid}>
                             <FieldLabel for={field.name}>Feed URL</FieldLabel>
                             <Input
+                                disabled={!!defaultUrl}
                                 id={field.name}
                                 name={field.name}
                                 value={field.state.value}
