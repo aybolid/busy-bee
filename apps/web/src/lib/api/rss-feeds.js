@@ -60,3 +60,13 @@ export async function createRssFeed(ky, payload) {
         .json();
     return unwrapData(rssFeedSchema).parse(json);
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: RssFeedId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function deleteRssFeed(ky, payload) {
+    await ky.delete(`rss_feeds/${payload.params.id}`);
+}

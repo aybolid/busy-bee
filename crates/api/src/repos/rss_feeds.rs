@@ -5,7 +5,10 @@ use sqlx::Row;
 use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
-use crate::infra::db::{DatabaseExecutor, DatabaseRow};
+use crate::{
+    infra::db::{DatabaseExecutor, DatabaseRow},
+    repos::articles::ArticleId,
+};
 
 #[derive(
     Debug,
@@ -183,4 +186,22 @@ pub async fn create_rss_feed<'c>(
     .bind("new");
 
     query.fetch_one(executor).await
+}
+
+#[tracing::instrument(level = "trace", skip(executor), ret, err(Debug))]
+pub async fn delete_rss_feed_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: RssFeedId,
+) -> sqlx::Result<Option<ArticleId>> {
+    let query = sqlx::query_scalar(
+        "
+        DELETE FROM rss_feeds
+        WHERE
+            id = ?
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
 }

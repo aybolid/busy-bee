@@ -22,7 +22,6 @@
     import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
     import Plus from "$lib/components/ui/icons/plus.svelte";
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
-    import CreateFeedFormDialog from "./create-feed-form-dialog.svelte";
     import Trash from "$lib/components/ui/icons/trash.svelte";
     import RssFeedStatus from "$lib/components/rss-feed-status.svelte";
     import { getAwesomeRssFeedsQueryOptions } from "$lib/query/awesome-rss-feeds";
@@ -34,6 +33,8 @@
     import AccordionTrigger from "$lib/components/ui/accordion/accordion-trigger.svelte";
     import AccordionContent from "$lib/components/ui/accordion/accordion-content.svelte";
     import CardDescription from "$lib/components/ui/card/card-description.svelte";
+    import CreateFeedFormDialog from "$lib/components/create-feed-form-dialog.svelte";
+    import DeleteRssFeedDialog from "$lib/components/delete-rss-feed-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -122,9 +123,13 @@
                                 {feed.url}
                             </span>
                         </Action>
-                        <Action button size="icon-xs" variant="destructive">
-                            <Trash />
-                        </Action>
+                        <DeleteRssFeedDialog feedId={feed.id}>
+                            {#snippet trigger(props)}
+                                <Action button size="icon-xs" variant="destructive" {...props}>
+                                    <Trash />
+                                </Action>
+                            {/snippet}
+                        </DeleteRssFeedDialog>
                     </CardFooter>
                 </Card>
             {/each}

@@ -106,7 +106,10 @@
                     </ProcessArticleFormDialog>
                 {/if}
                 {#if article.status !== "pending"}
-                    <DeleteArticleAlertDialog articleId={article.id} onSuccess={() => goto("/")}>
+                    <DeleteArticleAlertDialog
+                        articleId={article.id}
+                        onSuccess={() => goto("/articles")}
+                    >
                         {#snippet trigger(props)}
                             <MenuActionItem button keepOpen variant="destructive" {...props}>
                                 <Trash />

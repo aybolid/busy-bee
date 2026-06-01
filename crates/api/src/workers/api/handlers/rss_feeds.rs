@@ -1,15 +1,15 @@
 use std::num::{NonZeroU8, NonZeroU32};
 
-use axum::{extract::State, response::IntoResponse};
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use sqlx::error::DatabaseError;
 use types::Url;
 
 use crate::{
     app::state::SharedAppState,
-    repos::rss_feeds,
+    repos::rss_feeds::{self, RssFeedId},
     workers::api::{
         err::{HandlerError, HandlerResult},
-        req::ReqJson,
+        req::{ReqJson, ReqPath},
         resp::data,
     },
 };
@@ -57,4 +57,15 @@ pub async fn create_rss_feed(
     })?;
 
     Ok(data(feed))
+}
+
+pub async fn delete_rss_feed(
+    State(state): State<SharedAppState>,
+    ReqPath(rss_feed_id): ReqPath<RssFeedId>,
+) -> HandlerResult<impl IntoResponse> {
+    rss_feeds::delete_rss_feed_by_id(&state.db_pool, rss_feed_id)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("rss feed not found"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

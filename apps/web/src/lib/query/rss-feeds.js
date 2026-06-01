@@ -1,4 +1,4 @@
-import { createRssFeed, getRssFeeds } from "$lib/api/rss-feeds";
+import { createRssFeed, getRssFeeds, deleteRssFeed } from "$lib/api/rss-feeds";
 import { createMutation, queryOptions } from "@tanstack/svelte-query";
 
 /**
@@ -20,6 +20,18 @@ export function createCreateRssFeedMutation() {
 
     return createMutation(() => ({
         mutationKey: ["rss_feeds", "create"],
+        mutationFn,
+    }));
+}
+
+export function createDeleteRssFeedMutation() {
+    /** @param {Parameters<typeof deleteRssFeed>} args */
+    async function mutationFn(args) {
+        return deleteRssFeed(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["rss_feeds", "delete"],
         mutationFn,
     }));
 }
