@@ -24,37 +24,27 @@
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
     import Trash from "$lib/components/ui/icons/trash.svelte";
     import RssFeedStatus from "$lib/components/rss-feed-status.svelte";
-    import { getAwesomeRssFeedsQueryOptions } from "$lib/query/awesome-rss-feeds";
-    import { RSS_CATEGORIES } from "$lib/api/awesome-rss-feeds";
-    import Spinner from "$lib/components/ui/spinner.svelte";
     import Accordion from "$lib/components/ui/accordion/accordion.svelte";
     import AccordionItem from "$lib/components/ui/accordion/accordion-item.svelte";
     import AccordionHeader from "$lib/components/ui/accordion/accordion-header.svelte";
     import AccordionTrigger from "$lib/components/ui/accordion/accordion-trigger.svelte";
     import AccordionContent from "$lib/components/ui/accordion/accordion-content.svelte";
-    import CardDescription from "$lib/components/ui/card/card-description.svelte";
     import CreateFeedFormDialog from "$lib/components/create-feed-form-dialog.svelte";
     import DeleteRssFeedDialog from "$lib/components/delete-rss-feed-dialog.svelte";
     import ItemGroup from "$lib/components/ui/item/item-group.svelte";
     import Item from "$lib/components/ui/item/item.svelte";
-    import ItemHeader from "$lib/components/ui/item/item-header.svelte";
     import ItemTitle from "$lib/components/ui/item/item-title.svelte";
     import ItemContent from "$lib/components/ui/item/item-content.svelte";
     import ItemDescription from "$lib/components/ui/item/item-description.svelte";
     import ItemActions from "$lib/components/ui/item/item-actions.svelte";
+    import AccordionChevron from "$lib/components/ui/accordion/accordion-chevron.svelte";
+    import awesomeRssFeeds from "$lib/rss-feeds.json";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
 
     const feeds = createQuery(() => getRssFeedsQueryOptions(props.data.ky));
-
     const existingFeedUrls = $derived(new Set(feeds.data?.map((feed) => feed.url) ?? []));
-
-    /** @type {import('$lib/api/awesome-rss-feeds').RssCategory} */
-    let selectedCategory = $state(RSS_CATEGORIES[0]);
-    const awesomeFeeds = createQuery(() =>
-        getAwesomeRssFeedsQueryOptions(props.data.ky, { category: selectedCategory }),
-    );
 </script>
 
 <div class="flex items-baseline justify-between gap-8 pb-8">
@@ -94,7 +84,7 @@
             </EmptyContent>
         </Empty>
     {:else}
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {#each feeds.data as feed (feed.id)}
                 {@const url = new URL(feed.url)}
                 <Card class={cn(feed.status === "error" && "ring-2 ring-destructive/30")}>
@@ -145,88 +135,51 @@
 {/if}
 
 <Accordion class="pt-8">
-    <AccordionItem>
+    <AccordionItem class="rounded-md border border-dashed">
         <AccordionHeader>
-            <AccordionTrigger>Awesome RSS feeds</AccordionTrigger>
+            <AccordionTrigger class="px-4">
+                <span>Awesome RSS feeds</span>
+                <AccordionChevron />
+            </AccordionTrigger>
         </AccordionHeader>
-        <AccordionContent>
-            <div class="flex flex-wrap gap-1">
-                {#each RSS_CATEGORIES as category}
-                    {#if selectedCategory === category}
-                        <button>
-                            <Badge>
-                                {#if awesomeFeeds.isFetching}
-                                    <Spinner />
-                                {/if}
-                                <span>
-                                    {category}
-                                </span>
-                            </Badge>
-                        </button>
-                    {:else}
-                        <button onclick={() => (selectedCategory = category)}>
-                            <Badge variant="outline">{category}</Badge>
-                        </button>
-                    {/if}
-                {/each}
-            </div>
-            <div class="p-4">
-                {#if awesomeFeeds.isPending}
-                    <Pending />
-                {:else if awesomeFeeds.isError}
-                    <ErrorAlert error={awesomeFeeds.error} />
-                {:else if awesomeFeeds.isSuccess}
-                    {#if awesomeFeeds.data.length === 0}
-                        <Empty>
-                            <EmptyHeader>
-                                <EmptyTitle>No RSS feeds</EmptyTitle>
-                                <EmptyDescription>
-                                    There are no feeds for {selectedCategory}.
-                                </EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    {:else}
-                        <ItemGroup class="grid grid-cols-3 gap-2">
-                            {#each awesomeFeeds.data as feed}
-                                {@const url = new URL(feed.url)}
-                                {@const isExistingFeed = existingFeedUrls.has(feed.url)}
+        <AccordionContent class="p-4">
+            <ItemGroup class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {#each awesomeRssFeeds as feed}
+                    {@const url = new URL(feed.url)}
+                    {@const isExistingFeed = existingFeedUrls.has(feed.url)}
 
-                                <Item variant={isExistingFeed ? "default" : "outline"}>
-                                    <ItemContent>
-                                        <ItemTitle>{feed.title}</ItemTitle>
-                                        <ItemDescription>{feed.description}</ItemDescription>
-                                        <ItemDescription>
-                                            <a href={feed.url} target="_blank">
-                                                {url.hostname}
-                                            </a>
-                                        </ItemDescription>
-                                    </ItemContent>
-                                    <ItemActions>
-                                        <CreateFeedFormDialog defaultUrl={feed.url}>
-                                            {#snippet trigger(props)}
-                                                <Action
-                                                    disabled={isExistingFeed}
-                                                    button
-                                                    variant={isExistingFeed ? "default" : "outline"}
-                                                    size="sm"
-                                                    class="w-full"
-                                                    {...props}
-                                                >
-                                                    {#if isExistingFeed}
-                                                        <span>Already added</span>
-                                                    {:else}
-                                                        <span>Add this feed</span>
-                                                    {/if}
-                                                </Action>
-                                            {/snippet}
-                                        </CreateFeedFormDialog>
-                                    </ItemActions>
-                                </Item>
-                            {/each}
-                        </ItemGroup>
-                    {/if}
-                {/if}
-            </div>
+                    <Item variant={isExistingFeed ? "default" : "outline"}>
+                        <ItemContent>
+                            <ItemTitle>{feed.title}</ItemTitle>
+                            <ItemDescription>
+                                <a href={feed.url} target="_blank">
+                                    {url.hostname}
+                                </a>
+                            </ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                            <CreateFeedFormDialog defaultUrl={feed.url}>
+                                {#snippet trigger(props)}
+                                    <Action
+                                        disabled={isExistingFeed}
+                                        button
+                                        variant={isExistingFeed ? "default" : "outline"}
+                                        size="sm"
+                                        class="w-full"
+                                        {...props}
+                                    >
+                                        {#if isExistingFeed}
+                                            <span>Already added</span>
+                                        {:else}
+                                            <span>Add this feed</span>
+                                        {/if}
+                                    </Action>
+                                {/snippet}
+                            </CreateFeedFormDialog>
+                        </ItemActions>
+                    </Item>
+                {/each}
+            </ItemGroup>
         </AccordionContent>
     </AccordionItem>
 </Accordion>

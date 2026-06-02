@@ -1,0 +1,14 @@
+[
+    {
+        "title": "Hacker News",
+        "url": "https://news.ycombinator.com/rss"
+    },
+    {
+        "title": "NVIDIA News",
+        "url": "https://nvidianews.nvidia.com/releases.xml"
+    },
+    {
+        "title": "OpenAI News",
+        "url": "https://openai.com/news/rss.xml"
+    }
+]

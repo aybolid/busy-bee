@@ -36,6 +36,32 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
                 .collect::<JoinSet<_>>();
 
             let results = tasks.join_all().await;
+
+            if !results.is_empty() && results.iter().all(Result::is_err) {
+                _ = rss_feeds::mark_rss_feed_as_error(
+                    &state.app_state.db_pool,
+                    state.config.id,
+                    Some(&nonempty_trimmed_string!(
+                        "No articles were parsed successfully during the latest fetch"
+                    )),
+                )
+                .await;
+
+                state
+                    .app_state
+                    .app_events_broadcaster
+                    .send_refetch_trigger(RefetchTriggerType::Articles);
+
+                state.app_state.app_events_broadcaster.send_notification(
+                    NotificationData::error(NotificationString(nonempty_trimmed_string!(
+                        "RSS feed error"
+                    )))
+                    .with_description(NotificationString::new(
+                        "RSS was read but no articles were parsed successfully",
+                    )),
+                );
+            }
+
             let feed_articles = results
                 .into_iter()
                 .filter_map(Result::ok)
