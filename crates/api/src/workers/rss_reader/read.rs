@@ -41,7 +41,7 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
                 _ = rss_feeds::mark_rss_feed_as_error(
                     &state.app_state.db_pool,
                     state.config.id,
-                    Some(&nonempty_trimmed_string!(
+                    &RssFeedErrorReason(nonempty_trimmed_string!(
                         "No articles were parsed successfully during the latest fetch"
                     )),
                 )
@@ -102,8 +102,12 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
                         _ = rss_feeds::mark_rss_feed_as_error(
                             &state.app_state.db_pool,
                             state.config.id,
-                            RssFeedErrorReason::new(TrimmedString::from(error.to_string()))
-                                .as_ref(),
+                            &RssFeedErrorReason::new(TrimmedString::from(error.to_string()))
+                                .unwrap_or_else(|| {
+                                    RssFeedErrorReason(nonempty_trimmed_string!(
+                                        "Some error occurred during the latest RSS feed read"
+                                    ))
+                                }),
                         )
                         .await;
 
@@ -126,7 +130,13 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
             _ = rss_feeds::mark_rss_feed_as_error(
                 &state.app_state.db_pool,
                 state.config.id,
-                RssFeedErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+                &RssFeedErrorReason::new(TrimmedString::from(error.to_string())).unwrap_or_else(
+                    || {
+                        RssFeedErrorReason(nonempty_trimmed_string!(
+                            "Some error occurred during the latest RSS feed read"
+                        ))
+                    },
+                ),
             )
             .await;
 
