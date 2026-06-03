@@ -4,8 +4,8 @@ import z from "zod";
 const baseErrorSchema = { message: z.string(), timestamp: z.coerce.date() };
 
 const errorSchema = z.discriminatedUnion("kind", [
-    z.object({ ...baseErrorSchema, kind: z.literal("message") }),
-    z.object({ ...baseErrorSchema, kind: z.literal("internal"), trace_id: z.uuid() }),
+    z.object({ ...baseErrorSchema, kind: z.literal("just_message") }),
+    z.object({ ...baseErrorSchema, kind: z.literal("obfuscated"), trace_id: z.uuid() }),
     z.object({ ...baseErrorSchema, kind: z.literal("validation"), source: z.string().nullable() }),
 ]);
 
