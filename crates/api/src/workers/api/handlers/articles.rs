@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use types::{TrimmedString, nonempty_trimmed_string};
+use types::nonempty_trimmed_string;
 
 use crate::{
     app::{
@@ -100,7 +100,11 @@ pub async fn process_article(
         articles::mark_article_as_error(
             &state.db_pool,
             article_id,
-            ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+            &ArticleErrorReason::new(&error).unwrap_or_else(|| {
+                ArticleErrorReason(nonempty_trimmed_string!(
+                    "Failed to queue article for processing"
+                ))
+            }),
         )
         .await?;
 

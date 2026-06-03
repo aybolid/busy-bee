@@ -78,7 +78,11 @@ async fn handle_article_processing(state: &SharedAppState, request: ArticleProce
             _ = articles::mark_article_as_error(
                 &state.db_pool,
                 article_id,
-                ArticleErrorReason::new(TrimmedString::from(error.to_string())).as_ref(),
+                &ArticleErrorReason::new(error).unwrap_or_else(|| {
+                    ArticleErrorReason(nonempty_trimmed_string!(
+                        "Unexpected error occurred while processing article"
+                    ))
+                }),
             )
             .await;
 
@@ -127,7 +131,7 @@ async fn process_article(
             Message::new(format!("Additional context: {context}")).unwrap(),
         ));
     }
-    chat_request.push_message(ChatMessage::user(Message(article.text_content)));
+    chat_request.push_message(ChatMessage::user(Message(article.text_content.0)));
 
     let chat_response = state.ai.exec_chat(chat_request).await?;
 

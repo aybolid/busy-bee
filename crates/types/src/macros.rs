@@ -19,13 +19,13 @@ macro_rules! nonempty_trimmed_string {
             false // Empty or only whitespace
         }
 
-        const VAL: &str = $val;
+        const VALUE: &str = $val;
 
         const _: () = assert!(
-            is_valid(VAL),
+            is_valid(VALUE),
             "String slice cannot be empty or contain only whitespace."
         );
 
-        NonEmpty::new(TrimmedString::new(VAL)).unwrap()
+        NonEmpty::new(TrimmedString::new(VALUE)).unwrap()
     }};
 }

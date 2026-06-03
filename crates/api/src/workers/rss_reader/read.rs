@@ -10,7 +10,7 @@ use crate::{
         state::SharedAppState,
     },
     repos::{
-        articles::{self, Article, FromReadabilityArticeError},
+        articles::{self, Article, FromReadabilityArticleError},
         rss_feeds::{self, RssFeedErrorReason},
     },
     workers::rss_reader::RssFeedConfig,
@@ -219,7 +219,7 @@ enum ParseArticleError {
     #[error(transparent)]
     ReadabilityError(#[from] dom_smoothie::ReadabilityError),
     #[error(transparent)]
-    Convert(#[from] FromReadabilityArticeError),
+    Convert(#[from] FromReadabilityArticleError),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
