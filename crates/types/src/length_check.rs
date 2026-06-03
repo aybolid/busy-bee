@@ -82,8 +82,6 @@ impl<const MIN: usize, const MAX: usize, T: LengthCheck> LengthCheck
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-#[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
-#[cfg_attr(feature = "sqlx", sqlx(transparent))]
 pub struct LengthBounded<const MIN: usize, const MAX: usize, T: LengthCheck>(T);
 
 /// The error type returned when attempting to create a [`LengthBounded`]
@@ -246,6 +244,49 @@ impl<const MIN: usize, const MAX: usize> AsRef<str> for LengthBounded<MIN, MAX, 
 impl<const MIN: usize, const MAX: usize> AsRef<str> for LengthBounded<MIN, MAX, TrimmedString> {
     fn as_ref(&self) -> &str {
         self
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<const MIN: usize, const MAX: usize, T: LengthCheck, DB: sqlx::Database> sqlx::Type<DB>
+    for LengthBounded<MIN, MAX, T>
+where
+    T: sqlx::Type<DB>,
+{
+    fn type_info() -> DB::TypeInfo {
+        <T as sqlx::Type<DB>>::type_info()
+    }
+
+    fn compatible(ty: &<DB as sqlx::Database>::TypeInfo) -> bool {
+        <T as sqlx::Type<DB>>::compatible(ty)
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<'q, const MIN: usize, const MAX: usize, T: LengthCheck, DB: sqlx::Database>
+    sqlx::Encode<'q, DB> for LengthBounded<MIN, MAX, T>
+where
+    T: sqlx::Encode<'q, DB>,
+{
+    fn encode_by_ref(
+        &self,
+        buf: &mut <DB as sqlx::Database>::ArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+        <T as sqlx::Encode<'q, DB>>::encode_by_ref(self, buf)
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl<'r, const MIN: usize, const MAX: usize, T: LengthCheck, DB: sqlx::Database>
+    sqlx::Decode<'r, DB> for LengthBounded<MIN, MAX, T>
+where
+    T: sqlx::Decode<'r, DB>,
+{
+    fn decode(
+        value: <DB as sqlx::Database>::ValueRef<'r>,
+    ) -> Result<Self, sqlx::error::BoxDynError> {
+        let value = <T as sqlx::Decode<'r, DB>>::decode(value)?;
+        Self::try_new(value).map_err(Into::into)
     }
 }
 
