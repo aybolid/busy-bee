@@ -1,7 +1,7 @@
 import z from "zod";
 import { unwrapData } from "./common";
 
-const rssFeedIdSchema = z.uuidv7().brand("rssFeedId");
+export const rssFeedIdSchema = z.uuidv7().brand("rssFeedId");
 
 /** @typedef {z.infer<typeof rssFeedIdSchema>} RssFeedId */
 

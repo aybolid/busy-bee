@@ -5,7 +5,7 @@ use sqlx::Row;
 use types::{NonEmpty, TrimmedString, Url};
 use uuid::Uuid;
 
-use crate::infra::db::DatabaseRow;
+use crate::{infra::db::DatabaseRow, repos::rss_feeds::RssFeedId};
 
 /// A strongly-typed, globally unique identifier for an [`Article`].
 ///
@@ -265,23 +265,9 @@ pub enum ArticleStatus {
     Processed,
 }
 
-/// The core domain entity representing a scraped and parsed web article.
-///
-/// This struct holds all metadata, text content, and processing state related
-/// to an individual article.
+/// A thread-safe version of [`dom_smoothie::Article`] with additional invariants enforced.
 #[derive(Debug, serde::Serialize)]
-pub struct Article {
-    /// The unique, time-ordered identifier for the article.
-    pub id: ArticleId,
-    /// The timestamp when the article record was first created.
-    pub created_at: DateTime<Utc>,
-    /// The timestamp of the last update to the article record.
-    pub updated_at: DateTime<Utc>,
-
-    /// The current processing state of the article.
-    #[serde(flatten)]
-    pub status: ArticleStatus,
-
+pub struct ReadabilityArticle {
     /// The extracted headline or title.
     pub title: ArticleTitle,
     /// The author or publication attribution.
@@ -312,6 +298,29 @@ pub struct Article {
     pub url: Url,
 }
 
+/// The core domain entity representing a scraped and parsed web article.
+///
+/// This struct holds all metadata, text content, and processing state related
+/// to an individual article.
+#[derive(Debug, serde::Serialize)]
+pub struct Article {
+    /// The unique, time-ordered identifier for the article.
+    pub id: ArticleId,
+    /// The timestamp when the article record was first created.
+    pub created_at: DateTime<Utc>,
+    /// The timestamp of the last update to the article record.
+    pub updated_at: DateTime<Utc>,
+
+    /// The ID of the RSS feed that this article belongs to.
+    pub rss_feed_id: RssFeedId,
+
+    /// The current processing state of the article.
+    #[serde(flatten)]
+    pub status: ArticleStatus,
+    #[serde(flatten)]
+    pub readability: ReadabilityArticle,
+}
+
 /// Custom database decoding logic for [`Article`].
 ///
 /// Evaluates the `status` string and the nullable `error_reason` column
@@ -329,20 +338,23 @@ impl<'r> sqlx::FromRow<'r, DatabaseRow> for Article {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
             status,
-            title: row.try_get("title")?,
-            byline: row.try_get("byline")?,
-            content: row.try_get("content")?,
-            text_content: row.try_get("text_content")?,
-            length: row.try_get("length")?,
-            excerpt: row.try_get("excerpt")?,
-            site_name: row.try_get("site_name")?,
-            dir: row.try_get("dir")?,
-            lang: row.try_get("lang")?,
-            published_time: row.try_get("published_time")?,
-            modified_time: row.try_get("modified_time")?,
-            image: row.try_get("image")?,
-            favicon: row.try_get("favicon")?,
-            url: row.try_get("url")?,
+            rss_feed_id: row.try_get("rss_feed_id")?,
+            readability: ReadabilityArticle {
+                title: row.try_get("title")?,
+                byline: row.try_get("byline")?,
+                content: row.try_get("content")?,
+                text_content: row.try_get("text_content")?,
+                length: row.try_get("length")?,
+                excerpt: row.try_get("excerpt")?,
+                site_name: row.try_get("site_name")?,
+                dir: row.try_get("dir")?,
+                lang: row.try_get("lang")?,
+                published_time: row.try_get("published_time")?,
+                modified_time: row.try_get("modified_time")?,
+                image: row.try_get("image")?,
+                favicon: row.try_get("favicon")?,
+                url: row.try_get("url")?,
+            },
         })
     }
 }

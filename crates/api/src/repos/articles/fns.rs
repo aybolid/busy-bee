@@ -5,7 +5,12 @@ use types::NonEmpty;
 
 use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
-    repos::articles::{Article, ArticleErrorReason, ArticleId, types::ArticleStats},
+    repos::{
+        articles::{
+            Article, ArticleErrorReason, ArticleId, ReadabilityArticle, types::ArticleStats,
+        },
+        rss_feeds::RssFeedId,
+    },
 };
 
 /// Retrieves aggregate statistics for all articles in the database.
@@ -253,15 +258,16 @@ pub async fn delete_article_by_id<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the batch execution fails.
-#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = ?rss_feed_id), ret, err(Debug))]
 pub async fn create_articles_bulk<'c>(
     executor: impl DatabaseExecutor<'c>,
-    articles: &NonEmpty<Vec<Article>>,
+    articles: &NonEmpty<Vec<ReadabilityArticle>>,
+    rss_feed_id: RssFeedId,
 ) -> sqlx::Result<DatabaseQueryResult> {
     let mut query_builder = QueryBuilder::new(
         "
         INSERT INTO articles (
-            id, status, title, byline,
+            id, status, rss_feed_id, title, byline,
             content, text_content, length,
             excerpt, site_name, dir,
             lang, published_time, modified_time,
@@ -271,8 +277,9 @@ pub async fn create_articles_bulk<'c>(
     );
 
     query_builder.push_values(articles.iter(), |mut b, article| {
-        b.push_bind(article.id)
+        b.push_bind(ArticleId::new())
             .push_bind("new")
+            .push_bind(rss_feed_id)
             .push_bind(&article.title)
             .push_bind(&article.byline)
             .push_bind(&article.content)

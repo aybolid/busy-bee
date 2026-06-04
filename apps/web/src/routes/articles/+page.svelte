@@ -49,6 +49,8 @@
     import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
     import Popover from "$lib/components/ui/popover/popover.svelte";
     import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
+    import { getRssFeedsQueryOptions } from "$lib/query/rss-feeds";
+    import { toaster } from "$lib/components/toaster/store";
 
     dayjs.extend(relative);
 
@@ -67,6 +69,30 @@
 
     const articles = createQuery(() => articlesQueryOptions);
     const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
+
+    const feeds = createQuery(() => getRssFeedsQueryOptions(props.data.ky));
+
+    $effect(() => {
+        if (feeds.error) {
+            toaster.push("Failed to fetch RSS feeds", {
+                description: feeds.error.message,
+                props: { variant: "destructive" },
+            });
+        }
+    });
+
+    const feedsMap = $derived.by(() => {
+        const data = feeds.data ?? [];
+
+        return data.reduce(
+            (acc, feed) => {
+                acc[feed.id] = feed;
+                return acc;
+            },
+            /** @type {Record<import('$lib/api/rss-feeds').RssFeedId, import('$lib/api/rss-feeds').RssFeed>} */
+            ({}),
+        );
+    });
 
     let lastUpdatedString = $state("Last updated a few seconds ago");
 
@@ -217,6 +243,7 @@
             <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Feed</TableHead>
                 <TableHead>Author</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Published</TableHead>
@@ -229,7 +256,8 @@
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 9}
+            {@const colspan = 10}
+
             {#if articles.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -259,6 +287,9 @@
                 {/if}
 
                 {#each articles.data.data as article (article.id)}
+                    {@const feed = feedsMap[article.rss_feed_id]}
+                    {@const feedUrl = feed ? new URL(feed.url) : null}
+
                     <TableRow>
                         <TableCell>
                             <Action anchor href="/articles/{article.id}" variant="link">
@@ -278,6 +309,9 @@
                             >
                                 {article.excerpt || "--"}
                             </p>
+                        </TableCell>
+                        <TableCell>
+                            {feedUrl?.hostname}
                         </TableCell>
                         <TableCell>
                             {article.byline || "--"}

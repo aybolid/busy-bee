@@ -45,6 +45,8 @@ CREATE TABLE articles (
   ),
   error_reason TEXT,
   --
+  rss_feed_id BLOB NOT NULL REFERENCES rss_feeds (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  --
   title TEXT NOT NULL,
   byline TEXT,
   content TEXT NOT NULL,

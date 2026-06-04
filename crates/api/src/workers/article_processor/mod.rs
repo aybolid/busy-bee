@@ -131,7 +131,9 @@ async fn process_article(
             Message::new(format!("Additional context: {context}")).unwrap(),
         ));
     }
-    chat_request.push_message(ChatMessage::user(Message(article.text_content.0)));
+    chat_request.push_message(ChatMessage::user(Message(
+        article.readability.text_content.0,
+    )));
 
     let chat_response = state.ai.exec_chat(chat_request).await?;
 
@@ -166,7 +168,7 @@ async fn process_article(
         )))
         .with_description(NotificationString::new(format!(
             r#"Article "{}" was processed successfully"#,
-            article.title
+            article.readability.title
         ))),
     );
 

@@ -10,7 +10,7 @@ use crate::{
         state::SharedAppState,
     },
     repos::{
-        articles::{self, Article, FromReadabilityArticleError},
+        articles::{self, FromDomSmoothieArticleError, ReadabilityArticle},
         rss_feeds::{self, RssFeedErrorReason},
     },
     workers::rss_reader::RssFeedConfig,
@@ -70,7 +70,12 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
 
             #[allow(clippy::collapsible_if)]
             if let Some(feed_articles) = NonEmpty::new(feed_articles) {
-                match articles::create_articles_bulk(&state.app_state.db_pool, &feed_articles).await
+                match articles::create_articles_bulk(
+                    &state.app_state.db_pool,
+                    &feed_articles,
+                    state.config.id,
+                )
+                .await
                 {
                     Ok(query_result) => {
                         _ = rss_feeds::mark_rss_feed_as_healthy(
@@ -177,7 +182,7 @@ enum ProcessFeedItemError {
 async fn process_rss_feed_item(
     state: SharedRssReaderWorkerState,
     item: rss::Item,
-) -> Result<Option<Article>, ProcessFeedItemError> {
+) -> Result<Option<ReadabilityArticle>, ProcessFeedItemError> {
     let Some(link) = item.link else {
         tracing::warn!("no article link to process");
         return Err(ProcessFeedItemError::MissingLink);
@@ -219,11 +224,11 @@ enum ParseArticleError {
     #[error(transparent)]
     ReadabilityError(#[from] dom_smoothie::ReadabilityError),
     #[error(transparent)]
-    Convert(#[from] FromReadabilityArticleError),
+    Convert(#[from] FromDomSmoothieArticleError),
 }
 
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-fn parse_article(html: String, link: String) -> Result<Article, ParseArticleError> {
+fn parse_article(html: String, link: String) -> Result<ReadabilityArticle, ParseArticleError> {
     let mut readability = Readability::new(html, Some(&link), None)?;
 
     let mut article = readability.parse()?;
@@ -231,7 +236,7 @@ fn parse_article(html: String, link: String) -> Result<Article, ParseArticleErro
         article.url = Some(link);
     }
 
-    Article::try_from(article).map_err(Into::into)
+    ReadabilityArticle::try_from(article).map_err(ParseArticleError::from)
 }
 
 #[derive(Debug, thiserror::Error)]

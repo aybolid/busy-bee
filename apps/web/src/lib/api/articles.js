@@ -1,5 +1,6 @@
 import z from "zod";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
+import { rssFeedIdSchema } from "./rss-feeds";
 
 export const articleIdSchema = z.uuidv7().brand("articleId");
 
@@ -13,7 +14,7 @@ const baseArticleSchema = {
     id: articleIdSchema,
     created_at: z.coerce.date(),
     updated_at: z.coerce.date(),
-
+    rss_feed_id: rssFeedIdSchema,
     title: z.string(),
     byline: z.string().nullable(),
     content: z.string(),
