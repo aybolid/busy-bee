@@ -41,6 +41,9 @@
                 void queryClient.invalidateQueries({
                     queryKey: ["rss_feeds"],
                 });
+                void queryClient.invalidateQueries({
+                    queryKey: ["articles"],
+                });
                 dialog.close();
             },
         });
