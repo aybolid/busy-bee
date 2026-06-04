@@ -8,6 +8,7 @@
     import Editor from "$lib/editor/editor.svelte";
     import EditorContent from "$lib/editor/editor-content.svelte";
     import EditorToolbar from "$lib/editor/editor-toolbar.svelte";
+    import { beforeNavigate } from "$app/navigation";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -20,7 +21,34 @@
     const output = createQuery(() =>
         getArticleProcessingOutputQueryOptions(props.data.ky, { params: { id: outputId } }),
     );
+
+    /** @type {import('@tiptap/core').Editor} */
+    let editorInstance;
+
+    /** @type {import('@tiptap/core').Editor['state']['doc']} */
+    let initalDoc;
+    let isDirty = $state(false);
+
+    /** @type {import('svelte/elements').EventHandler<BeforeUnloadEvent, Window>} */
+    function handleBeforeUnload(e) {
+        if (isDirty) {
+            e.preventDefault();
+        }
+    }
+
+    beforeNavigate(({ cancel }) => {
+        if (isDirty) {
+            const shouldLeave = confirm(
+                "You have unsaved changes. Are you sure you want to leave?",
+            );
+            if (!shouldLeave) {
+                cancel();
+            }
+        }
+    });
 </script>
+
+<svelte:window onbeforeunload={handleBeforeUnload} />
 
 {#if output.isPending}
     <Pending />
@@ -28,7 +56,17 @@
     <ErrorAlert error={output.error} />
 {:else if output.isSuccess}
     <div class="space-y-8">
-        <Editor initialContent={output.data.output_text}>
+        <Editor
+            options={{
+                content: output.data.output_text,
+                editorProps: { attributes: { class: "focus:outline-none" } },
+                onCreate: ({ editor }) => {
+                    initalDoc = editor.state.doc;
+                    editorInstance = editor;
+                },
+                onUpdate: ({ editor }) => (isDirty = !editor.state.doc.eq(initalDoc)),
+            }}
+        >
             {#snippet children({ editor })}
                 <EditorToolbar {editor} position="top" class="z-20" />
                 <EditorContent
@@ -38,11 +76,17 @@
             {/snippet}
         </Editor>
 
-        <StickyBar>
-            <div class="space-x-2">
-                <Action button variant="outline">Cancel</Action>
-                <Action button>Save</Action>
-            </div>
+        <StickyBar class="gap-2">
+            <Action anchor variant="outline" href="/outputs/{outputId}">Cancel</Action>
+            <Action
+                button
+                disabled={!isDirty}
+                onclick={() => {
+                    console.log(editorInstance.getMarkdown());
+                }}
+            >
+                Save
+            </Action>
         </StickyBar>
     </div>
 {/if}

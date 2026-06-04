@@ -4,8 +4,15 @@
     import StarterKit from "@tiptap/starter-kit";
     import { onDestroy, onMount } from "svelte";
 
-    /** @type {{ children?: import('svelte').Snippet<[{ editor: Editor }]>, initialContent?: string }} */
-    const { children, initialContent } = $props();
+    /**
+     * @typedef {Object} EditorProps
+     *
+     * @property {import('svelte').Snippet<[{ editor: Editor }]>} [children] The editor's children.
+     * @property {Partial<Omit<import('@tiptap/core').EditorOptions, 'extensions' | 'contentType'>>} [options]
+     */
+
+    /** @type {EditorProps} */
+    let { children, options } = $props();
 
     /** @type {{ editor: Editor | null }} */
     let state = $state({
@@ -14,14 +21,12 @@
 
     onMount(() => {
         state.editor = new Editor({
+            ...options,
             extensions: [StarterKit, Markdown],
-            content: initialContent,
             contentType: "markdown",
-            editorProps: {
-                attributes: { class: "focus:outline-none" },
-            },
-            onTransaction: ({ editor }) => {
-                state = { editor };
+            onTransaction: (event) => {
+                state = { editor: event.editor };
+                options?.onTransaction?.(event);
             },
         });
     });
