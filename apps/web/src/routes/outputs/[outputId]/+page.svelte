@@ -3,7 +3,7 @@
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
-    import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
+    import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
     import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
@@ -38,7 +38,7 @@
         <SvelteMarkdown source={output.data.output_text} />
     </article>
 
-    <StickyBottomBar>
+    <StickyBar>
         <div class="flex flex-wrap gap-2">
             <Badge variant="secondary">
                 {dayjs(output.data.created_at).format("MMM DD, YYYY, HH:mm")}
@@ -46,7 +46,7 @@
         </div>
 
         {@render menu(output.data)}
-    </StickyBottomBar>
+    </StickyBar>
 {/if}
 
 {#snippet menu(
@@ -62,6 +62,7 @@
         <MenuContent>
             <MenuGroup>
                 <MenuLabel>Output actions</MenuLabel>
+                <MenuActionItem anchor href="/outputs/{output.id}/edit">Edit</MenuActionItem>
                 <ViewTokenUsageDialog usage={output.usage} model={output.model}>
                     {#snippet trigger(props)}
                         <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>

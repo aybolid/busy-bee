@@ -39,7 +39,7 @@
     import relative from "dayjs/plugin/relativeTime";
     import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
     import Lock from "$lib/components/ui/icons/lock.svelte";
-    import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
+    import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import TableContainer from "$lib/components/ui/table/table-container.svelte";
     import NativeSelect from "$lib/components/ui/native-select/native-select.svelte";
     import NativeSelectOption from "$lib/components/ui/native-select/native-select-option.svelte";
@@ -350,7 +350,7 @@
 </TableContainer>
 
 {#if articles.isSuccess && articles.data.meta.total > 0}
-    <StickyBottomBar>
+    <StickyBar>
         <PaginationControls
             class="justify-start"
             url={page.url}
@@ -370,7 +370,7 @@
                 </NativeSelectOptGroup>
             {/if}
         </NativeSelect>
-    </StickyBottomBar>
+    </StickyBar>
 {/if}
 
 {#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}

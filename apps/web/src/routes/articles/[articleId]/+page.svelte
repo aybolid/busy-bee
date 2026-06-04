@@ -6,7 +6,7 @@
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
-    import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
+    import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
     import Trash from "$lib/components/ui/icons/trash.svelte";
@@ -49,7 +49,7 @@
         {@html article.data.content}
     </article>
 
-    <StickyBottomBar>
+    <StickyBar>
         <div class="flex flex-wrap gap-2">
             {#if article.data.byline}
                 <Badge>{article.data.byline}</Badge>
@@ -80,7 +80,7 @@
         </div>
 
         {@render menu(article.data)}
-    </StickyBottomBar>
+    </StickyBar>
 {/if}
 
 {#snippet menu(/** @type {import('$lib/api/articles').Article} */ article)}

@@ -23,7 +23,7 @@
     import Table from "$lib/components/ui/table/table.svelte";
     import { createQuery } from "@tanstack/svelte-query";
     import Lock from "$lib/components/ui/icons/lock.svelte";
-    import StickyBottomBar from "$lib/components/ui/sticky-bottom-bar.svelte";
+    import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import TableContainer from "$lib/components/ui/table/table-container.svelte";
     import NativeSelect from "$lib/components/ui/native-select/native-select.svelte";
     import NativeSelectOption from "$lib/components/ui/native-select/native-select-option.svelte";
@@ -247,7 +247,7 @@
 </TableContainer>
 
 {#if outputs.isSuccess && outputs.data.meta.total > 0}
-    <StickyBottomBar>
+    <StickyBar>
         <PaginationControls
             class="justify-start"
             url={page.url}
@@ -270,7 +270,7 @@
                 </NativeSelectOptGroup>
             {/if}
         </NativeSelect>
-    </StickyBottomBar>
+    </StickyBar>
 {/if}
 
 {#snippet outputMenu(
