@@ -1,5 +1,8 @@
 import { dev } from "$app/environment";
 import { toaster } from "$lib/components/toaster/store";
+import { invalidateArticleProcessingOutputsQuery } from "$lib/query/article-processing-outputs";
+import { invalidateArticlesQuery, invalidateArticleStatsQuery } from "$lib/query/articles";
+import { invalidateRssFeedsQuery } from "$lib/query/rss-feeds";
 import z from "zod";
 
 const notificationDataSchema = z
@@ -37,9 +40,17 @@ export function sseListener(queryClient) {
     sse.addEventListener("refetch_trigger", (e) => {
         const data = parseRefetchTriggerData(e.data);
         if (data) {
-            const queryKeys = getQueryKeysToInvalidate(data);
-            for (const key of queryKeys) {
-                void queryClient.invalidateQueries({ queryKey: key });
+            switch (data) {
+                case "articles":
+                    void invalidateArticlesQuery(queryClient);
+                    void invalidateArticleStatsQuery(queryClient);
+                    break;
+                case "rss_feeds":
+                    void invalidateRssFeedsQuery(queryClient);
+                    break;
+                case "article_processing_outputs":
+                    void invalidateArticleProcessingOutputsQuery(queryClient);
+                    break;
             }
         }
     });
@@ -47,22 +58,6 @@ export function sseListener(queryClient) {
     return () => {
         sse.close();
     };
-}
-
-/**
- * @param {RefetchTriggerType} data
- *
- * @returns {import("@tanstack/svelte-query").QueryKey[]}
- */
-function getQueryKeysToInvalidate(data) {
-    switch (data) {
-        case "articles":
-            return [["articles"], ["articles/stats"]];
-        case "rss_feeds":
-            return [["rss_feeds"]];
-        case "article_processing_outputs":
-            return [["article_processing_outputs"]];
-    }
 }
 
 /**

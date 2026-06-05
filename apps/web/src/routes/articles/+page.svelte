@@ -33,7 +33,11 @@
     import TableHeader from "$lib/components/ui/table/table-header.svelte";
     import TableRow from "$lib/components/ui/table/table-row.svelte";
     import Table from "$lib/components/ui/table/table.svelte";
-    import { getArticlesQueryOptions, getArticleStatsQueryOptions } from "$lib/query/articles";
+    import {
+        getArticlesQueryOptions,
+        getArticleStatsQueryOptions,
+        invalidateArticlesQuery,
+    } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
@@ -120,9 +124,7 @@
         if (!canRefresh) return;
         canRefresh = false;
 
-        void props.data.queryClient.invalidateQueries({
-            queryKey: ["articles"],
-        });
+        void invalidateArticlesQuery(props.data.queryClient);
         void articleStats.refetch();
 
         refreshTimeout = setTimeout(() => (canRefresh = true), 5000);

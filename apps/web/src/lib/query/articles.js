@@ -19,6 +19,25 @@ export function getArticlesQueryOptions(...args) {
 }
 
 /**
+ * @param {Parameters<typeof getArticle>} args `getArticle` function arguments.
+ */
+export function getArticleQueryOptions(...args) {
+    return queryOptions({
+        queryKey: ["articles", args[1]],
+        queryFn: () => getArticle(...args),
+    });
+}
+
+/**
+ * @param {import("@tanstack/svelte-query").QueryClient} queryClient
+ */
+export async function invalidateArticlesQuery(queryClient) {
+    await queryClient.invalidateQueries({
+        queryKey: ["articles"],
+    });
+}
+
+/**
  * @param {Parameters<typeof getArticleStats>} args `getArticleStats` function arguments.
  */
 export function getArticleStatsQueryOptions(...args) {
@@ -29,12 +48,11 @@ export function getArticleStatsQueryOptions(...args) {
 }
 
 /**
- * @param {Parameters<typeof getArticle>} args `getArticle` function arguments.
+ * @param {import("@tanstack/svelte-query").QueryClient} queryClient
  */
-export function getArticleQueryOptions(...args) {
-    return queryOptions({
-        queryKey: ["articles", args[1]],
-        queryFn: () => getArticle(...args),
+export async function invalidateArticleStatsQuery(queryClient) {
+    await queryClient.invalidateQueries({
+        queryKey: ["articles/stats"],
     });
 }
 

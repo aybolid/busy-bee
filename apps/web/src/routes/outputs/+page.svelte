@@ -31,7 +31,10 @@
     import { goto } from "$app/navigation";
     import { dev } from "$app/environment";
     import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
-    import { getArticleProcessingOutputsQueryOptions } from "$lib/query/article-processing-outputs";
+    import {
+        getArticleProcessingOutputsQueryOptions,
+        invalidateArticleProcessingOutputsQuery,
+    } from "$lib/query/article-processing-outputs";
     import Badge from "$lib/components/ui/badge.svelte";
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
@@ -82,9 +85,7 @@
         if (!canRefresh) return;
         canRefresh = false;
 
-        void props.data.queryClient.invalidateQueries({
-            queryKey: ["article_processing_outputs"],
-        });
+        void invalidateArticleProcessingOutputsQuery(props.data.queryClient);
 
         refreshTimeout = setTimeout(() => (canRefresh = true), 5000);
     }

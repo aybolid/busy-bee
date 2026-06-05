@@ -11,6 +11,15 @@ export function getRssFeedsQueryOptions(...args) {
     });
 }
 
+/**
+ * @param {import("@tanstack/svelte-query").QueryClient} queryClient
+ */
+export async function invalidateRssFeedsQuery(queryClient) {
+    await queryClient.invalidateQueries({
+        queryKey: ["rss_feeds"],
+    });
+}
+
 /** create-create :) */
 export function createCreateRssFeedMutation() {
     /** @param {Parameters<typeof createRssFeed>} args */

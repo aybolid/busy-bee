@@ -1,6 +1,10 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
-    import { createDeleteArticleMutation } from "$lib/query/articles";
+    import {
+        createDeleteArticleMutation,
+        invalidateArticlesQuery,
+        invalidateArticleStatsQuery,
+    } from "$lib/query/articles";
     import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
     import AlertDialogContent from "./ui/alert-dialog/alert-dialog-content.svelte";
@@ -38,12 +42,8 @@
                 }),
             onSuccess: async () => {
                 await onSuccess?.();
-                void queryClient.invalidateQueries({
-                    queryKey: ["articles"],
-                });
-                void queryClient.invalidateQueries({
-                    queryKey: ["articles/stats"],
-                });
+                void invalidateArticlesQuery(queryClient);
+                void invalidateArticleStatsQuery(queryClient);
                 dialog.close();
             },
         });

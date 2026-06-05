@@ -1,6 +1,10 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
-    import { createProcessArticleMutation } from "$lib/query/articles";
+    import {
+        createProcessArticleMutation,
+        invalidateArticlesQuery,
+        invalidateArticleStatsQuery,
+    } from "$lib/query/articles";
     import { createForm } from "@tanstack/svelte-form";
     import DialogCloseAction from "./ui/dialog/dialog-close-action.svelte";
     import DialogContent from "./ui/dialog/dialog-content.svelte";
@@ -67,12 +71,8 @@
                         });
                     },
                     onSuccess: () => {
-                        void queryClient.invalidateQueries({
-                            queryKey: ["articles"],
-                        });
-                        void queryClient.invalidateQueries({
-                            queryKey: ["articles/stats"],
-                        });
+                        void invalidateArticlesQuery(queryClient);
+                        void invalidateArticleStatsQuery(queryClient);
                         dialog.close();
                     },
                 },

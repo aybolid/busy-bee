@@ -24,3 +24,12 @@ export function getArticleProcessingOutputQueryOptions(...args) {
         queryFn: () => getArticleProcessingOutput(...args),
     });
 }
+
+/**
+ * @param {import("@tanstack/svelte-query").QueryClient} queryClient
+ */
+export function invalidateArticleProcessingOutputsQuery(queryClient) {
+    void queryClient.invalidateQueries({
+        queryKey: ["article_processing_outputs"],
+    });
+}
