@@ -39,7 +39,7 @@
 {:else if article.isError}
     <ErrorAlert error={article.error} />
 {:else if article.isSuccess}
-    <article class="mx-auto prose max-w-4xl py-8 prose-neutral dark:prose-invert">
+    <article class="mx-auto prose max-w-4xl py-8 prose-app">
         {#if article.data.favicon}
             <div class="size-8 pb-16">
                 <img src={article.data.favicon} alt="favicon" />

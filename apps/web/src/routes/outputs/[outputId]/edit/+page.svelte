@@ -69,10 +69,7 @@
         >
             {#snippet children({ editor })}
                 <EditorToolbar {editor} position="top" class="z-20" />
-                <EditorContent
-                    {editor}
-                    class="mx-auto prose max-w-4xl prose-neutral dark:prose-invert"
-                />
+                <EditorContent {editor} class="mx-auto prose max-w-4xl prose-app" />
             {/snippet}
         </Editor>
 

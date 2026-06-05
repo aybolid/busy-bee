@@ -149,7 +149,6 @@
     <Table>
         <TableHeader>
             <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Context</TableHead>
                 <TableHead>Model</TableHead>
@@ -162,7 +161,7 @@
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 8}
+            {@const colspan = 7}
             {#if outputs.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -193,9 +192,6 @@
 
                 {#each outputs.data.data as output (output.id)}
                     <TableRow>
-                        <TableCell class="font-mono text-xs text-muted-foreground">
-                            {output.id}
-                        </TableCell>
                         <TableCell>
                             <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
                                 {output.output_text}
@@ -203,7 +199,7 @@
                         </TableCell>
                         <TableCell>
                             <p
-                                class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal text-muted-foreground"
+                                class="line-clamp-2 w-72 text-xs text-wrap whitespace-normal text-muted-foreground"
                             >
                                 {output.user_context || "--"}
                             </p>

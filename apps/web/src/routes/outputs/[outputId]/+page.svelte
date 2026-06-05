@@ -34,7 +34,7 @@
 {:else if output.isError}
     <ErrorAlert error={output.error} />
 {:else if output.isSuccess}
-    <article class="mx-auto prose max-w-4xl py-8 prose-neutral dark:prose-invert">
+    <article class="mx-auto prose max-w-4xl py-8 prose-app">
         <SvelteMarkdown source={output.data.output_text} />
     </article>
 
