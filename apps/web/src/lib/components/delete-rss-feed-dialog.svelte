@@ -1,7 +1,7 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
-    import { invalidateArticlesQuery, invalidateArticleStatsQuery } from "$lib/query/articles";
-    import { createDeleteRssFeedMutation, invalidateRssFeedsQuery } from "$lib/query/rss-feeds";
+    import { invalidateArticlesQueries, invalidateArticleStatsQueries } from "$lib/query/articles";
+    import { createDeleteRssFeedMutation, invalidateRssFeedsQueries } from "$lib/query/rss-feeds";
     import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
     import AlertDialogContent from "./ui/alert-dialog/alert-dialog-content.svelte";
@@ -39,9 +39,9 @@
                 }),
             onSuccess: async () => {
                 await onSuccess?.();
-                void invalidateRssFeedsQuery(queryClient);
-                void invalidateArticleStatsQuery(queryClient);
-                void invalidateArticlesQuery(queryClient);
+                void invalidateRssFeedsQueries(queryClient);
+                void invalidateArticleStatsQueries(queryClient);
+                void invalidateArticlesQueries(queryClient);
                 dialog.close();
             },
         });

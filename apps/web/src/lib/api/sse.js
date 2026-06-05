@@ -1,8 +1,8 @@
 import { dev } from "$app/environment";
 import { toaster } from "$lib/components/toaster/store";
-import { invalidateArticleProcessingOutputsQuery } from "$lib/query/article-processing-outputs";
-import { invalidateArticlesQuery, invalidateArticleStatsQuery } from "$lib/query/articles";
-import { invalidateRssFeedsQuery } from "$lib/query/rss-feeds";
+import { invalidateOutputsQueries } from "$lib/query/outputs";
+import { invalidateArticlesQueries, invalidateArticleStatsQueries } from "$lib/query/articles";
+import { invalidateRssFeedsQueries } from "$lib/query/rss-feeds";
 import z from "zod";
 
 const notificationDataSchema = z
@@ -13,7 +13,7 @@ const notificationDataSchema = z
     })
     .strict();
 
-const refetchTriggerTypeSchema = z.enum(["articles", "rss_feeds", "article_processing_outputs"]);
+const refetchTriggerTypeSchema = z.enum(["articles", "rss_feeds", "outputs"]);
 
 /** @typedef {z.infer<typeof refetchTriggerTypeSchema>} RefetchTriggerType */
 
@@ -42,14 +42,14 @@ export function sseListener(queryClient) {
         if (data) {
             switch (data) {
                 case "articles":
-                    void invalidateArticlesQuery(queryClient);
-                    void invalidateArticleStatsQuery(queryClient);
+                    void invalidateArticlesQueries(queryClient);
+                    void invalidateArticleStatsQueries(queryClient);
                     break;
                 case "rss_feeds":
-                    void invalidateRssFeedsQuery(queryClient);
+                    void invalidateRssFeedsQueries(queryClient);
                     break;
-                case "article_processing_outputs":
-                    void invalidateArticleProcessingOutputsQuery(queryClient);
+                case "outputs":
+                    void invalidateOutputsQueries(queryClient);
                     break;
             }
         }

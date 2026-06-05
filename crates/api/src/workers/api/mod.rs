@@ -6,7 +6,7 @@ use tracing::Instrument;
 
 use crate::{
     app::state::SharedAppState,
-    workers::api::routers::{article_processing_outputs, articles, notifications, rss_feeds},
+    workers::api::routers::{articles, notifications, outputs, rss_feeds},
 };
 
 mod err;
@@ -43,7 +43,7 @@ fn create_api_router(state: SharedAppState) -> Router {
         .merge(notifications::router())
         .merge(rss_feeds::router())
         .merge(articles::router())
-        .merge(article_processing_outputs::router());
+        .merge(outputs::router());
 
     Router::new().nest("/api", router).with_state(state)
 }

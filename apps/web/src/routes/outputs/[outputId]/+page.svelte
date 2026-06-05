@@ -12,20 +12,19 @@
     import Menu from "$lib/components/ui/menu/menu.svelte";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
-    import { getArticleProcessingOutputQueryOptions } from "$lib/query/article-processing-outputs";
+    import { getOutputQueryOptions } from "$lib/query/outputs";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
     import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
 
-    const outputId =
-        /** @type {import('$lib/api/article-processing-outputs').ArticleProcessingOutputId} */ (
-            $derived(props.params.outputId)
-        );
+    const outputId = /** @type {import('$lib/api/outputs').OutputId} */ (
+        $derived(props.params.outputId)
+    );
 
     const output = createQuery(() =>
-        getArticleProcessingOutputQueryOptions(props.data.ky, { params: { id: outputId } }),
+        getOutputQueryOptions(props.data.ky, { params: { id: outputId } }),
     );
 </script>
 
@@ -35,7 +34,7 @@
     <ErrorAlert error={output.error} />
 {:else if output.isSuccess}
     <article class="mx-auto prose max-w-4xl py-8 prose-app">
-        <SvelteMarkdown source={output.data.output_text} />
+        <SvelteMarkdown source={output.data.text} />
     </article>
 
     <StickyBar>
@@ -49,9 +48,7 @@
     </StickyBar>
 {/if}
 
-{#snippet menu(
-    /** @type {import('$lib/api/article-processing-outputs').ArticleProcessingOutput} */ output,
-)}
+{#snippet menu(/** @type {import('$lib/api/outputs').Output} */ output)}
     <Menu>
         {#snippet trigger(props)}
             <Action button size="sm" variant="outline" {...props}>

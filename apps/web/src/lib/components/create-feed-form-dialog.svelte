@@ -33,7 +33,7 @@
     import DialogContinueAction from "$lib/components/ui/dialog/dialog-continue-action.svelte";
     import Spinner from "$lib/components/ui/spinner.svelte";
     import Input from "$lib/components/ui/input.svelte";
-    import { createCreateRssFeedMutation, invalidateRssFeedsQuery } from "$lib/query/rss-feeds";
+    import { createCreateRssFeedMutation, invalidateRssFeedsQueries } from "$lib/query/rss-feeds";
     import { createRssFeedJsonSchema } from "$lib/api/rss-feeds";
     import { getGlobalContext } from "$lib/global-context";
     import { isHTTPError } from "ky";
@@ -102,7 +102,7 @@
                         }
                     },
                     onSuccess: () => {
-                        void invalidateRssFeedsQuery(queryClient);
+                        void invalidateRssFeedsQueries(queryClient);
                         dialog.close();
                     },
                 },

@@ -8,8 +8,8 @@ use crate::{
         state::SharedAppState,
     },
     repos::{
-        article_processing_outputs,
         articles::{self, ArticleErrorReason, ArticleId},
+        outputs::{self, OutputText},
     },
 };
 
@@ -139,12 +139,12 @@ async fn process_article(
 
     let mut tx = state.db_pool.begin().await?;
 
-    article_processing_outputs::create_article_processing_output(
+    outputs::create_output(
         &mut *tx,
         article.id,
         request.context.as_ref(),
         &state.ai.model,
-        &chat_response.content.0,
+        &OutputText(chat_response.content.0),
         &chat_response.usage,
     )
     .await?;
@@ -160,7 +160,7 @@ async fn process_article(
         .send_refetch_trigger(RefetchTriggerType::Articles);
     state
         .app_events_broadcaster
-        .send_refetch_trigger(RefetchTriggerType::ArticleProcessingOutputs);
+        .send_refetch_trigger(RefetchTriggerType::Outputs);
 
     state.app_events_broadcaster.send_notification(
         NotificationData::info(NotificationString(nonempty_trimmed_string!(

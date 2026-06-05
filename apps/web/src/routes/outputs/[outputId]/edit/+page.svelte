@@ -3,7 +3,7 @@
     import Pending from "$lib/components/pending.svelte";
     import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import { createQuery } from "@tanstack/svelte-query";
-    import { getArticleProcessingOutputQueryOptions } from "$lib/query/article-processing-outputs";
+    import { getOutputQueryOptions } from "$lib/query/outputs";
     import Action from "$lib/components/ui/action.svelte";
     import Editor from "$lib/editor/editor.svelte";
     import EditorContent from "$lib/editor/editor-content.svelte";
@@ -13,13 +13,12 @@
     /** @type {import('./$types').PageProps} */
     const props = $props();
 
-    const outputId =
-        /** @type {import('$lib/api/article-processing-outputs').ArticleProcessingOutputId} */ (
-            $derived(props.params.outputId)
-        );
+    const outputId = /** @type {import('$lib/api/outputs').OutputId} */ (
+        $derived(props.params.outputId)
+    );
 
     const output = createQuery(() =>
-        getArticleProcessingOutputQueryOptions(props.data.ky, { params: { id: outputId } }),
+        getOutputQueryOptions(props.data.ky, { params: { id: outputId } }),
     );
 
     /** @type {import('@tiptap/core').Editor} */
@@ -58,7 +57,7 @@
     <div class="space-y-8">
         <Editor
             options={{
-                content: output.data.output_text,
+                content: output.data.text,
                 editorProps: { attributes: { class: "focus:outline-none" } },
                 onCreate: ({ editor }) => {
                     initalDoc = editor.state.doc;

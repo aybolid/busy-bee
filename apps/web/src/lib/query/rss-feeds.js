@@ -14,7 +14,7 @@ export function getRssFeedsQueryOptions(...args) {
 /**
  * @param {import("@tanstack/svelte-query").QueryClient} queryClient
  */
-export async function invalidateRssFeedsQuery(queryClient) {
+export async function invalidateRssFeedsQueries(queryClient) {
     await queryClient.invalidateQueries({
         queryKey: ["rss_feeds"],
     });

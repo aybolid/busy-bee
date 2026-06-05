@@ -1,14 +1,12 @@
-import { getArticleProcessingOutputQueryOptions } from "$lib/query/article-processing-outputs";
+import { getOutputQueryOptions } from "$lib/query/outputs";
 
 /** @type {import("./$types").PageLoad} */
 export async function load({ parent, params }) {
     const { queryClient, ky } = await parent();
 
-    const outputOptions = getArticleProcessingOutputQueryOptions(ky, {
+    const outputOptions = getOutputQueryOptions(ky, {
         params: {
-            id: /** @type {import('$lib/api/article-processing-outputs').ArticleProcessingOutputId} */ (
-                params.outputId
-            ),
+            id: /** @type {import('$lib/api/outputs').OutputId} */ (params.outputId),
         },
     });
 

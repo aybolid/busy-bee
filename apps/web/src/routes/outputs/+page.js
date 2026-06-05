@@ -1,5 +1,5 @@
 import { paginationSchema } from "$lib/api/common";
-import { getArticleProcessingOutputsQueryOptions } from "$lib/query/article-processing-outputs";
+import { getOutputsQueryOptions } from "$lib/query/outputs";
 import z from "zod";
 
 const searchParamsSchema = z.object({
@@ -13,7 +13,7 @@ export async function load({ parent, url }) {
     const searchParams = searchParamsSchema.parse(Object.fromEntries(url.searchParams));
 
     await queryClient.prefetchQuery(
-        getArticleProcessingOutputsQueryOptions(ky, {
+        getOutputsQueryOptions(ky, {
             searchParams: { limit: searchParams.limit, page_index: searchParams.page_index },
         }),
     );

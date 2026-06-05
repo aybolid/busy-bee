@@ -26,6 +26,7 @@ pub struct RssReaderWorkerState {
 pub type SharedRssReaderWorkerState = Arc<RssReaderWorkerState>;
 
 #[tracing::instrument(level = "trace", skip_all)]
+#[allow(clippy::too_many_lines)]
 pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
     match get_rss_channel(&state).await {
         Ok(rss_channel) => {

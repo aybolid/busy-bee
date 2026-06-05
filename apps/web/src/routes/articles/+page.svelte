@@ -36,7 +36,7 @@
     import {
         getArticlesQueryOptions,
         getArticleStatsQueryOptions,
-        invalidateArticlesQuery,
+        invalidateArticlesQueries,
     } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
@@ -124,7 +124,7 @@
         if (!canRefresh) return;
         canRefresh = false;
 
-        void invalidateArticlesQuery(props.data.queryClient);
+        void invalidateArticlesQueries(props.data.queryClient);
         void articleStats.refetch();
 
         refreshTimeout = setTimeout(() => (canRefresh = true), 5000);

@@ -15,7 +15,7 @@
 
     /**
      * @typedef {Object} Props
-     * @property {import('$lib/api/article-processing-outputs').Usage} usage
+     * @property {import('$lib/api/outputs').Usage} usage
      * @property {string} model
      */
 

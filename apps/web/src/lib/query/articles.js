@@ -31,7 +31,7 @@ export function getArticleQueryOptions(...args) {
 /**
  * @param {import("@tanstack/svelte-query").QueryClient} queryClient
  */
-export async function invalidateArticlesQuery(queryClient) {
+export async function invalidateArticlesQueries(queryClient) {
     await queryClient.invalidateQueries({
         queryKey: ["articles"],
     });
@@ -50,7 +50,7 @@ export function getArticleStatsQueryOptions(...args) {
 /**
  * @param {import("@tanstack/svelte-query").QueryClient} queryClient
  */
-export async function invalidateArticleStatsQuery(queryClient) {
+export async function invalidateArticleStatsQueries(queryClient) {
     await queryClient.invalidateQueries({
         queryKey: ["articles/stats"],
     });

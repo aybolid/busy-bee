@@ -2,8 +2,8 @@
     import { getGlobalContext } from "$lib/global-context";
     import {
         createDeleteArticleMutation,
-        invalidateArticlesQuery,
-        invalidateArticleStatsQuery,
+        invalidateArticlesQueries,
+        invalidateArticleStatsQueries,
     } from "$lib/query/articles";
     import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
@@ -42,8 +42,8 @@
                 }),
             onSuccess: async () => {
                 await onSuccess?.();
-                void invalidateArticlesQuery(queryClient);
-                void invalidateArticleStatsQuery(queryClient);
+                void invalidateArticlesQueries(queryClient);
+                void invalidateArticleStatsQueries(queryClient);
                 dialog.close();
             },
         });

@@ -21,7 +21,7 @@ pub enum RefetchTriggerType {
     /// Rss feeds related data.
     RssFeeds,
     /// Article processing outputs related data.
-    ArticleProcessingOutputs,
+    Outputs,
 }
 
 impl AsRef<str> for RefetchTriggerType {
@@ -29,7 +29,7 @@ impl AsRef<str> for RefetchTriggerType {
         match self {
             Self::Articles => "articles",
             Self::RssFeeds => "rss_feeds",
-            Self::ArticleProcessingOutputs => "article_processing_outputs",
+            Self::Outputs => "outputs",
         }
     }
 }

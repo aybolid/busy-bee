@@ -2,8 +2,8 @@
     import { getGlobalContext } from "$lib/global-context";
     import {
         createProcessArticleMutation,
-        invalidateArticlesQuery,
-        invalidateArticleStatsQuery,
+        invalidateArticlesQueries,
+        invalidateArticleStatsQueries,
     } from "$lib/query/articles";
     import { createForm } from "@tanstack/svelte-form";
     import DialogCloseAction from "./ui/dialog/dialog-close-action.svelte";
@@ -71,8 +71,8 @@
                         });
                     },
                     onSuccess: () => {
-                        void invalidateArticlesQuery(queryClient);
-                        void invalidateArticleStatsQuery(queryClient);
+                        void invalidateArticlesQueries(queryClient);
+                        void invalidateArticleStatsQueries(queryClient);
                         dialog.close();
                     },
                 },

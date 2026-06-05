@@ -31,10 +31,7 @@
     import { goto } from "$app/navigation";
     import { dev } from "$app/environment";
     import NativeSelectOptGroup from "$lib/components/ui/native-select/native-select-opt-group.svelte";
-    import {
-        getArticleProcessingOutputsQueryOptions,
-        invalidateArticleProcessingOutputsQuery,
-    } from "$lib/query/article-processing-outputs";
+    import { getOutputsQueryOptions, invalidateOutputsQueries } from "$lib/query/outputs";
     import Badge from "$lib/components/ui/badge.svelte";
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
@@ -52,7 +49,7 @@
     });
 
     const outputsQueryOptions = $derived(
-        getArticleProcessingOutputsQueryOptions(props.data.ky, {
+        getOutputsQueryOptions(props.data.ky, {
             searchParams: getArticleProcessingOutputsSearchParams,
         }),
     );
@@ -85,7 +82,7 @@
         if (!canRefresh) return;
         canRefresh = false;
 
-        void invalidateArticleProcessingOutputsQuery(props.data.queryClient);
+        void invalidateOutputsQueries(props.data.queryClient);
 
         refreshTimeout = setTimeout(() => (canRefresh = true), 5000);
     }
@@ -194,7 +191,7 @@
                     <TableRow>
                         <TableCell>
                             <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
-                                {output.output_text}
+                                {output.text}
                             </p>
                         </TableCell>
                         <TableCell>
@@ -270,9 +267,7 @@
     </StickyBar>
 {/if}
 
-{#snippet outputMenu(
-    /** @type {import('$lib/api/article-processing-outputs').ArticleProcessingOutput} */ output,
-)}
+{#snippet outputMenu(/** @type {import('$lib/api/outputs').Output} */ output)}
     <Menu>
         {#snippet trigger(props)}
             <Action button size="icon-sm" variant="outline" {...props}>
