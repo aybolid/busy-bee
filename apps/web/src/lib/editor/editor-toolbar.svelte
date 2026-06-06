@@ -20,12 +20,13 @@
     import Heading1 from "$lib/components/ui/icons/heading-1.svelte";
     import Heading2 from "$lib/components/ui/icons/heading-2.svelte";
     import Heading3 from "$lib/components/ui/icons/heading-3.svelte";
-    import { cn } from "$lib/components/ui/utils";
     import Separator from "$lib/components/ui/separator.svelte";
     import Bold from "$lib/components/ui/icons/bold.svelte";
     import Italic from "$lib/components/ui/icons/italic.svelte";
     import Strike from "$lib/components/ui/icons/strike.svelte";
     import Underline from "$lib/components/ui/icons/underline.svelte";
+    import ArrowLeft from "$lib/components/ui/icons/arrow-left.svelte";
+    import ArrowRight from "$lib/components/ui/icons/arrow-right.svelte";
 
     /** @type {Omit<import('svelte').ComponentProps<typeof StickyBar>, 'children'> & { editor: import('@tiptap/core').Editor }} */
     const { editor, ...props } = $props();
@@ -42,7 +43,7 @@
     }
 </script>
 
-<StickyBar {...props} class={cn("gap-2", props.class)}>
+<StickyBar {...props}>
     <Menu>
         {#snippet trigger(props)}
             <Action
@@ -90,17 +91,42 @@
 
     <Separator orientation="vertical" />
 
-    {#each FORMATTERS as formatter}
+    <div>
+        {#each FORMATTERS as formatter}
+            <Action
+                button
+                size="icon"
+                onclick={() => editor.chain().focus()[formatter.toggler]().run()}
+                variant={editor.isActive(formatter.type) ? "secondary" : "outline"}
+                disabled={!editor.can()[formatter.toggler]()}
+            >
+                {@render formatterIcon(formatter.type)}
+            </Action>
+        {/each}
+    </div>
+
+    <Separator orientation="vertical" />
+
+    <div>
         <Action
             button
             size="icon"
-            onclick={() => editor.chain().focus()[formatter.toggler]().run()}
-            variant={editor.isActive(formatter.type) ? "secondary" : "outline"}
-            disabled={!editor.can()[formatter.toggler]()}
+            variant="secondary"
+            onclick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
         >
-            {@render formatterIcon(formatter.type)}
+            <ArrowLeft />
         </Action>
-    {/each}
+        <Action
+            button
+            size="icon"
+            variant="secondary"
+            onclick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+        >
+            <ArrowRight />
+        </Action>
+    </div>
 </StickyBar>
 
 {#snippet formatterIcon(/** @type {(typeof FORMATTERS)[number]['type']} */ type)}
