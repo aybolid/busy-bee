@@ -1,4 +1,4 @@
-use tokio::{sync::mpsc::Receiver, task::JoinSet};
+use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -11,8 +11,8 @@ use crate::{
     infra::db::{database_close, database_connect, database_migrate},
     workers::{
         api::run_api_server,
-        article_processor::{
-            ArticleProcessingRequest, create_article_processing_channel, run_article_processor,
+        article_processing::{
+            ProcessingRequestReceiver, create_processing_requests_channel, run_article_processing,
         },
         rss_reader::run_rss_reader,
     },
@@ -51,7 +51,7 @@ pub async fn run() -> Result<(), RunError> {
 
     workers.spawn(worker(run_api_server(state.clone())));
     workers.spawn(worker(run_rss_reader(state.clone())));
-    workers.spawn(worker(run_article_processor(
+    workers.spawn(worker(run_article_processing(
         state.clone(),
         article_processing_rx,
     )));
@@ -94,8 +94,7 @@ pub enum PrepareStateError {
 }
 
 /// Initializes the application's configuration, infrastructure, and shared state.
-async fn prepare_state()
--> Result<(SharedAppState, Receiver<ArticleProcessingRequest>), PrepareStateError> {
+async fn prepare_state() -> Result<(SharedAppState, ProcessingRequestReceiver), PrepareStateError> {
     let config = load_config();
 
     let cancel_token = CancellationToken::new();
@@ -105,7 +104,7 @@ async fn prepare_state()
 
     let ai = create_ai_client(&config.ai).await?;
 
-    let (article_processing_tx, article_processing_rx) = create_article_processing_channel();
+    let (article_processing_tx, article_processing_rx) = create_processing_requests_channel();
     let app_events_broadcaster = AppEventsBroadcaster::new();
 
     Ok((

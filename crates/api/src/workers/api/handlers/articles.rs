@@ -17,7 +17,7 @@ use crate::{
             req::{Pagination, ReqJson, ReqPath},
             resp::{Metadata, data, data_with_meta},
         },
-        article_processor::{ArticleProcessingRequest, ProcessArticleUserContext},
+        article_processing::{ProcessingRequest, ProcessingUserContext},
     },
 };
 
@@ -78,7 +78,7 @@ pub async fn get_article_stats(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
-    context: Option<ProcessArticleUserContext>,
+    context: Option<ProcessingUserContext>,
 }
 
 #[tracing::instrument(level = "trace", skip(state))]
@@ -91,7 +91,7 @@ pub async fn process_article(
         .await?
         .ok_or_else(|| HandlerError::not_found("article not found"))?;
 
-    let request = ArticleProcessingRequest {
+    let request = ProcessingRequest {
         article_id,
         context: json.context,
     };

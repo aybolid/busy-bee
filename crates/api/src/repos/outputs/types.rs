@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{
     ai::{Message, ModelName, Usage},
     repos::articles::ArticleId,
-    workers::article_processor::ProcessArticleUserContext,
+    workers::article_processing::ProcessingUserContext,
 };
 
 /// A unique identifier for an AI-generated output.
@@ -92,7 +92,7 @@ pub struct Output {
     /// The ID of the article this output is associated with, if applicable.
     pub article_id: Option<ArticleId>,
     /// The context parameters provided by the user when requesting the article processing.
-    pub user_context: Option<ProcessArticleUserContext>,
+    pub user_context: Option<ProcessingUserContext>,
     /// The core generated text content.
     pub text: OutputText,
     /// The specific AI model used to generate this output.

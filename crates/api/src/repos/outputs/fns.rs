@@ -7,7 +7,7 @@ use crate::{
         articles::ArticleId,
         outputs::{Output, OutputId, OutputText},
     },
-    workers::article_processor::ProcessArticleUserContext,
+    workers::article_processing::ProcessingUserContext,
 };
 
 /// Retrieves a specific AI output by its unique identifier.
@@ -76,7 +76,7 @@ pub async fn get_outputs<'c>(
 pub async fn create_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,
-    user_context: Option<&ProcessArticleUserContext>,
+    user_context: Option<&ProcessingUserContext>,
     model: &ModelName,
     output_text: &OutputText,
     usage: &Usage,

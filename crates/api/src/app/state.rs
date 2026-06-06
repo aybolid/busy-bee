@@ -6,7 +6,7 @@ use crate::{
     ai::Client,
     app::{config::Config, events::AppEventsBroadcaster},
     infra::db::DatabasePool,
-    workers::article_processor::ArticleProcessingSender,
+    workers::article_processing::ProcessingRequestSender,
 };
 
 /// Represents the global application state and shared dependencies.
@@ -21,7 +21,7 @@ pub struct AppState {
     /// The client used to interact with external AI models and services.
     pub ai: Client,
     /// The sender half of a channel used to dispatch new tasks to the background article processing worker.
-    pub article_processing_tx: ArticleProcessingSender,
+    pub article_processing_tx: ProcessingRequestSender,
     /// A channel broadcaster used to publish and subscribe to system-wide application events.
     pub app_events_broadcaster: AppEventsBroadcaster,
     /// A token used to signal and coordinate a graceful shutdown across asynchronous tasks.
