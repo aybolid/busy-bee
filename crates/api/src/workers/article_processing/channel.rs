@@ -17,7 +17,7 @@ use crate::repos::articles::ArticleId;
     Ord,
     Hash,
     serde::Serialize,
-    serde ::Deserialize,
+    serde::Deserialize,
     sqlx::Type,
 )]
 #[sqlx(transparent)]
