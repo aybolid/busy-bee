@@ -33,11 +33,9 @@ pub async fn run_article_processing(
                 process_article(&state, request).await;
             }
             () = state.cancel_token.cancelled() => {
-                tracing::info!("got shutdown signal");
                 break;
             }
             else => {
-                tracing::error!("mpsc channel closed");
                 break;
             }
         }

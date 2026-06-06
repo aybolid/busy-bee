@@ -13,7 +13,6 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_outputs(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
@@ -35,7 +34,6 @@ pub async fn get_outputs(
     ))
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_output(
     State(state): State<SharedAppState>,
     ReqPath(output_id): ReqPath<OutputId>,

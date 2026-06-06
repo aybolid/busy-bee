@@ -25,7 +25,6 @@ pub struct RssReaderWorkerState {
 
 pub type SharedRssReaderWorkerState = Arc<RssReaderWorkerState>;
 
-#[tracing::instrument(level = "trace", skip_all)]
 #[allow(clippy::too_many_lines)]
 pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
     match get_rss_channel(&state).await {
@@ -132,7 +131,6 @@ pub async fn read_rss_feed(state: SharedRssReaderWorkerState) {
             };
         }
         Err(error) => {
-            // error logged by `tracing::instrument`
             _ = rss_feeds::mark_rss_feed_as_error(
                 &state.app_state.db_pool,
                 state.config.id,
@@ -179,22 +177,18 @@ enum ProcessFeedItemError {
     Task(#[from] tokio::task::JoinError),
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(link = item.link()), err(Debug))]
 async fn process_rss_feed_item(
     state: SharedRssReaderWorkerState,
     item: rss::Item,
 ) -> Result<Option<ReadabilityArticle>, ProcessFeedItemError> {
     let Some(link) = item.link else {
-        tracing::warn!("no article link to process");
         return Err(ProcessFeedItemError::MissingLink);
     };
 
     if articles::check_article_exists_by_url(&state.app_state.db_pool, &link).await? {
-        tracing::trace!("article already exists");
         return Ok(None);
     }
 
-    tracing::trace!("fetching article html");
     let permit = state.request_semaphore.acquire().await?;
     let link_response = state
         .http_client
@@ -204,18 +198,10 @@ async fn process_rss_feed_item(
         .error_for_status()?;
     let html = link_response.text().await?;
     drop(permit);
-    tracing::trace!("html fetched");
 
-    tracing::trace!("parsing article");
     // Article parsing is a CPU-bound task so we need to do it on seperate thread
     // where blocking is acceptable. Othewise, it will freeze async executor.
     let article = tokio::task::spawn_blocking(|| parse_article(html, link)).await??;
-    tracing::trace!("article parsed");
-
-    tracing::trace!(
-        article_title = article.title.as_str(),
-        article_len = article.length
-    );
 
     Ok(Some(article))
 }
@@ -228,7 +214,6 @@ enum ParseArticleError {
     Convert(#[from] FromDomSmoothieArticleError),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 fn parse_article(html: String, link: String) -> Result<ReadabilityArticle, ParseArticleError> {
     let mut readability = Readability::new(html, Some(&link), None)?;
 
@@ -248,21 +233,17 @@ enum RssChannelError {
     Rss(#[from] rss::Error),
 }
 
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 async fn get_rss_channel(
     state: &SharedRssReaderWorkerState,
 ) -> Result<rss::Channel, RssChannelError> {
-    tracing::trace!("fetching rss");
     let feed_response = state
         .http_client
         .get(state.config.url.as_str())
         .send()
         .await?;
     let bytes = feed_response.bytes().await?;
-    tracing::trace!("rss fetched");
 
     let channel = rss::Channel::read_from(&bytes[..])?;
-    tracing::info!(channel_title = channel.title);
 
     Ok(channel)
 }

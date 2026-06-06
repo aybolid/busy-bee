@@ -21,7 +21,6 @@ use crate::{
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(level = "trace", skip_all, err(Debug), ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn get_article_stats<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -63,7 +62,6 @@ pub async fn get_article_stats<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_pending<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -94,7 +92,6 @@ pub async fn mark_article_as_pending<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -130,7 +127,6 @@ pub async fn mark_article_as_error<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn mark_article_as_processed<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -156,7 +152,6 @@ pub async fn mark_article_as_processed<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(level = "trace", skip_all, err(Debug), ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM articles;");
@@ -175,7 +170,6 @@ pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Re
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
 /// rows cannot be decoded into [`Article`] instances.
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_wrap)]
 pub async fn get_articles<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -184,7 +178,6 @@ pub async fn get_articles<'c>(
 ) -> sqlx::Result<Vec<Article>> {
     let limit = limit.get();
     let offset = page_index * usize::from(limit);
-    tracing::trace!(limit, offset);
 
     let query = sqlx::query_as(
         "
@@ -208,7 +201,6 @@ pub async fn get_articles<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or decoding fails.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
 pub async fn get_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -231,7 +223,6 @@ pub async fn get_article_by_id<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(level = "trace", skip(executor), ret, err(Debug))]
 pub async fn delete_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -258,7 +249,6 @@ pub async fn delete_article_by_id<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the batch execution fails.
-#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = ?rss_feed_id), ret, err(Debug))]
 pub async fn create_articles_bulk<'c>(
     executor: impl DatabaseExecutor<'c>,
     articles: &NonEmpty<Vec<ReadabilityArticle>>,
@@ -312,7 +302,6 @@ pub async fn create_articles_bulk<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug), ret)]
 pub async fn check_article_exists_by_url<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &str,

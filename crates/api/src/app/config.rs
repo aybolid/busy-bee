@@ -1,5 +1,5 @@
 use std::{
-    env::{self, VarError},
+    env::{self},
     ffi::OsStr,
     fmt::Debug,
     net::SocketAddr,
@@ -33,7 +33,6 @@ pub struct Config {
 /// This function attempts to load variables from a `.env` file first. It then parses
 /// the necessary configuration parameters, falling back to default values if the
 /// environment variables are missing or fail to parse.
-#[tracing::instrument(level = "trace")]
 pub(super) fn load_config() -> Config {
     load_dotenv();
 
@@ -53,7 +52,6 @@ pub(super) fn load_config() -> Config {
 }
 
 /// Loads the AI-specific configuration settings.
-#[tracing::instrument(level = "trace")]
 fn load_ai_config() -> AiConfig {
     AiConfig {
         model: parse_or_else("AI_MODEL", || ModelName(nonempty_trimmed_string!("gemma4"))),
@@ -62,7 +60,6 @@ fn load_ai_config() -> AiConfig {
 }
 
 /// Attempts to load environment variables from a `.env` file into the current process.
-#[tracing::instrument(level = "trace")]
 fn load_dotenv() {
     if let Ok(env_file) = dotenvy::dotenv() {
         tracing::info!(env_file = %env_file.display(), "loaded env file");
@@ -75,7 +72,6 @@ fn load_dotenv() {
 ///
 /// This is a convenience wrapper around [`parse_or_else`] that takes a direct value
 /// rather than a closure.
-#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
 #[allow(dead_code)]
 fn parse_or<T: FromStr + Debug>(key: impl AsRef<OsStr>, default: impl Into<T>) -> T
 where
@@ -88,39 +84,20 @@ where
 ///
 /// If parsing fails or the variable is missing,
 /// the `default` closure is executed and its value is logged and returned.
-#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
 fn parse_or_else<T: FromStr + Debug>(key: impl AsRef<OsStr>, default: impl FnOnce() -> T) -> T
 where
     <T as FromStr>::Err: std::error::Error,
 {
-    parse_optional(key).unwrap_or_else(|| {
-        let default_val = default();
-        tracing::warn!(?default_val, "using default value");
-        default_val
-    })
+    parse_optional(key).unwrap_or_else(default)
 }
 
 /// Helper to parse an optional environment variable.
 ///
 /// It handles logging errors if the environment variable contains invalid unicode or
 /// fails to parse into the target type `T`.
-#[tracing::instrument(level = "trace", skip_all, fields(key = ?key.as_ref()))]
 fn parse_optional<T: FromStr>(key: impl AsRef<OsStr>) -> Option<T>
 where
     <T as FromStr>::Err: std::error::Error,
 {
-    env::var(key)
-        .inspect_err(|error| {
-            if matches!(error, VarError::NotUnicode(_)) {
-                tracing::error!(?error);
-            } else {
-                tracing::warn!("not found");
-            }
-        })
-        .ok()
-        .and_then(|val| {
-            val.parse()
-                .inspect_err(|error| tracing::error!(?error))
-                .ok()
-        })
+    env::var(key).ok().and_then(|val| val.parse().ok())
 }

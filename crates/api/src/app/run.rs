@@ -122,13 +122,11 @@ async fn prepare_state() -> Result<(SharedAppState, ProcessingRequestReceiver), 
 
 /// Blocks until an OS interrupt signal (Ctrl+C or SIGTERM) is received,
 /// then triggers the provided `CancellationToken` to initiate a graceful shutdown.
-#[tracing::instrument(level = "trace", skip_all)]
 async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     let ctrl_c = async {
         tracing::info!("listening to ctrl + c notification");
         tokio::signal::ctrl_c()
             .await
-            .inspect_err(|error| tracing::error!(?error))
             .expect("failed to install Ctrl+C signal handler");
     };
 
@@ -138,7 +136,6 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
 
         tracing::info!("listening to SIGTERM");
         tokio::signal::unix::signal(SignalKind::terminate())
-            .inspect_err(|error| tracing::error!(?error))
             .expect("failed to install SIGTERM signal handler")
             .recv()
             .await;

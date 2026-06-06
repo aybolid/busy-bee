@@ -181,7 +181,6 @@ impl From<genai::chat::ChatResponse> for ChatResponse {
         Self {
             usage: Usage::from(&value.usage),
             content: Message::new(value.into_texts().join("")).unwrap_or_else(|| {
-                tracing::warn!("ai response did not contain valid text");
                 Message(nonempty_trimmed_string!(
                     "Response did not contain valid text"
                 ))

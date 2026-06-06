@@ -36,7 +36,6 @@ pub type DatabaseQueryResult = SqliteQueryResult;
 ///
 /// # Errors
 /// Returns a [`sqlx::Error`] if the URL cannot be parsed or if the connection fails to establish.
-#[tracing::instrument(level = "trace", err(Debug))]
 pub async fn database_connect(database_url: &Url) -> sqlx::Result<DatabasePool> {
     let options = SqliteConnectOptions::from_str(database_url.as_str())?
         .create_if_missing(true)
@@ -44,15 +43,10 @@ pub async fn database_connect(database_url: &Url) -> sqlx::Result<DatabasePool> 
         .foreign_keys(true)
         .optimize_on_close(true, None);
 
-    SqlitePool::connect_with(options)
-        .await
-        .inspect(|_| tracing::info!("database connections pool created"))
+    SqlitePool::connect_with(options).await
 }
 
 /// Gracefully closes the database connection pool.
-#[tracing::instrument(level = "trace", skip_all)]
 pub async fn database_close(pool: &DatabasePool) {
-    tracing::trace!(pool_size = pool.size(), num_idle = pool.num_idle());
     pool.close().await;
-    tracing::info!("database connections pool closed");
 }

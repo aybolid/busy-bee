@@ -12,22 +12,12 @@ pub enum FromDomSmoothieArticleError {
     MissingOrInvalidArticleUrl,
 }
 
-/// Helper function to parse optional string fields and log a warning if parsing fails.
-///
-/// This encapsulates the boilerplate of unpacking an `Option<String>`, attempting a parse,
-/// emitting a `tracing::warn!` on failure, and falling back to `None`.
-fn parse_optional_field<T: std::str::FromStr>(
-    value: Option<String>,
-    field_name: &'static str,
-) -> Option<T>
+/// Helper function to parse optional fields.
+fn parse_optional_field<T: std::str::FromStr>(value: Option<String>) -> Option<T>
 where
     <T as std::str::FromStr>::Err: std::error::Error,
 {
-    value.and_then(|s| {
-        s.parse()
-            .inspect_err(|error| tracing::warn!(?error, field = field_name))
-            .ok()
-    })
+    value.and_then(|s| s.parse().ok())
 }
 
 /// Attempts to map a raw scraped [`dom_smoothie::Article`] into thread-safe [`ReadabilityArticle`].
@@ -50,11 +40,7 @@ impl TryFrom<dom_smoothie::Article> for ReadabilityArticle {
 
         let url = value
             .url
-            .and_then(|s| {
-                s.parse()
-                    .inspect_err(|error| tracing::error!(?error, field = "url"))
-                    .ok()
-            })
+            .and_then(|s| s.parse().ok())
             .ok_or(FromDomSmoothieArticleError::MissingOrInvalidArticleUrl)?;
 
         let byline = value.byline.and_then(ArticleByLine::new);
@@ -62,11 +48,11 @@ impl TryFrom<dom_smoothie::Article> for ReadabilityArticle {
         let site_name = value.site_name.and_then(ArticleSiteName::new);
         let lang = value.lang.and_then(ArticleLang::new);
 
-        let dir = parse_optional_field(value.dir, "dir");
-        let published_time = parse_optional_field(value.published_time, "published_time");
-        let modified_time = parse_optional_field(value.modified_time, "modified_time");
-        let image = parse_optional_field(value.image, "image");
-        let favicon = parse_optional_field(value.favicon, "favicon");
+        let dir = parse_optional_field(value.dir);
+        let published_time = parse_optional_field(value.published_time);
+        let modified_time = parse_optional_field(value.modified_time);
+        let image = parse_optional_field(value.image);
+        let favicon = parse_optional_field(value.favicon);
 
         Ok(Self {
             title,

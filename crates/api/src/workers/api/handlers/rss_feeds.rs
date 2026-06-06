@@ -14,7 +14,6 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_rss_feeds(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -30,7 +29,6 @@ pub struct CreateRssFeedJson {
     fetch_interval_seconds: NonZeroU32,
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn create_rss_feed(
     State(state): State<SharedAppState>,
     ReqJson(json): ReqJson<CreateRssFeedJson>,

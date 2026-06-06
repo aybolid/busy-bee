@@ -78,14 +78,12 @@ pub struct Client {
 }
 
 impl Client {
-    #[tracing::instrument(level = "trace", skip_all, err(Debug))]
     pub async fn exec_chat(&self, request: ChatRequest) -> Result<ChatResponse, ExecChatError> {
         self.inner
             .exec_chat(self.model.as_str(), request.into(), None)
             .await
             .map(ChatResponse::from)
             .map_err(ExecChatError::from)
-            .inspect(|resp| tracing::trace!(usage = ?resp.usage))
     }
 }
 
@@ -98,14 +96,12 @@ impl Client {
 ///
 /// # Errors
 /// Returns an error if the service target cannot be resolved for the configured model.
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn create_ai_client(config: &AiConfig) -> genai::Result<Client> {
     let inner = genai::Client::builder()
         .with_auth_resolver(genai_auth_reslover(config))
         .build();
 
-    let service_target = inner.resolve_service_target(&config.model).await?;
-    tracing::info!(endpoint = ?service_target.endpoint, model = ?service_target.model, "service target resolved");
+    inner.resolve_service_target(&config.model).await?;
 
     Ok(Client {
         model: config.model.clone(),

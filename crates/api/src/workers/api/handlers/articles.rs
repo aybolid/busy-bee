@@ -21,7 +21,6 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_articles(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
@@ -43,7 +42,6 @@ pub async fn get_articles(
     ))
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -55,7 +53,6 @@ pub async fn get_article(
     Ok(data(article))
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn delete_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -67,7 +64,6 @@ pub async fn delete_article(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn get_article_stats(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -81,7 +77,6 @@ pub struct ProcessArticleJson {
     context: Option<ProcessingUserContext>,
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
 pub async fn process_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,

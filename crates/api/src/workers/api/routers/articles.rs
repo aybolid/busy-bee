@@ -6,8 +6,6 @@ use axum::{
 use crate::{app::state::SharedAppState, workers::api::handlers::articles};
 
 pub fn router() -> Router<SharedAppState> {
-    tracing::info!("register /articles router");
-
     let router = Router::new()
         .route("/", get(articles::get_articles))
         .route("/stats", get(articles::get_article_stats))

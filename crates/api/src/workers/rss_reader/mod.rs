@@ -39,12 +39,8 @@ impl From<RssFeed> for RssFeedConfig {
 #[derive(Debug, thiserror::Error)]
 pub enum RssReaderError {}
 
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn run_rss_reader(state: SharedAppState) -> Result<(), RssReaderError> {
-    tracing::trace!("started");
-
     let (tx, rx) = watch::channel::<Vec<RssFeedConfig>>(vec![]);
-    tracing::trace!("watch channel created");
 
     let mut subtasks = JoinSet::new();
 
@@ -56,7 +52,6 @@ pub async fn run_rss_reader(state: SharedAppState) -> Result<(), RssReaderError>
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip_all)]
 async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<RssFeedConfig>>) {
     let mut worker_tasks = JoinSet::new();
     let mut active_configs: HashMap<RssFeedId, (AbortHandle, RssFeedConfig)> = HashMap::new();
@@ -73,9 +68,7 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
 
                 if let Some((abort_handle, old_config)) = active_configs.get(&config.id) {
                     if old_config != config {
-                        tracing::trace!(id = ?config.id, "rss feed config changed");
                         abort_handle.abort();
-                        tracing::trace!("previous worker aborted");
 
                         let new_handle = worker_tasks.spawn(rss_feed_worker(
                             state.clone(),
@@ -86,7 +79,6 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
                         active_configs.insert(config.id, (new_handle, config.clone()));
                     }
                 } else {
-                    tracing::trace!(id = ?config.id, "got new config");
                     let new_handle = worker_tasks.spawn(rss_feed_worker(
                         state.clone(),
                         config.clone(),
@@ -100,7 +92,6 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
                 if iter_ids.contains(id) {
                     true
                 } else {
-                    tracing::trace!(?id, "config removed");
                     abort_handle.abort();
                     false
                 }
@@ -112,28 +103,22 @@ async fn rss_reader_manager(state: SharedAppState, mut rx: watch::Receiver<Vec<R
         tokio::select! {
             result = rx.changed() => {
                 if result.is_err() {
-                    tracing::trace!("rx channel closed");
                     break;
                 }
             }
             () = state.cancel_token.cancelled() => {
-                tracing::trace!("got shutdown signal");
                 break;
             }
         }
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all, fields(id = ?config.id, url = config.url.as_str()))]
 async fn rss_feed_worker(
     state: SharedAppState,
     config: RssFeedConfig,
     http_client: reqwest::Client,
 ) {
-    tracing::trace!("started");
-
     let interval_duration = Duration::from_secs(u64::from(config.fetch_interval_seconds.get()));
-    tracing::trace!(?interval_duration);
 
     let mut interval = tokio::time::interval(interval_duration);
 
@@ -150,12 +135,8 @@ async fn rss_feed_worker(
     }
 }
 
-#[tracing::instrument(level = "trace", skip_all)]
 async fn db_poller(state: SharedAppState, tx: watch::Sender<Vec<RssFeedConfig>>) {
-    tracing::trace!("started");
-
     let interval_duration = Duration::from_secs(10);
-    tracing::trace!(?interval_duration);
 
     let mut interval = tokio::time::interval(interval_duration);
     let mut last_known_configs = vec![];
@@ -164,29 +145,23 @@ async fn db_poller(state: SharedAppState, tx: watch::Sender<Vec<RssFeedConfig>>)
         tokio::select! {
             _ = interval.tick() => {}
             () = state.cancel_token.cancelled() => {
-                tracing::trace!("got shutdown signal");
                 break;
             }
         }
 
-        match rss_feeds::get_rss_feeds(&state.db_pool).await {
-            Ok(feeds) => {
-                let configs = feeds
-                    .into_iter()
-                    .map(RssFeedConfig::from)
-                    .collect::<Vec<_>>();
+        if let Ok(feeds) = rss_feeds::get_rss_feeds(&state.db_pool).await {
+            let configs = feeds
+                .into_iter()
+                .map(RssFeedConfig::from)
+                .collect::<Vec<_>>();
 
-                if configs != last_known_configs {
-                    tracing::trace!("rss feeds change detected");
-                    if tx.send(configs.clone()).is_ok() {
-                        last_known_configs = configs;
-                    } else {
-                        tracing::trace!("channel closed. exiting");
-                        break;
-                    }
+            if configs != last_known_configs {
+                if tx.send(configs.clone()).is_ok() {
+                    last_known_configs = configs;
+                } else {
+                    break;
                 }
             }
-            Err(error) => tracing::error!(?error),
         }
     }
 }

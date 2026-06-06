@@ -129,12 +129,8 @@ impl AppEventsBroadcaster {
     ///
     /// If there are no active receivers, the error is ignored (caught and logged as a warning),
     /// preventing the sender from crashing just because no one is listening.
-    #[tracing::instrument(level = "trace", skip(self))]
     pub fn send_notification(&self, data: NotificationData) -> &Self {
-        _ = self
-            .sender
-            .send(AppEvent::Notification(data))
-            .inspect_err(|error| tracing::warn!(?error));
+        _ = self.sender.send(AppEvent::Notification(data));
 
         self
     }
@@ -143,12 +139,8 @@ impl AppEventsBroadcaster {
     ///
     /// This should be used to tell clients that data needs to be refetched only when client
     /// has no other way to know that data needs to be refetched.
-    #[tracing::instrument(level = "trace", skip(self))]
     pub fn send_refetch_trigger(&self, trigger_type: RefetchTriggerType) -> &Self {
-        _ = self
-            .sender
-            .send(AppEvent::RefetchTrigger(trigger_type))
-            .inspect_err(|error| tracing::warn!(?error));
+        _ = self.sender.send(AppEvent::RefetchTrigger(trigger_type));
 
         self
     }

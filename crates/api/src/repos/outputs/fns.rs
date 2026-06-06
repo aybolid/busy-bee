@@ -16,7 +16,6 @@ use crate::{
 ///
 /// * [`Output`] if the record exists.
 /// * [`None`] if no record matches the given ID.
-#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
 pub async fn get_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
@@ -30,7 +29,6 @@ pub async fn get_output_by_id<'c>(
 /// # Returns
 ///
 /// The total count of outputs as a `usize`.
-#[tracing::instrument(level = "trace", skip_all, err, ret)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM outputs;");
@@ -45,7 +43,6 @@ pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 /// # Returns
 ///
 /// A [`Vec`] containing up to `limit` number of [`Output`] records.
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_wrap)]
 pub async fn get_outputs<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -54,8 +51,6 @@ pub async fn get_outputs<'c>(
 ) -> sqlx::Result<Vec<Output>> {
     let limit = limit.get();
     let offset = page_index * usize::from(limit);
-
-    tracing::trace!(limit, offset);
 
     let query = sqlx::query_as("SELECT * FROM outputs ORDER BY created_at DESC LIMIT ? OFFSET ?;")
         .bind(i64::from(limit))
@@ -72,7 +67,6 @@ pub async fn get_outputs<'c>(
 /// # Returns
 ///
 /// The [`DatabaseQueryResult`] indicating the success of the insert operation.
-#[tracing::instrument(level = "trace", skip_all, ret, err(Debug))]
 pub async fn create_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,
