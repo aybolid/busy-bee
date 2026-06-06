@@ -3,7 +3,7 @@ use genai::{
     adapter::AdapterKind,
     resolver::{AuthData, AuthResolver},
 };
-use types::{NonEmpty, TrimmedString};
+use types::{LengthBoundedParseError, NonEmpty, TrimmedString};
 
 use crate::{
     ai::{ChatResponse, ExecChatError, chat::ChatRequest},
@@ -37,18 +37,34 @@ impl std::ops::Deref for ModelName {
     }
 }
 
+impl std::str::FromStr for ModelName {
+    type Err = LengthBoundedParseError<<TrimmedString as std::str::FromStr>::Err>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
+
 /// Represents an authentication token or API key for an AI service.
 ///
 /// Wraps a [`TrimmedString`] to ensure no trailing/leading whitespace causes
 /// authentication failures.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ApiKey(pub TrimmedString);
+pub struct ApiKey(pub NonEmpty<TrimmedString>);
 
 impl std::ops::Deref for ApiKey {
-    type Target = TrimmedString;
+    type Target = NonEmpty<TrimmedString>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl std::str::FromStr for ApiKey {
+    type Err = LengthBoundedParseError<<TrimmedString as std::str::FromStr>::Err>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
     }
 }
 
@@ -108,14 +124,15 @@ fn genai_auth_reslover(config: &AiConfig) -> AuthResolver {
     AuthResolver::from_resolver_fn(
         move |model: ModelIden| -> genai::resolver::Result<Option<AuthData>> {
             if is_model_requires_api_key(&model) {
-                if api_key.is_empty() {
-                    Err(genai::resolver::Error::Custom(format!(
-                        "{} requires api key to be set",
-                        model.model_name
-                    )))
-                } else {
-                    Ok(Some(AuthData::Key(api_key.to_string())))
-                }
+                api_key
+                    .as_ref()
+                    .map(|key| Some(AuthData::Key(key.to_string())))
+                    .ok_or_else(|| {
+                        genai::resolver::Error::Custom(format!(
+                            "{} requires api key to be set",
+                            model.model_name
+                        ))
+                    })
             } else {
                 Ok(None)
             }
