@@ -313,7 +313,11 @@
                             </p>
                         </TableCell>
                         <TableCell>
-                            {feedUrl?.hostname}
+                            {#if feeds.isPending || !feedUrl}
+                                Unknown
+                            {:else}
+                                {feedUrl?.hostname}
+                            {/if}
                         </TableCell>
                         <TableCell>
                             {article.byline || "--"}

@@ -23,7 +23,7 @@ CREATE TABLE rss_feeds (
       AND error_reason IS NULL
     )
   )
-);
+) WITHOUT ROWID;
 
 CREATE TRIGGER trigger_rss_feeds_updated_at AFTER
 UPDATE ON rss_feeds FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
@@ -80,7 +80,7 @@ CREATE TABLE articles (
       AND error_reason IS NULL
     )
   )
-);
+) WITHOUT ROWID;
 
 CREATE TRIGGER trigger_articles_updated_at AFTER
 UPDATE ON articles FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
@@ -104,7 +104,7 @@ CREATE TABLE outputs (
   --
   model TEXT NOT NULL,
   usage TEXT NOT NULL -- JSON
-);
+) WITHOUT ROWID;
 
 CREATE TRIGGER trigger_outputs_updated_at AFTER
 UPDATE ON outputs FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
