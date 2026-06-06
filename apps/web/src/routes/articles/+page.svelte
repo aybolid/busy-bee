@@ -38,7 +38,7 @@
         getArticleStatsQueryOptions,
         invalidateArticlesQueries,
     } from "$lib/query/articles";
-    import { createQuery } from "@tanstack/svelte-query";
+    import { createQueries } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
     import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
@@ -71,10 +71,13 @@
         getArticlesQueryOptions(props.data.ky, { searchParams: getArticlesSearchParams }),
     );
 
-    const articles = createQuery(() => articlesQueryOptions);
-    const articleStats = createQuery(() => getArticleStatsQueryOptions(props.data.ky));
-
-    const feeds = createQuery(() => getRssFeedsQueryOptions(props.data.ky));
+    const [articles, articleStats, feeds] = createQueries(() => ({
+        queries: [
+            articlesQueryOptions,
+            getArticleStatsQueryOptions(props.data.ky),
+            getRssFeedsQueryOptions(props.data.ky),
+        ],
+    }));
 
     $effect(() => {
         if (feeds.error) {
