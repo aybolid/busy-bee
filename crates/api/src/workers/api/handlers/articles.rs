@@ -108,7 +108,7 @@ pub async fn process_article(
                 "Failed to process article"
             )))
             .with_description(NotificationString::new(
-                "Article was not processed successfully",
+                "Failed to queue article for processing",
             )),
         );
 

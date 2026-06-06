@@ -243,6 +243,14 @@ impl std::str::FromStr for TextDirection {
 #[sqlx(transparent)]
 pub struct ArticleErrorReason(pub NonEmpty<TrimmedString>);
 
+impl std::ops::Deref for ArticleErrorReason {
+    type Target = NonEmpty<TrimmedString>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl ArticleErrorReason {
     /// Attempts to create a new [`ArticleErrorReason`]. Returns [`None`] if the input is entirely whitespace.
     #[allow(clippy::needless_pass_by_value)]

@@ -16,6 +16,7 @@ use crate::{
 ///
 /// * [`Output`] if the record exists.
 /// * [`None`] if no record matches the given ID.
+#[tracing::instrument(skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
 pub async fn get_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
@@ -29,6 +30,7 @@ pub async fn get_output_by_id<'c>(
 /// # Returns
 ///
 /// The total count of outputs as a `usize`.
+#[tracing::instrument(skip_all, err(Debug))]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM outputs;");
@@ -44,9 +46,10 @@ pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 ///
 /// A [`Vec`] containing up to `limit` number of [`Output`] records.
 #[allow(clippy::cast_possible_wrap)]
+#[tracing::instrument(skip_all, err(Debug))]
 pub async fn get_outputs<'c>(
     executor: impl DatabaseExecutor<'c>,
-    page_index: usize,
+    page_index: usize, // TODO: use pagination struct
     limit: NonZeroU8,
 ) -> sqlx::Result<Vec<Output>> {
     let limit = limit.get();
@@ -67,6 +70,7 @@ pub async fn get_outputs<'c>(
 /// # Returns
 ///
 /// The [`DatabaseQueryResult`] indicating the success of the insert operation.
+#[tracing::instrument(skip_all, err(Debug))]
 pub async fn create_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,

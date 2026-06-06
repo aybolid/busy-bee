@@ -19,7 +19,16 @@ use crate::{
 /// logic fails, it acts as a fallback boundary: catching the error, updating the
 /// article's status in the database to reflect the failure, and broadcasting an error
 /// notification to the system.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        article_id = %request.article_id.as_hyphenated(),
+        has_context = request.context.is_some(),
+    )
+)]
 pub(super) async fn process_article(state: &SharedAppState, request: ProcessingRequest) {
+    tracing::info!("processing article");
+
     if let Err(error) = try_process_article(state, &request).await {
         _ = articles::mark_article_as_error(
             &state.db_pool,
@@ -28,7 +37,11 @@ pub(super) async fn process_article(state: &SharedAppState, request: ProcessingR
         )
         .await;
 
+        tracing::info!("failed to process article");
         broadcast_fail(state);
+    } else {
+        tracing::info!("article processed successfully");
+        broadcast_success(state);
     }
 }
 
@@ -89,8 +102,6 @@ async fn try_process_article(
 
     tx.commit().await?;
 
-    broadcast_success(state);
-
     Ok(())
 }
 
@@ -100,10 +111,12 @@ fn prepare_chat_request(request: &ProcessingRequest, article: &Article) -> ChatR
         "Write a post based on an article"
     )));
 
-    if let Some(context) = request.context.as_ref() {
-        chat_request.push_message(ChatMessage::user(
-            Message::new(format!("Additional context: {context}")).unwrap(),
-        ));
+    if let Some(context_message) = request
+        .context
+        .as_ref()
+        .and_then(|context| Message::new(format!("Additional context: {context}")))
+    {
+        chat_request.push_message(ChatMessage::user(context_message));
     }
 
     chat_request.push_message(ChatMessage::user(Message(

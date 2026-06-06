@@ -27,6 +27,14 @@ use crate::infra::db::DatabaseRow;
 #[sqlx(transparent)]
 pub struct RssFeedId(Uuid);
 
+impl std::ops::Deref for RssFeedId {
+    type Target = Uuid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl RssFeedId {
     /// Creates a new [`RssFeedId`] using a time-ordered `UUIDv7`.
     pub fn new() -> Self {

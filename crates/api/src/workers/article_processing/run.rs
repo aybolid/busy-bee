@@ -3,6 +3,10 @@ use crate::{
     workers::article_processing::{ProcessingRequestReceiver, processing::process_article},
 };
 
+#[derive(Debug, thiserror::Error)]
+#[error("mpsc channel closed")]
+pub struct ProcessingRequestChannelClosed;
+
 /// Runs the background worker loop for processing articles.
 ///
 /// This asynchronous function continuously listens for incoming processing requests
@@ -18,25 +22,24 @@ use crate::{
 ///
 /// 1. **Graceful Shutdown:** The `cancel_token` on the shared state is triggered (e.g., via Ctrl+C).
 /// 2. **Channel Closure:** All `ProcessingRequestSender` instances are dropped, causing the channel to close.
-///
-/// # Returns
-///
-/// Returns `Ok(())` upon exiting. The [`std::convert::Infallible`] error type indicates that this
-/// background task handles its own internal errors and will never bubble up a fatal crash.
+#[tracing::instrument(name = "article_processing", skip_all)]
 pub async fn run_article_processing(
     state: SharedAppState,
     mut rx: ProcessingRequestReceiver,
-) -> Result<(), std::convert::Infallible> {
+) -> Result<(), ProcessingRequestChannelClosed> {
+    tracing::info!("listening to the processing requests");
+
     loop {
         tokio::select! {
             Some(request) = rx.recv() => {
                 process_article(&state, request).await;
             }
             () = state.cancel_token.cancelled() => {
+                tracing::trace!("got shutdown signal");
                 break;
             }
             else => {
-                break;
+                return Err(ProcessingRequestChannelClosed);
             }
         }
     }

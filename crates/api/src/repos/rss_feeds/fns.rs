@@ -15,6 +15,7 @@ use crate::{
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
 /// rows cannot be decoded into [`RssFeed`] instances.
+#[tracing::instrument(skip_all, err(Debug))]
 pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<RssFeed>> {
     let query = sqlx::query_as(
         "
@@ -39,6 +40,7 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
+#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
 pub async fn mark_rss_feed_as_healthy<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,
@@ -69,6 +71,7 @@ pub async fn mark_rss_feed_as_healthy<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
+#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated(), reason = error_reason.as_str()), err(Debug))]
 pub async fn mark_rss_feed_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,
@@ -100,6 +103,7 @@ pub async fn mark_rss_feed_as_error<'c>(
 ///
 /// Returns a [`sqlx::Error`] if the database insert fails (e.g., due to a unique
 /// constraint violation on the URL) or if the returned row fails to decode.
+#[tracing::instrument(skip_all, err(Debug))]
 pub async fn create_rss_feed<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &Url,
@@ -137,6 +141,7 @@ pub async fn create_rss_feed<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
+#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
 pub async fn delete_rss_feed_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,

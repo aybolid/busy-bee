@@ -33,6 +33,7 @@ pub struct Config {
 /// This function attempts to load variables from a `.env` file first. It then parses
 /// the necessary configuration parameters, falling back to default values if the
 /// environment variables are missing or fail to parse.
+#[tracing::instrument]
 pub(super) fn load_config() -> Config {
     load_dotenv();
 
@@ -60,9 +61,10 @@ fn load_ai_config() -> AiConfig {
 }
 
 /// Attempts to load environment variables from a `.env` file into the current process.
+#[tracing::instrument]
 fn load_dotenv() {
-    if let Ok(env_file) = dotenvy::dotenv() {
-        tracing::info!(env_file = %env_file.display(), "loaded env file");
+    if let Ok(path) = dotenvy::dotenv() {
+        tracing::info!(path = %path.display(), "env file loaded");
     } else {
         tracing::warn!("env file not found. using existing environment");
     }

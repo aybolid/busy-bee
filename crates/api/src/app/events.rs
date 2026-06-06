@@ -51,6 +51,14 @@ pub enum NotificationVariant {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize)]
 pub struct NotificationString(pub NonEmpty<TrimmedString>);
 
+impl std::ops::Deref for NotificationString {
+    type Target = NonEmpty<TrimmedString>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl NotificationString {
     /// Attempts to create a new [`NotificationString`] from any type implementing [`ToString`].
     ///
@@ -129,8 +137,16 @@ impl AppEventsBroadcaster {
     ///
     /// If there are no active receivers, the error is ignored (caught and logged as a warning),
     /// preventing the sender from crashing just because no one is listening.
+    #[tracing::instrument(skip_all)]
     pub fn send_notification(&self, data: NotificationData) -> &Self {
-        _ = self.sender.send(AppEvent::Notification(data));
+        tracing::trace!(
+            notification_title = data.title.as_str(),
+            "sending notification event"
+        );
+
+        if let Err(error) = self.sender.send(AppEvent::Notification(data)) {
+            tracing::warn!(%error, "failed to send notification event");
+        }
 
         self
     }
@@ -139,8 +155,13 @@ impl AppEventsBroadcaster {
     ///
     /// This should be used to tell clients that data needs to be refetched only when client
     /// has no other way to know that data needs to be refetched.
+    #[tracing::instrument(skip_all)]
     pub fn send_refetch_trigger(&self, trigger_type: RefetchTriggerType) -> &Self {
-        _ = self.sender.send(AppEvent::RefetchTrigger(trigger_type));
+        tracing::trace!(?trigger_type, "sending refetch trigger event");
+
+        if let Err(error) = self.sender.send(AppEvent::RefetchTrigger(trigger_type)) {
+            tracing::warn!(%error, "failed to send refetch trigger event");
+        }
 
         self
     }
@@ -164,6 +185,7 @@ impl AppEventsBroadcaster {
     /// Any component calling this method will receive a [`broadcast::Receiver`]
     /// that can asynchronously await new [`AppEvent`]s.
     pub fn subscribe(&self) -> broadcast::Receiver<AppEvent> {
+        tracing::trace!("subscribing to app events broadcaster");
         self.sender.subscribe()
     }
 }

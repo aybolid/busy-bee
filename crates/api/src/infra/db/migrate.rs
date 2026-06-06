@@ -16,6 +16,7 @@ use sqlx::{Acquire, migrate::Migrate};
 /// # Errors
 /// Returns a [`sqlx::migrate::MigrateError`] if a migration script contains invalid SQL,
 /// if there is a database connection issue, or if the migration history is inconsistent.
+#[tracing::instrument(skip_all)]
 pub async fn database_migrate<'a, A>(migrator: A) -> Result<(), sqlx::migrate::MigrateError>
 where
     A: Acquire<'a>,

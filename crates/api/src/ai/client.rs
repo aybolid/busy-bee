@@ -78,12 +78,17 @@ pub struct Client {
 }
 
 impl Client {
+    #[tracing::instrument(skip_all, err(Debug))]
     pub async fn exec_chat(&self, request: ChatRequest) -> Result<ChatResponse, ExecChatError> {
+        let model = self.model.as_str();
+        tracing::debug!(model, "executing chat");
+
         self.inner
-            .exec_chat(self.model.as_str(), request.into(), None)
+            .exec_chat(model, request.into(), None)
             .await
             .map(ChatResponse::from)
             .map_err(ExecChatError::from)
+            .inspect(|response| tracing::debug!(usage = ?response.usage, "chat executed"))
     }
 }
 

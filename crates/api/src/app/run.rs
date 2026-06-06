@@ -67,6 +67,7 @@ pub async fn run() -> Result<(), RunError> {
 }
 
 /// Gracefully closes external connections and cleans up application resources.
+#[tracing::instrument(skip_all)]
 async fn cleanup(state: SharedAppState) {
     database_close(&state.db_pool).await;
 }
@@ -94,6 +95,7 @@ pub enum PrepareStateError {
 }
 
 /// Initializes the application's configuration, infrastructure, and shared state.
+#[tracing::instrument]
 async fn prepare_state() -> Result<(SharedAppState, ProcessingRequestReceiver), PrepareStateError> {
     let config = load_config();
 
@@ -121,13 +123,14 @@ async fn prepare_state() -> Result<(SharedAppState, ProcessingRequestReceiver), 
 }
 
 /// Blocks until an OS interrupt signal (Ctrl+C or SIGTERM) is received,
-/// then triggers the provided `CancellationToken` to initiate a graceful shutdown.
+/// then triggers the provided [`CancellationToken`] to initiate a graceful shutdown.
+#[tracing::instrument(skip_all)]
 async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     let ctrl_c = async {
-        tracing::info!("listening to ctrl + c notification");
+        tracing::info!("listening to Ctrl+C event");
         tokio::signal::ctrl_c()
             .await
-            .expect("failed to install Ctrl+C signal handler");
+            .expect("failed to install Ctrl+C event handler");
     };
 
     #[cfg(unix)]
@@ -151,8 +154,8 @@ async fn shutdown_signal_listener(cancel_token: CancellationToken) {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        () = ctrl_c => tracing::trace!("ctrl + c received"),
-        () = terminate => tracing::trace!("SIGTERM received")
+        () = ctrl_c => tracing::trace!("Ctrl+C"),
+        () = terminate => tracing::trace!("SIGTERM")
     }
 
     // Broadcast the cancellation signal to all listening workers.

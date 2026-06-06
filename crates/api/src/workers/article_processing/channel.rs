@@ -57,11 +57,18 @@ pub struct ProcessingRequestSender {
     inner: mpsc::Sender<ProcessingRequest>,
 }
 
-impl std::ops::Deref for ProcessingRequestSender {
-    type Target = mpsc::Sender<ProcessingRequest>;
+impl ProcessingRequestSender {
+    #[tracing::instrument(skip_all, err(Debug))]
+    pub async fn send(
+        &self,
+        request: ProcessingRequest,
+    ) -> Result<(), mpsc::error::SendError<ProcessingRequest>> {
+        tracing::trace!(
+            article_id = %request.article_id.as_hyphenated(),
+            "sending article processing request"
+        );
 
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+        self.inner.send(request).await
     }
 }
 
