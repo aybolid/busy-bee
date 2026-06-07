@@ -1,7 +1,5 @@
 #![allow(dead_code, clippy::match_same_arms)]
 
-use std::num::NonZeroU8;
-
 use axum::{
     extract::{
         FromRequest, FromRequestParts, Request,
@@ -102,22 +100,6 @@ where
                 ),
             }),
         }
-    }
-}
-
-#[derive(serde::Deserialize, Debug, Clone, Copy)]
-pub struct Pagination {
-    page_index: usize,
-    limit: NonZeroU8,
-}
-
-impl Pagination {
-    pub fn page_index(&self) -> usize {
-        self.page_index
-    }
-
-    pub fn limit(&self) -> NonZeroU8 {
-        self.limit
     }
 }
 

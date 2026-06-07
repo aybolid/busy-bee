@@ -33,7 +33,7 @@ pub(super) async fn process_article(state: &SharedAppState, request: ProcessingR
         _ = articles::mark_article_as_error(
             &state.db_pool,
             request.article_id,
-            &ArticleErrorReason::from(error),
+            &ArticleErrorReason::from(&error),
         )
         .await;
 
@@ -59,8 +59,8 @@ enum ProcessArticleError {
     Chat(#[from] ExecChatError),
 }
 
-impl From<ProcessArticleError> for ArticleErrorReason {
-    fn from(value: ProcessArticleError) -> Self {
+impl From<&ProcessArticleError> for ArticleErrorReason {
+    fn from(value: &ProcessArticleError) -> Self {
         Self::new(value.to_string()).expect("process article error should not be an empty string")
     }
 }

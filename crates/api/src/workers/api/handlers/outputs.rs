@@ -5,35 +5,34 @@ use axum::{
 
 use crate::{
     app::state::SharedAppState,
-    repos::outputs::{self, OutputId},
+    repos::{
+        Pagination,
+        outputs::{self, OutputId},
+    },
     workers::api::{
         err::{HandlerError, HandlerResult},
-        req::{Pagination, ReqPath},
+        req::ReqPath,
         resp::{Metadata, data, data_with_meta},
     },
 };
 
+/// Retrieves a paginated list of processing outputs.
+#[tracing::instrument(skip_all)]
 pub async fn get_outputs(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
 ) -> HandlerResult<impl IntoResponse> {
-    let page_index = pagination.page_index();
-    let limit = pagination.limit();
-
-    let data = outputs::get_outputs(&state.db_pool, page_index, limit).await?;
+    let data = outputs::get_outputs(&state.db_pool, pagination).await?;
     let count = outputs::count_outputs(&state.db_pool).await?;
 
     Ok(data_with_meta(
         data,
-        Metadata::Pagination {
-            page_index,
-            limit,
-            total_pages: count.div_ceil(usize::from(limit.get())),
-            total: count,
-        },
+        Metadata::pagination(pagination, count),
     ))
 }
 
+/// Retrieves a specific processing output by its unique ID.
+#[tracing::instrument(skip_all)]
 pub async fn get_output(
     State(state): State<SharedAppState>,
     ReqPath(output_id): ReqPath<OutputId>,

@@ -3,45 +3,40 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use types::nonempty_trimmed_string;
 
 use crate::{
-    app::{
-        events::{NotificationData, NotificationString},
-        state::SharedAppState,
+    app::state::SharedAppState,
+    repos::{
+        Pagination,
+        articles::{self, ArticleErrorReason, ArticleId},
     },
-    repos::articles::{self, ArticleErrorReason, ArticleId},
     workers::{
         api::{
             err::{HandlerError, HandlerResult},
-            req::{Pagination, ReqJson, ReqPath},
+            req::{ReqJson, ReqPath},
             resp::{Metadata, data, data_with_meta},
         },
         article_processing::{ProcessingRequest, ProcessingUserContext},
     },
 };
 
+/// Retrieves a paginated list of articles.
+#[tracing::instrument(skip_all)]
 pub async fn get_articles(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
 ) -> HandlerResult<impl IntoResponse> {
-    let page_index = pagination.page_index();
-    let limit = pagination.limit();
-
-    let data = articles::get_articles(&state.db_pool, page_index, limit).await?;
+    let data = articles::get_articles(&state.db_pool, pagination).await?;
     let count = articles::count_articles(&state.db_pool).await?;
 
     Ok(data_with_meta(
         data,
-        Metadata::Pagination {
-            page_index,
-            limit,
-            total_pages: count.div_ceil(usize::from(limit.get())),
-            total: count,
-        },
+        Metadata::pagination(pagination, count),
     ))
 }
 
+/// Retrieves a specific article by its unique ID.
+#[tracing::instrument(skip_all)]
 pub async fn get_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -53,6 +48,8 @@ pub async fn get_article(
     Ok(data(article))
 }
 
+/// Deletes a specific article by its unique ID.
+#[tracing::instrument(skip_all)]
 pub async fn delete_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -64,6 +61,8 @@ pub async fn delete_article(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Retrieves aggregate statistics across all articles.
+#[tracing::instrument(skip_all)]
 pub async fn get_article_stats(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -72,11 +71,19 @@ pub async fn get_article_stats(
     Ok(data(article_stats))
 }
 
+/// JSON payload containing optional user context for initiating
+/// the processing of an article.
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
     context: Option<ProcessingUserContext>,
 }
 
+/// Enqueues a specific article for asynchronous processing.
+///
+/// This handler marks the article as pending in the database and dispatches
+/// a request to the background processing worker. If the dispatch fails,
+/// the article is updated with an error state.
+#[tracing::instrument(skip_all)]
 pub async fn process_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -95,22 +102,9 @@ pub async fn process_article(
         articles::mark_article_as_error(
             &state.db_pool,
             article_id,
-            &ArticleErrorReason::new(&error).unwrap_or_else(|| {
-                ArticleErrorReason(nonempty_trimmed_string!(
-                    "Failed to queue article for processing"
-                ))
-            }),
+            &ArticleErrorReason::from(&error),
         )
         .await?;
-
-        state.app_events_broadcaster.send_notification(
-            NotificationData::error(NotificationString(nonempty_trimmed_string!(
-                "Failed to process article"
-            )))
-            .with_description(NotificationString::new(
-                "Failed to queue article for processing",
-            )),
-        );
 
         Err(error.into())
     } else {

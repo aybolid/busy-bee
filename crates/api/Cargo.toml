@@ -25,6 +25,7 @@ genai = "0.5.3"
 dom_smoothie = "0.17.0"
 reqwest = "0.13.3"
 rss = "2.0.12"
+tower-http = { version = "0.6.11", features = ["trace", "timeout", "request-id", "catch-panic"] }
 
 [lints.clippy]
 pedantic = "warn"

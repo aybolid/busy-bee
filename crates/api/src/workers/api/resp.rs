@@ -4,6 +4,8 @@ use std::num::NonZeroU8;
 
 use axum::{Json, http::StatusCode, response::IntoResponse};
 
+use crate::repos::Pagination;
+
 /// Creates a new [`HandlerOk`] with a simple message response.
 ///
 /// This is a convenience function for returning plain text messages
@@ -100,4 +102,15 @@ pub enum Metadata {
         total_pages: usize,
         total: usize,
     },
+}
+
+impl Metadata {
+    pub fn pagination(pagination: Pagination, total: usize) -> Self {
+        Self::Pagination {
+            page_index: pagination.page_index(),
+            limit: pagination.limit(),
+            total_pages: total.div_ceil(usize::from(pagination.limit().get())),
+            total,
+        }
+    }
 }

@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+/// Retrieves a complete list of all configured RSS feeds.
 pub async fn get_rss_feeds(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -22,6 +23,7 @@ pub async fn get_rss_feeds(
     Ok(data(feeds))
 }
 
+/// JSON payload containing configuration parameters for creating a new RSS feed.
 #[derive(Debug, serde::Deserialize)]
 pub struct CreateRssFeedJson {
     url: Url,
@@ -29,6 +31,7 @@ pub struct CreateRssFeedJson {
     fetch_interval_seconds: NonZeroU32,
 }
 
+/// Creates a new RSS feed configuration.
 pub async fn create_rss_feed(
     State(state): State<SharedAppState>,
     ReqJson(json): ReqJson<CreateRssFeedJson>,
@@ -57,6 +60,7 @@ pub async fn create_rss_feed(
     Ok(data(feed))
 }
 
+/// Deletes a specific RSS feed by its unique ID.
 pub async fn delete_rss_feed(
     State(state): State<SharedAppState>,
     ReqPath(rss_feed_id): ReqPath<RssFeedId>,

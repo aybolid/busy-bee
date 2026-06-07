@@ -1,9 +1,8 @@
-use std::num::NonZeroU8;
-
 use crate::{
     ai::{ModelName, Usage},
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
     repos::{
+        Pagination,
         articles::ArticleId,
         outputs::{Output, OutputId, OutputText},
     },
@@ -49,15 +48,13 @@ pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 #[tracing::instrument(skip_all, err(Debug))]
 pub async fn get_outputs<'c>(
     executor: impl DatabaseExecutor<'c>,
-    page_index: usize, // TODO: use pagination struct
-    limit: NonZeroU8,
+    pagination: Pagination,
 ) -> sqlx::Result<Vec<Output>> {
-    let limit = limit.get();
-    let offset = page_index * usize::from(limit);
+    let (limit, offset) = pagination.as_limit_and_offset();
 
     let query = sqlx::query_as("SELECT * FROM outputs ORDER BY created_at DESC LIMIT ? OFFSET ?;")
-        .bind(i64::from(limit))
-        .bind(offset as i64);
+        .bind(limit)
+        .bind(offset);
 
     query.fetch_all(executor).await
 }

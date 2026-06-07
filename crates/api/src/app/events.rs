@@ -1,3 +1,4 @@
+use axum::response::sse::Event;
 use tokio::sync::broadcast;
 use types::{NonEmpty, TrimmedString};
 
@@ -11,6 +12,25 @@ pub enum AppEvent {
     Notification(NotificationData),
     /// An event signaling that there is some data that can be refetched as it was updated.
     RefetchTrigger(RefetchTriggerType),
+}
+
+impl AppEvent {
+    /// Converts [`AppEvent`] into SSE [`Event`].
+    #[tracing::instrument]
+    pub fn into_sse_event(self) -> Option<Event> {
+        match self {
+            Self::Notification(data) => match serde_json::to_string(&data) {
+                Ok(json) => Some(Event::default().event("notification").data(json)),
+                Err(error) => {
+                    tracing::error!(%error);
+                    None
+                }
+            },
+            Self::RefetchTrigger(trigger_type) => {
+                Some(Event::default().event("refetch_trigger").data(trigger_type))
+            }
+        }
+    }
 }
 
 /// The type of data that can be refetched as it was updated.
