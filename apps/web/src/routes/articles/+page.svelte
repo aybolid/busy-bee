@@ -3,7 +3,6 @@
 </script>
 
 <script>
-    import ProcessArticleFormDialog from "$lib/components/process-article-form-dialog.svelte";
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import PaginationControls from "$lib/components/pagination-controls.svelte";
@@ -17,12 +16,6 @@
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
     import Refresh from "$lib/components/ui/icons/refresh.svelte";
-    import Trash from "$lib/components/ui/icons/trash.svelte";
-    import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
-    import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
-    import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
-    import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
-    import Menu from "$lib/components/ui/menu/menu.svelte";
     import ProgressIndicator from "$lib/components/ui/progress/progress-indicator.svelte";
     import Progress from "$lib/components/ui/progress/progress.svelte";
     import Skeleton from "$lib/components/ui/skeleton.svelte";
@@ -41,7 +34,6 @@
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
-    import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
     import Lock from "$lib/components/ui/icons/lock.svelte";
     import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import TableContainer from "$lib/components/ui/table/table-container.svelte";
@@ -55,6 +47,7 @@
     import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
     import { getRssFeedsQueryOptions } from "$lib/query/rss-feeds";
     import { toaster } from "$lib/components/toaster/store";
+    import ArticleActionsMenu from "$lib/components/article-actions-menu.svelte";
 
     dayjs.extend(relative);
 
@@ -380,7 +373,14 @@
                             </Action>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
-                            {@render articleMenu(article)}
+                            <ArticleActionsMenu {article}>
+                                {#snippet trigger(props)}
+                                    <Action button size="icon-sm" variant="outline" {...props}>
+                                        <EllipsisVertical />
+                                        <span class="sr-only">Article actions</span>
+                                    </Action>
+                                {/snippet}
+                            </ArticleActionsMenu>
                         </TableCell>
                     </TableRow>
                 {/each}
@@ -412,41 +412,3 @@
         </NativeSelect>
     </StickyBar>
 {/if}
-
-{#snippet articleMenu(/** @type {import('$lib/api/articles').Article} */ article)}
-    <Menu>
-        {#snippet trigger(props)}
-            <Action button size="icon-sm" variant="outline" {...props}>
-                <EllipsisVertical />
-                <span class="sr-only">Article actions</span>
-            </Action>
-        {/snippet}
-        <MenuContent>
-            <MenuGroup>
-                <MenuLabel>Article actions</MenuLabel>
-                <MenuActionItem anchor href="/articles/{article.id}">View</MenuActionItem>
-                <MenuActionItem anchor href={article.url} target="_blank">
-                    <ExternalLink />
-                    <span>View external</span>
-                </MenuActionItem>
-                {#if article.status !== "pending"}
-                    <ProcessArticleFormDialog articleId={article.id}>
-                        {#snippet trigger(props)}
-                            <MenuActionItem button keepOpen {...props}>Process</MenuActionItem>
-                        {/snippet}
-                    </ProcessArticleFormDialog>
-                {/if}
-                {#if article.status !== "pending"}
-                    <DeleteArticleAlertDialog articleId={article.id}>
-                        {#snippet trigger(props)}
-                            <MenuActionItem button keepOpen variant="destructive" {...props}>
-                                <Trash />
-                                <span>Delete</span>
-                            </MenuActionItem>
-                        {/snippet}
-                    </DeleteArticleAlertDialog>
-                {/if}
-            </MenuGroup>
-        </MenuContent>
-    </Menu>
-{/snippet}

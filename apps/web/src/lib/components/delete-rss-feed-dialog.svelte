@@ -53,7 +53,8 @@
         <AlertDialogHeader>
             <AlertDialogTitle>Delete RSS feed?</AlertDialogTitle>
             <AlertDialogDescription>
-                This action will delete the RSS feed and it cannot be undone later.
+                This action will delete the RSS feed and related articles. It cannot be undone
+                later.
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,26 +1,17 @@
 <script>
-    import { goto } from "$app/navigation";
     import ArticleStatus from "$lib/components/article-status.svelte";
-    import DeleteArticleAlertDialog from "$lib/components/delete-article-alert-dialog.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import Pending from "$lib/components/pending.svelte";
     import Action from "$lib/components/ui/action.svelte";
     import Badge from "$lib/components/ui/badge.svelte";
     import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
-    import ExternalLink from "$lib/components/ui/icons/external-link.svelte";
-    import Trash from "$lib/components/ui/icons/trash.svelte";
-    import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
-    import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
-    import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
-    import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
-    import Menu from "$lib/components/ui/menu/menu.svelte";
     import { getArticleQueryOptions } from "$lib/query/articles";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
-    import ProcessArticleFormDialog from "$lib/components/process-article-form-dialog.svelte";
     import Popover from "$lib/components/ui/popover/popover.svelte";
     import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
+    import ArticleActionsMenu from "$lib/components/article-actions-menu.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -79,46 +70,13 @@
             {/if}
         </div>
 
-        {@render menu(article.data)}
+        <ArticleActionsMenu article={article.data} withoutView>
+            {#snippet trigger(props)}
+                <Action button size="sm" variant="outline" {...props}>
+                    <EllipsisVertical />
+                    <span>Actions</span>
+                </Action>
+            {/snippet}
+        </ArticleActionsMenu>
     </StickyBar>
 {/if}
-
-{#snippet menu(/** @type {import('$lib/api/articles').Article} */ article)}
-    <Menu>
-        {#snippet trigger(props)}
-            <Action button size="sm" variant="outline" {...props}>
-                <EllipsisVertical />
-                <span>Actions</span>
-            </Action>
-        {/snippet}
-        <MenuContent>
-            <MenuGroup>
-                <MenuLabel>Article actions</MenuLabel>
-                <MenuActionItem anchor href={article.url} target="_blank">
-                    <ExternalLink />
-                    <span>View external</span>
-                </MenuActionItem>
-                {#if article.status !== "pending"}
-                    <ProcessArticleFormDialog articleId={article.id}>
-                        {#snippet trigger(props)}
-                            <MenuActionItem button keepOpen {...props}>Process</MenuActionItem>
-                        {/snippet}
-                    </ProcessArticleFormDialog>
-                {/if}
-                {#if article.status !== "pending"}
-                    <DeleteArticleAlertDialog
-                        articleId={article.id}
-                        onSuccess={() => goto("/articles")}
-                    >
-                        {#snippet trigger(props)}
-                            <MenuActionItem button keepOpen variant="destructive" {...props}>
-                                <Trash />
-                                <span>Delete</span>
-                            </MenuActionItem>
-                        {/snippet}
-                    </DeleteArticleAlertDialog>
-                {/if}
-            </MenuGroup>
-        </MenuContent>
-    </Menu>
-{/snippet}

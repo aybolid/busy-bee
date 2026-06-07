@@ -5,16 +5,11 @@
     import Badge from "$lib/components/ui/badge.svelte";
     import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
-    import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
-    import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
-    import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
-    import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
-    import Menu from "$lib/components/ui/menu/menu.svelte";
     import { createQuery } from "@tanstack/svelte-query";
     import dayjs from "dayjs";
     import { getOutputQueryOptions } from "$lib/query/outputs";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
-    import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
+    import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -44,33 +39,13 @@
             </Badge>
         </div>
 
-        {@render menu(output.data)}
+        <OutputActionsMenu output={output.data} withoutView>
+            {#snippet trigger(props)}
+                <Action button size="sm" variant="outline" {...props}>
+                    <EllipsisVertical />
+                    <span>Actions</span>
+                </Action>
+            {/snippet}
+        </OutputActionsMenu>
     </StickyBar>
 {/if}
-
-{#snippet menu(/** @type {import('$lib/api/outputs').Output} */ output)}
-    <Menu>
-        {#snippet trigger(props)}
-            <Action button size="sm" variant="outline" {...props}>
-                <EllipsisVertical />
-                <span>Actions</span>
-            </Action>
-        {/snippet}
-        <MenuContent>
-            <MenuGroup>
-                <MenuLabel>Output actions</MenuLabel>
-                <MenuActionItem anchor href="/outputs/{output.id}/edit">Edit</MenuActionItem>
-                <ViewTokenUsageDialog usage={output.usage} model={output.model}>
-                    {#snippet trigger(props)}
-                        <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
-                    {/snippet}
-                </ViewTokenUsageDialog>
-                {#if output.article_id}
-                    <MenuActionItem anchor href="/articles/{output.article_id}">
-                        View article
-                    </MenuActionItem>
-                {/if}
-            </MenuGroup>
-        </MenuContent>
-    </Menu>
-{/snippet}

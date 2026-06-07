@@ -9,11 +9,6 @@
     import Empty from "$lib/components/ui/empty/empty.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import Refresh from "$lib/components/ui/icons/refresh.svelte";
-    import MenuActionItem from "$lib/components/ui/menu/menu-action-item.svelte";
-    import MenuContent from "$lib/components/ui/menu/menu-content.svelte";
-    import MenuGroup from "$lib/components/ui/menu/menu-group.svelte";
-    import MenuLabel from "$lib/components/ui/menu/menu-label.svelte";
-    import Menu from "$lib/components/ui/menu/menu.svelte";
     import Spinner from "$lib/components/ui/spinner.svelte";
     import TableBody from "$lib/components/ui/table/table-body.svelte";
     import TableCell from "$lib/components/ui/table/table-cell.svelte";
@@ -36,6 +31,7 @@
     import dayjs from "dayjs";
     import relative from "dayjs/plugin/relativeTime";
     import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
+    import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
 
     dayjs.extend(relative);
 
@@ -231,7 +227,14 @@
                             </Badge>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
-                            {@render outputMenu(output)}
+                            <OutputActionsMenu {output}>
+                                {#snippet trigger(props)}
+                                    <Action button size="icon-sm" variant="outline" {...props}>
+                                        <EllipsisVertical />
+                                        <span class="sr-only">Article actions</span>
+                                    </Action>
+                                {/snippet}
+                            </OutputActionsMenu>
                         </TableCell>
                     </TableRow>
                 {/each}
@@ -266,30 +269,3 @@
         </NativeSelect>
     </StickyBar>
 {/if}
-
-{#snippet outputMenu(/** @type {import('$lib/api/outputs').Output} */ output)}
-    <Menu>
-        {#snippet trigger(props)}
-            <Action button size="icon-sm" variant="outline" {...props}>
-                <EllipsisVertical />
-                <span class="sr-only">Article actions</span>
-            </Action>
-        {/snippet}
-        <MenuContent>
-            <MenuGroup>
-                <MenuLabel>Output actions</MenuLabel>
-                <MenuActionItem anchor href="/outputs/{output.id}">View</MenuActionItem>
-                <ViewTokenUsageDialog usage={output.usage} model={output.model}>
-                    {#snippet trigger(props)}
-                        <MenuActionItem button keepOpen {...props}>Usage</MenuActionItem>
-                    {/snippet}
-                </ViewTokenUsageDialog>
-                {#if output.article_id}
-                    <MenuActionItem anchor href="/articles/{output.article_id}">
-                        View article
-                    </MenuActionItem>
-                {/if}
-            </MenuGroup>
-        </MenuContent>
-    </Menu>
-{/snippet}
