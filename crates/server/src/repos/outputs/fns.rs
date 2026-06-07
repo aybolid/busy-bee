@@ -99,3 +99,31 @@ pub async fn create_output<'c>(
 
     query.execute(executor).await
 }
+
+/// Deletes an output from the database by its unique identifier.
+///
+/// # Returns
+///
+/// Returns [`OutputId`] if the output was successfully deleted, or [`None`]
+/// if no such output existed.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database deletion operation fails.
+#[tracing::instrument(skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
+pub async fn delete_output_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: OutputId,
+) -> sqlx::Result<Option<OutputId>> {
+    let query = sqlx::query_scalar(
+        "
+        DELETE FROM outputs
+        WHERE
+            id = ?
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await
+}

@@ -1,14 +1,18 @@
 [
     {
-        "title": "Hacker News",
+        "title": "Hacker news",
         "url": "https://news.ycombinator.com/rss"
     },
     {
-        "title": "NVIDIA News",
+        "title": "NVIDIA news",
         "url": "https://nvidianews.nvidia.com/releases.xml"
     },
     {
-        "title": "OpenAI News",
-        "url": "https://openai.com/news/rss.xml"
+        "title": "Cloudflare blog",
+        "url": "https://blog.cloudflare.com/rss"
+    },
+    {
+        "title": "StepSecurity blog",
+        "url": "https://www.stepsecurity.io/blog/rss.xml"
     }
 ]

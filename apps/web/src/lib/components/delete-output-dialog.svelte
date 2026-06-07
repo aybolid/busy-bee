@@ -1,7 +1,6 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
-    import { invalidateArticlesQueries, invalidateArticleStatsQueries } from "$lib/query/articles";
-    import { createDeleteRssFeedMutation, invalidateRssFeedsQueries } from "$lib/query/rss-feeds";
+    import { createDeleteOutputMutation, invalidateOutputsQueries } from "$lib/query/outputs";
     import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
     import AlertDialogContent from "./ui/alert-dialog/alert-dialog-content.svelte";
@@ -16,32 +15,30 @@
 
     /**
      * @typedef {Object} Props
-     * @property {import('$lib/api/rss-feeds').RssFeedId} feedId
+     * @property {import('$lib/api/outputs').OutputId} outputId
      * @property {() => Promise<void>} [onSuccess]
      */
 
     /** @type {Omit<import('$lib/components/ui/alert-dialog/alert-dialog.svelte').AlertDialogProps, 'children' | 'ref'> & Props} */
-    const { feedId, onSuccess, ...props } = $props();
+    const { outputId, onSuccess, ...props } = $props();
     const { ky, queryClient } = getGlobalContext();
 
     /** @type {HTMLDialogElement} */
     // svelte-ignore non_reactive_update
     let dialog;
 
-    const deleteMutation = createDeleteRssFeedMutation();
+    const deleteMutation = createDeleteOutputMutation();
 
-    function deleteFeed() {
-        deleteMutation.mutate([ky, { params: { id: feedId } }], {
+    function deleteOutput() {
+        deleteMutation.mutate([ky, { params: { id: outputId } }], {
             onError: (err) =>
-                toaster.push("Failed to delete RSS feed", {
+                toaster.push("Failed to delete output", {
                     description: err.message,
                     props: { variant: "destructive" },
                 }),
             onSuccess: async () => {
                 await onSuccess?.();
-                void invalidateRssFeedsQueries(queryClient);
-                void invalidateArticleStatsQueries(queryClient);
-                void invalidateArticlesQueries(queryClient);
+                void invalidateOutputsQueries(queryClient);
                 dialog.close();
             },
         });
@@ -51,17 +48,16 @@
 <AlertDialog bind:ref={dialog} {...props}>
     <AlertDialogContent size="sm">
         <AlertDialogHeader>
-            <AlertDialogTitle>Delete RSS feed?</AlertDialogTitle>
+            <AlertDialogTitle>Delete output?</AlertDialogTitle>
             <AlertDialogDescription>
-                This action will delete the RSS feed and related articles. It cannot be undone
-                later.
+                This action will delete the output. It cannot be undone later.
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
             <AlertDialogCloseAction />
             <AlertDialogContinueAction
                 disabled={deleteMutation.isPending}
-                onclick={deleteFeed}
+                onclick={deleteOutput}
                 variant="destructive"
             >
                 {#if deleteMutation.isPending}

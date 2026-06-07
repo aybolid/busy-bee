@@ -1,4 +1,6 @@
 <script>
+    import DeleteOutputDialog from "./delete-output-dialog.svelte";
+    import Trash from "./ui/icons/trash.svelte";
     import MenuActionItem from "./ui/menu/menu-action-item.svelte";
     import MenuContent from "./ui/menu/menu-content.svelte";
     import MenuGroup from "./ui/menu/menu-group.svelte";
@@ -28,6 +30,14 @@
                     View article
                 </MenuActionItem>
             {/if}
+            <DeleteOutputDialog outputId={output.id}>
+                {#snippet trigger(props)}
+                    <MenuActionItem button keepOpen variant="destructive" {...props}>
+                        <Trash />
+                        <span>Delete</span>
+                    </MenuActionItem>
+                {/snippet}
+            </DeleteOutputDialog>
         </MenuGroup>
     </MenuContent>
 </Menu>

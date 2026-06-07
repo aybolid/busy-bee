@@ -1,5 +1,5 @@
-import { getOutput, getOutputs } from "$lib/api/outputs";
-import { keepPreviousData, queryOptions } from "@tanstack/svelte-query";
+import { deleteOutput, getOutput, getOutputs } from "$lib/api/outputs";
+import { createMutation, keepPreviousData, queryOptions } from "@tanstack/svelte-query";
 
 /**
  * @param {Parameters<typeof getOutputs>} args `getOutputs` function arguments.
@@ -17,7 +17,7 @@ export function getOutputsQueryOptions(...args) {
  */
 export function getOutputQueryOptions(...args) {
     return queryOptions({
-        queryKey: ["output", args[1]],
+        queryKey: ["outputs", args[1]],
         queryFn: () => getOutput(...args),
     });
 }
@@ -29,4 +29,16 @@ export function invalidateOutputsQueries(queryClient) {
     void queryClient.invalidateQueries({
         queryKey: ["outputs"],
     });
+}
+
+export function createDeleteOutputMutation() {
+    /** @param {Parameters<typeof deleteOutput>} args */
+    async function mutationFn(args) {
+        return deleteOutput(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["outputs", "delete"],
+        mutationFn,
+    }));
 }

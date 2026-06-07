@@ -2,6 +2,7 @@ use axum::{
     extract::{Query, State},
     response::IntoResponse,
 };
+use reqwest::StatusCode;
 
 use crate::{
     app::state::SharedAppState,
@@ -42,4 +43,17 @@ pub async fn get_output(
         .ok_or_else(|| HandlerError::not_found("output not found"))?;
 
     Ok(data(output))
+}
+
+/// Deletes a specific output by its unique ID.
+#[tracing::instrument(skip_all)]
+pub async fn delete_output(
+    State(state): State<SharedAppState>,
+    ReqPath(output_id): ReqPath<OutputId>,
+) -> HandlerResult<impl IntoResponse> {
+    outputs::delete_output_by_id(&state.db_pool, output_id)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("output not found"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

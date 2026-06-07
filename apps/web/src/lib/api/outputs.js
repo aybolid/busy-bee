@@ -66,3 +66,13 @@ export async function getOutput(ky, payload) {
     const json = await ky.get(`outputs/${payload.params.id}`).json();
     return unwrapData(outputSchema).parse(json);
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: OutputId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function deleteOutput(ky, payload) {
+    await ky.delete(`outputs/${payload.params.id}`);
+}
