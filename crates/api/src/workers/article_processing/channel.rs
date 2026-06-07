@@ -80,17 +80,10 @@ pub struct ProcessingRequestReceiver {
     inner: mpsc::Receiver<ProcessingRequest>,
 }
 
-impl std::ops::Deref for ProcessingRequestReceiver {
-    type Target = mpsc::Receiver<ProcessingRequest>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl std::ops::DerefMut for ProcessingRequestReceiver {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+impl ProcessingRequestReceiver {
+    /// Receives the next [`ProcessingRequest`].
+    pub async fn recv(&mut self) -> Option<ProcessingRequest> {
+        self.inner.recv().await
     }
 }
 
