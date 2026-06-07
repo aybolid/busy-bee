@@ -25,8 +25,8 @@ const X_REQUEST_ID: HeaderName = HeaderName::from_static("x-header-id");
 ///
 /// Binds to the configured TCP address, sets up the application router, and
 /// continuously serves requests until a cancellation signal triggers a graceful shutdown.
-#[tracing::instrument(name = "api", skip_all)]
-pub async fn run_api_server(state: SharedAppState) -> io::Result<()> {
+#[tracing::instrument(name = "http_api", skip_all)]
+pub async fn run_http_api(state: SharedAppState) -> io::Result<()> {
     let cancel_token = state.cancel_token.clone();
 
     let listener = TcpListener::bind(state.config.api_addr).await?;

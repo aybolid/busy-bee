@@ -33,32 +33,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
-name = "api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chrono",
- "dom_smoothie",
- "dotenvy",
- "genai",
- "reqwest",
- "rss",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "sqlx",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "types",
- "uuid",
-]
-
-[[package]]
 name = "atoi"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2364,6 +2338,32 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "dom_smoothie",
+ "dotenvy",
+ "genai",
+ "reqwest",
+ "rss",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "types",
+ "uuid",
 ]
 
 [[package]]

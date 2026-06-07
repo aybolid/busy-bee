@@ -10,7 +10,7 @@ use crate::{
     },
     infra::db::{database_close, database_connect, database_migrate},
     workers::{
-        api::run_api_server,
+        api::run_http_api,
         article_processing::{
             ProcessingRequestReceiver, create_processing_requests_channel, run_article_processing,
         },
@@ -49,7 +49,8 @@ pub async fn run() -> Result<(), RunError> {
     // A JoinSet is used to manage the lifecycles of concurrent workers.
     let mut workers = JoinSet::<WorkerResult>::new();
 
-    workers.spawn(worker(run_api_server(state.clone())));
+    workers.spawn(worker(run_http_api(state.clone())));
+
     workers.spawn(worker(run_rss_reader(state.clone())));
     workers.spawn(worker(run_article_processing(
         state.clone(),

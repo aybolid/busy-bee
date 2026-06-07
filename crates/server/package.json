@@ -1,5 +1,5 @@
 {
-    "name": "@busy-bee/api",
+    "name": "@busy-bee/server",
     "private": true,
     "scripts": {
         "build": "cargo b -r",
