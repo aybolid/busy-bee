@@ -14,7 +14,7 @@ use crate::{
         article_processing::{
             ProcessingRequestReceiver, create_processing_requests_channel, run_article_processing,
         },
-        rss_reader::run_rss_reader,
+        rss_processing::run_rss_processing,
     },
 };
 
@@ -51,7 +51,7 @@ pub async fn run() -> Result<(), RunError> {
 
     workers.spawn(worker(run_http_api(state.clone())));
 
-    workers.spawn(worker(run_rss_reader(state.clone())));
+    workers.spawn(worker(run_rss_processing(state.clone())));
     workers.spawn(worker(run_article_processing(
         state.clone(),
         article_processing_rx,

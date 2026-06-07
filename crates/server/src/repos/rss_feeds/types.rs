@@ -60,6 +60,12 @@ impl RssFeedErrorReason {
     }
 }
 
+impl From<&sqlx::Error> for RssFeedErrorReason {
+    fn from(value: &sqlx::Error) -> Self {
+        Self::new(value).expect("sqlx error string should not be an empty string")
+    }
+}
+
 impl std::ops::Deref for RssFeedErrorReason {
     type Target = NonEmpty<TrimmedString>;
 
