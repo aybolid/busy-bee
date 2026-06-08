@@ -59,12 +59,6 @@ enum ProcessArticleError {
     Chat(#[from] ExecChatError),
 }
 
-impl From<&ProcessArticleError> for ArticleErrorReason {
-    fn from(value: &ProcessArticleError) -> Self {
-        Self::new(value.to_string()).expect("process article error should not be an empty string")
-    }
-}
-
 /// Executes the core logic for processing an article using the AI model.
 ///
 /// # Workflow

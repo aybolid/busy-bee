@@ -146,13 +146,6 @@ enum RssChannelError {
     Rss(#[from] rss::Error),
 }
 
-impl From<&RssChannelError> for RssFeedErrorReason {
-    fn from(value: &RssChannelError) -> Self {
-        Self::new(value.to_string())
-            .expect("rss channel error string should not be an empty string")
-    }
-}
-
 /// Errors that can occur while processing an individual RSS feed item.
 #[derive(Debug, thiserror::Error)]
 enum ReadFeedItemError {

@@ -60,9 +60,9 @@ impl RssFeedErrorReason {
     }
 }
 
-impl From<&sqlx::Error> for RssFeedErrorReason {
-    fn from(value: &sqlx::Error) -> Self {
-        Self::new(value).expect("sqlx error string should not be an empty string")
+impl<E: std::error::Error> From<&E> for RssFeedErrorReason {
+    fn from(value: &E) -> Self {
+        Self::new(value).expect("std error string should not be an empty string")
     }
 }
 

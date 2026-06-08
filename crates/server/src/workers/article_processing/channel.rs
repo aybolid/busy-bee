@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 use types::{NonEmptyMaxLength, TrimmedString};
 
-use crate::repos::articles::{ArticleErrorReason, ArticleId};
+use crate::repos::articles::ArticleId;
 
 /// Additional user-provided context used during article processing.
 ///
@@ -69,12 +69,6 @@ impl ProcessingRequestSender {
         );
 
         self.inner.send(request).await
-    }
-}
-
-impl From<&mpsc::error::SendError<ProcessingRequest>> for ArticleErrorReason {
-    fn from(value: &mpsc::error::SendError<ProcessingRequest>) -> Self {
-        Self::new(value.to_string()).expect("send error should not be an empty string")
     }
 }
 

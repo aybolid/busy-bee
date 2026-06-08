@@ -251,6 +251,12 @@ impl std::ops::Deref for ArticleErrorReason {
     }
 }
 
+impl<E: std::error::Error> From<&E> for ArticleErrorReason {
+    fn from(value: &E) -> Self {
+        Self::new(value).expect("std error string should not be an empty string")
+    }
+}
+
 impl ArticleErrorReason {
     /// Attempts to create a new [`ArticleErrorReason`]. Returns [`None`] if the input is entirely whitespace.
     #[allow(clippy::needless_pass_by_value)]
