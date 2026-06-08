@@ -57,7 +57,9 @@ struct ReadingManager {
 impl ReadingManager {
     /// Retrieves the control handle for a running reader by its feed ID, if it exists.
     fn get_reader_handle(&self, id: &RssFeedId) -> Option<&ReaderHandle> {
-        self.readers_map.get(id)
+        self.readers_map
+            .get(id)
+            .inspect(|handle| tracing::debug!(?handle))
     }
 
     /// Retains only the readers whose IDs are present in the provided set.
@@ -67,8 +69,10 @@ impl ReadingManager {
     fn retain_readers(&mut self, to_retain: &HashSet<RssFeedId>) {
         self.readers_map.retain(|id, reader_handle| {
             if to_retain.contains(id) {
+                tracing::trace!(id = %id.as_hyphenated(), "keeping");
                 true
             } else {
+                tracing::trace!(id = %id.as_hyphenated(), "aborting");
                 reader_handle.abort();
                 false
             }
@@ -81,7 +85,7 @@ impl ReadingManager {
         config: RssFeedConfig,
         reader_task: impl Future<Output = ()> + Send + 'static,
     ) {
-        tracing::trace!(id = %config.id.as_hyphenated(), "spawning new reader");
+        tracing::debug!(id = %config.id.as_hyphenated(), "spawning new reader");
         self.readers_map.insert(
             config.id,
             ReaderHandle {
@@ -113,6 +117,7 @@ pub async fn run_rss_reading_manager(
     state: SharedAppState,
     mut rx: watch::Receiver<Vec<RssFeedConfig>>,
 ) -> Result<(), RssProcessingError> {
+    tracing::trace!("started");
     let mut manager = ReadingManager::default();
 
     // Reusing a single HTTP client across all readers is highly recommended for connection pooling.
@@ -124,19 +129,30 @@ pub async fn run_rss_reading_manager(
             let configs_ref = rx.borrow_and_update();
 
             for config in configs_ref.iter() {
+                tracing::debug!(
+                    id = %config.id.as_hyphenated(),
+                    url = config.url.as_str(),
+                    max_concurrent_requests = config.max_concurrent_requests,
+                    fetch_interval_seconds = config.fetch_interval_seconds,
+                );
                 iteration_ids.insert(config.id);
 
                 let mut spawn_new = false;
 
                 if let Some(existing_handle) = manager.get_reader_handle(&config.id) {
                     // If the config changed (e.g., poll interval updated), restart the reader
-                    if existing_handle.config != *config {
+                    if existing_handle.config == *config {
+                        tracing::trace!("keeping existing reader handle");
+                    } else {
+                        tracing::trace!("got config change");
                         existing_handle.abort();
                         spawn_new = true;
                     }
                 } else {
+                    tracing::trace!("got new config");
                     spawn_new = true; // No existing handle means it's a completely new feed
                 }
+                tracing::debug!(spawn_new);
 
                 if spawn_new {
                     manager.spawn_reader(
@@ -146,6 +162,7 @@ pub async fn run_rss_reading_manager(
                 }
             }
 
+            tracing::trace!("removing deleted rss feeds");
             // Clean up any tasks running for feeds that are no longer in the configurations list
             manager.retain_readers(&iteration_ids);
             iteration_ids.clear();
@@ -157,10 +174,11 @@ pub async fn run_rss_reading_manager(
                 if result.is_err() && !state.cancel_token.is_cancelled() {
                     return Err(RssProcessingError::WatchChannelClosed);
                 }
+                tracing::trace!("got configs change");
             }
             // Graceful shutdown signal received
             () = state.cancel_token.cancelled() => {
-                tracing::trace!("got shutdown signal");
+                tracing::info!("got shutdown signal");
                 break;
             }
             // Monitor the active reader tasks; if one panics/fails, propagate the error
@@ -180,11 +198,15 @@ pub async fn run_rss_reading_manager(
 /// This function executes continuously on a specific interval defined by the feed's configuration.
 /// It wraps the configuration, HTTP client, and concurrency semaphore into an [`RssReaderState`]
 /// before delegating to the actual fetching logic.
+#[tracing::instrument(skip_all, fields(id = %config.id.as_hyphenated()))]
 async fn rss_reader(state: SharedAppState, config: RssFeedConfig, http_client: reqwest::Client) {
     let interval_duration = Duration::from_secs(u64::from(config.fetch_interval_seconds.get()));
+    tracing::debug!(?interval_duration);
+
     let mut interval = tokio::time::interval(interval_duration);
 
     let request_semaphore = Semaphore::new(usize::from(config.max_concurrent_requests.get()));
+    tracing::debug!(?request_semaphore);
 
     let reader_state = Arc::new(RssReaderState {
         app_state: state,

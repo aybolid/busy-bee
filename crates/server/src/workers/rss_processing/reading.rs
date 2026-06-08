@@ -44,8 +44,10 @@ pub type SharedRssReaderState = Arc<RssReaderState>;
 /// 4. If all items fail, marks the feed state as errored in the database.
 /// 5. Otherwise, bulk-inserts successfully parsed articles into the database.
 /// 6. Marks the feed state as healthy and broadcasts appropriate notifications.
-#[tracing::instrument(skip_all, fields(id = %state.config.id.as_hyphenated()))]
+#[tracing::instrument(skip_all)]
 pub async fn read_rss_feed(state: SharedRssReaderState) {
+    tracing::info!("reading rss feed");
+
     match get_rss_channel(&state).await {
         Ok(channel) => {
             let read_tasks: JoinSet<_> = channel
@@ -54,10 +56,13 @@ pub async fn read_rss_feed(state: SharedRssReaderState) {
                 .map(|item| read_rss_feed_item(state.clone(), item))
                 .collect();
 
+            tracing::info!("awaiting {} read task(s)", read_tasks.len());
             let results = read_tasks.join_all().await;
 
             // If we attempted to process articles but every single one failed, flag the feed.
             if !results.is_empty() && results.iter().all(Result::is_err) {
+                tracing::warn!("no articles were read successfully during the fetch");
+
                 _ = rss_feeds::mark_rss_feed_as_error(
                     &state.app_state.db_pool,
                     state.config.id,
@@ -66,8 +71,6 @@ pub async fn read_rss_feed(state: SharedRssReaderState) {
                     )),
                 )
                 .await;
-
-                tracing::warn!("no articles were parsed successfully during the latest fetch");
 
                 broadcast_fail(&state);
 
@@ -79,9 +82,11 @@ pub async fn read_rss_feed(state: SharedRssReaderState) {
                 .filter_map(Result::ok)
                 .flatten()
                 .collect();
+            tracing::trace!("got {} readability article(s)", readability_articles.len());
 
             let Some(readability_articles) = NonEmpty::new(readability_articles) else {
-                return; // Should be unreachable given the logic above, but guards against empty lists
+                tracing::info!("no articles to create");
+                return;
             };
 
             let result = articles::create_articles_bulk(
@@ -93,10 +98,7 @@ pub async fn read_rss_feed(state: SharedRssReaderState) {
 
             match result {
                 Ok(query_result) => {
-                    tracing::trace!(
-                        new_articles_len = query_result.rows_affected(),
-                        "new articles created"
-                    );
+                    tracing::info!("{} article(s) created", query_result.rows_affected());
 
                     _ = rss_feeds::mark_rss_feed_as_healthy(
                         &state.app_state.db_pool,
@@ -185,6 +187,8 @@ async fn read_rss_feed_item(
     state: SharedRssReaderState,
     item: rss::Item,
 ) -> Result<Option<ReadabilityArticle>, ReadFeedItemError> {
+    tracing::trace!("reading rss item");
+
     let Some(link) = item.link else {
         return Err(ReadFeedItemError::MissingLink);
     };
@@ -192,9 +196,11 @@ async fn read_rss_feed_item(
     // Prevent duplicate processing by checking the DB first
     // FIXME: TOCTOU
     if articles::check_article_exists_by_url(&state.app_state.db_pool, &link).await? {
+        tracing::trace!("this article was processed before");
         return Ok(None);
     }
 
+    tracing::trace!("fetching article html");
     let permit = state.request_semaphore.acquire().await?;
     let link_response = state
         .http_client
@@ -203,6 +209,7 @@ async fn read_rss_feed_item(
         .await?
         .error_for_status()?;
     let html = link_response.text().await?;
+    tracing::trace!("article html fetched");
     // Release the concurrency permit as early as possible before CPU-bound work
     drop(permit);
 
@@ -230,21 +237,27 @@ enum ParseReadabilityArticleError {
 /// # Errors
 /// Returns a [`ParseReadabilityArticleError`] if the HTML cannot be processed
 /// or if it fails conversion into the internal domain model.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(skip(html), err(Debug))]
 fn parse_readability_article(
     html: String,
     link: String,
 ) -> Result<ReadabilityArticle, ParseReadabilityArticleError> {
+    tracing::trace!("parsing readability article");
     let mut readability = Readability::new(html, Some(&link), None)?;
-
     let mut article = readability.parse()?;
+    tracing::trace!("article parsed");
 
     // Ensure the article model retains the original source URL
     if article.url.is_none() {
+        tracing::trace!("setting article link since parsed article had none");
         article.url = Some(link);
     }
 
-    ReadabilityArticle::try_from(article).map_err(ParseReadabilityArticleError::from)
+    let readability_artilce =
+        ReadabilityArticle::try_from(article).map_err(ParseReadabilityArticleError::from)?;
+    tracing::trace!("converted to thread-safe readability article");
+
+    Ok(readability_artilce)
 }
 
 /// Fetches and parses the top-level XML of an RSS feed.
@@ -254,6 +267,9 @@ fn parse_readability_article(
 /// is not valid RSS XML.
 #[tracing::instrument(skip_all, err(Debug))]
 async fn get_rss_channel(state: &SharedRssReaderState) -> Result<rss::Channel, RssChannelError> {
+    tracing::trace!("fetching rss url");
+    tracing::debug!(rss_url = state.config.url.as_str());
+
     let feed_response = state
         .http_client
         .get(state.config.url.as_str())
@@ -263,7 +279,11 @@ async fn get_rss_channel(state: &SharedRssReaderState) -> Result<rss::Channel, R
 
     let channel = rss::Channel::read_from(&bytes[..])?;
 
-    tracing::trace!(channel_title = channel.title);
+    tracing::trace!("parsed rss channel");
+    tracing::debug!(
+        channel_title = channel.title,
+        channel_items_len = channel.items.len()
+    );
 
     Ok(channel)
 }
@@ -285,6 +305,8 @@ fn broadcast_fail(state: &SharedRssReaderState) {
         .app_events_broadcaster
         .send_notification(notification)
         .send_refetch_trigger(RefetchTriggerType::RssFeeds);
+
+    tracing::trace!("fail broadcasted");
 }
 
 /// Broadcasts a success notification to the client application.
@@ -302,4 +324,6 @@ fn broadcast_success(state: &SharedRssReaderState) {
         .app_events_broadcaster
         .send_notification(notification)
         .send_refetch_triggers([RefetchTriggerType::RssFeeds, RefetchTriggerType::Articles]);
+
+    tracing::trace!("success broadcasted");
 }

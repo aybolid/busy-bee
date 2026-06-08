@@ -39,7 +39,7 @@ pub async fn run_http_api(state: SharedAppState) -> io::Result<()> {
         .with_graceful_shutdown(
             async move {
                 cancel_token.cancelled().await;
-                tracing::trace!("got shutdown signal");
+                tracing::info!("got shutdown signal");
             }
             .instrument(tracing::Span::current()),
         )

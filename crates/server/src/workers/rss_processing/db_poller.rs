@@ -25,14 +25,20 @@ pub async fn run_db_poller(
     state: SharedAppState,
     tx: watch::Sender<Vec<RssFeedConfig>>,
 ) -> Result<(), RssProcessingError> {
+    tracing::trace!("started");
+
+    tracing::debug!(?INTERVAL_DURATION);
     let mut interval = tokio::time::interval(INTERVAL_DURATION);
+
     let mut last_known_configs: Vec<RssFeedConfig> = vec![];
 
     loop {
         tokio::select! {
-            _ = interval.tick() => {}
+            _ = interval.tick() => {
+                tracing::trace!("next instant in the inteval reached");
+            }
             () = state.cancel_token.cancelled() => {
-                tracing::trace!("got shutdown signal");
+                tracing::info!("got shutdown signal");
                 break;
             }
         }
@@ -41,8 +47,10 @@ pub async fn run_db_poller(
             Ok(configs) => {
                 // Deduplicate broadcasts: only proceed if the database state has actually changed.
                 if configs == last_known_configs {
+                    tracing::trace!("no changes in configs");
                     continue;
                 }
+                tracing::trace!("got changes in configs");
                 configs
             }
             Err(error) => {
