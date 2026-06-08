@@ -32,6 +32,7 @@
     import relative from "dayjs/plugin/relativeTime";
     import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
     import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
+    import SvelteMarkdown from "@humanspeak/svelte-markdown";
 
     dayjs.extend(relative);
 
@@ -186,8 +187,9 @@
                 {#each outputs.data.data as output (output.id)}
                     <TableRow>
                         <TableCell>
+                            {@const source = output.text.slice(0, 250)}
                             <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
-                                {output.text}
+                                <SvelteMarkdown {source} isInline />
                             </p>
                         </TableCell>
                         <TableCell>

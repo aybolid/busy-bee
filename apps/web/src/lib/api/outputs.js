@@ -76,3 +76,27 @@ export async function getOutput(ky, payload) {
 export async function deleteOutput(ky, payload) {
     await ky.delete(`outputs/${payload.params.id}`);
 }
+
+export const updateOutputJsonSchema = z
+    .object({
+        text: z.string().min(1, "Text should not be empty").trim().optional(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof updateOutputJsonSchema>} UpdateOutputJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: OutputId }, json: UpdateOutputJson }} payload Request payload.
+ *
+ * @returns {Promise<Output>}
+ */
+export async function updateOutput(ky, payload) {
+    const json = await ky
+        .patch(`outputs/${payload.params.id}`, {
+            json: updateOutputJsonSchema.parse(payload.json),
+        })
+        .json();
+
+    return unwrapData(outputSchema).parse(json);
+}
