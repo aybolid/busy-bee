@@ -35,7 +35,7 @@ pub async fn run_article_processing(
                 process_article(&state, request).await;
             }
             () = state.cancel_token.cancelled() => {
-                tracing::trace!("got shutdown signal");
+                tracing::info!("got shutdown signal");
                 break;
             }
             else => {

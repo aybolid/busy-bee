@@ -15,7 +15,7 @@ use crate::{
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
 /// rows cannot be decoded into [`RssFeed`] instances.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<Vec<RssFeed>> {
     let query = sqlx::query_as(
         "
@@ -24,7 +24,10 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
         ",
     );
 
-    query.fetch_all(executor).await
+    query
+        .fetch_all(executor)
+        .await
+        .inspect(|_| tracing::trace!("rss feeds fetched from db"))
 }
 
 /// Transitions an RSS feed's status to `healthy`.
@@ -40,7 +43,7 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
 pub async fn mark_rss_feed_as_healthy<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,
@@ -58,7 +61,16 @@ pub async fn mark_rss_feed_as_healthy<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "rss feed marked as healthy"
+            } else {
+                "rss feed to mark as healthy not found"
+            }
+        );
+    })
 }
 
 /// Transitions an RSS feed's status to `error` and records the specific failure reason.
@@ -71,7 +83,7 @@ pub async fn mark_rss_feed_as_healthy<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated(), reason = error_reason.as_str()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = %id.as_hyphenated(), reason = error_reason.as_str()), err(Debug))]
 pub async fn mark_rss_feed_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,
@@ -91,7 +103,16 @@ pub async fn mark_rss_feed_as_error<'c>(
     .bind(error_reason)
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "rss feed marked as error"
+            } else {
+                "rss feed to mark as error not found"
+            }
+        );
+    })
 }
 
 /// Registers a newly submitted RSS feed in the database.
@@ -103,7 +124,7 @@ pub async fn mark_rss_feed_as_error<'c>(
 ///
 /// Returns a [`sqlx::Error`] if the database insert fails (e.g., due to a unique
 /// constraint violation on the URL) or if the returned row fails to decode.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn create_rss_feed<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &Url,
@@ -128,7 +149,10 @@ pub async fn create_rss_feed<'c>(
     .bind(max_concurrent_requests)
     .bind(fetch_interval_seconds);
 
-    query.fetch_one(executor).await
+    query
+        .fetch_one(executor)
+        .await
+        .inspect(|_| tracing::trace!("rss feed created"))
 }
 
 /// Deletes an RSS feed from the database by its unique identifier.
@@ -141,7 +165,7 @@ pub async fn create_rss_feed<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = %id.as_hyphenated()), err(Debug))]
 pub async fn delete_rss_feed_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: RssFeedId,
@@ -155,5 +179,14 @@ pub async fn delete_rss_feed_by_id<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "rss feed deleted"
+            } else {
+                "rss feed to delete not found"
+            }
+        );
+    })
 }

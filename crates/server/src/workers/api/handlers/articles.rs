@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// Retrieves a paginated list of articles.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn get_articles(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
@@ -36,7 +36,7 @@ pub async fn get_articles(
 }
 
 /// Retrieves a specific article by its unique ID.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn get_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -49,7 +49,7 @@ pub async fn get_article(
 }
 
 /// Deletes a specific article by its unique ID.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn delete_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -62,7 +62,7 @@ pub async fn delete_article(
 }
 
 /// Retrieves aggregate statistics across all articles.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn get_article_stats(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -83,7 +83,7 @@ pub struct ProcessArticleJson {
 /// This handler marks the article as pending in the database and dispatches
 /// a request to the background processing worker. If the dispatch fails,
 /// the article is updated with an error state.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn process_article(
     State(state): State<SharedAppState>,
     ReqPath(article_id): ReqPath<ArticleId>,
@@ -99,6 +99,8 @@ pub async fn process_article(
     };
 
     if let Err(error) = state.article_processing_tx.send(request).await {
+        tracing::error!(%error);
+
         articles::mark_article_as_error(
             &state.db_pool,
             article_id,

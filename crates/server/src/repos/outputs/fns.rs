@@ -15,13 +15,23 @@ use crate::{
 ///
 /// * [`Output`] if the record exists.
 /// * [`None`] if no record matches the given ID.
-#[tracing::instrument(skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
 pub async fn get_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
 ) -> sqlx::Result<Option<Output>> {
     let query = sqlx::query_as("SELECT * FROM outputs WHERE id = ?;").bind(id);
-    query.fetch_optional(executor).await
+
+    query.fetch_optional(executor).await.inspect(|output| {
+        tracing::trace!(
+            "{}",
+            if output.is_some() {
+                "output fetched from db"
+            } else {
+                "output not found"
+            }
+        );
+    })
 }
 
 /// Counts the total number of AI outputs stored in the database.
@@ -29,7 +39,7 @@ pub async fn get_output_by_id<'c>(
 /// # Returns
 ///
 /// The total count of outputs as a `usize`.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM outputs;");
@@ -37,6 +47,7 @@ pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
         .fetch_one(executor)
         .await
         .map(|count: i64| count as usize)
+        .inspect(|count| tracing::trace!(count, "got outputs count"))
 }
 
 /// Retrieves a paginated list of AI outputs, ordered by creation date (newest first).
@@ -45,7 +56,7 @@ pub async fn count_outputs<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
 ///
 /// A [`Vec`] containing up to `limit` number of [`Output`] records.
 #[allow(clippy::cast_possible_wrap)]
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn get_outputs<'c>(
     executor: impl DatabaseExecutor<'c>,
     pagination: Pagination,
@@ -56,7 +67,10 @@ pub async fn get_outputs<'c>(
         .bind(limit)
         .bind(offset);
 
-    query.fetch_all(executor).await
+    query
+        .fetch_all(executor)
+        .await
+        .inspect(|_| tracing::trace!("outputs fetched from db"))
 }
 
 /// Persists a newly generated AI output to the database.
@@ -67,7 +81,7 @@ pub async fn get_outputs<'c>(
 /// # Returns
 ///
 /// The [`DatabaseQueryResult`] indicating the success of the insert operation.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn create_output<'c>(
     executor: impl DatabaseExecutor<'c>,
     article_id: ArticleId,
@@ -97,7 +111,10 @@ pub async fn create_output<'c>(
     .bind(model)
     .bind(sqlx::types::Json(usage));
 
-    query.execute(executor).await
+    query
+        .execute(executor)
+        .await
+        .inspect(|_| tracing::trace!("output created"))
 }
 
 /// Deletes an output from the database by its unique identifier.
@@ -110,7 +127,7 @@ pub async fn create_output<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
 pub async fn delete_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
@@ -125,5 +142,14 @@ pub async fn delete_output_by_id<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "output deleted"
+            } else {
+                "output to delete not found"
+            }
+        );
+    })
 }

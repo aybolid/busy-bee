@@ -15,6 +15,7 @@ use crate::{
 };
 
 /// Retrieves a complete list of all configured RSS feeds.
+#[tracing::instrument(skip(state))]
 pub async fn get_rss_feeds(
     State(state): State<SharedAppState>,
 ) -> HandlerResult<impl IntoResponse> {
@@ -32,6 +33,7 @@ pub struct CreateRssFeedJson {
 }
 
 /// Creates a new RSS feed configuration.
+#[tracing::instrument(skip(state))]
 pub async fn create_rss_feed(
     State(state): State<SharedAppState>,
     ReqJson(json): ReqJson<CreateRssFeedJson>,
@@ -61,10 +63,13 @@ pub async fn create_rss_feed(
 }
 
 /// Deletes a specific RSS feed by its unique ID.
+#[tracing::instrument(skip(state))]
 pub async fn delete_rss_feed(
     State(state): State<SharedAppState>,
     ReqPath(rss_feed_id): ReqPath<RssFeedId>,
 ) -> HandlerResult<impl IntoResponse> {
+    tracing::debug!(rss_feed_id = %rss_feed_id.as_hyphenated());
+
     rss_feeds::delete_rss_feed_by_id(&state.db_pool, rss_feed_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("rss feed not found"))?;

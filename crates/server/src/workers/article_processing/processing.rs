@@ -84,7 +84,9 @@ async fn try_process_article(
     let chat_request = prepare_chat_request(request, &article);
     let chat_response = state.ai.exec_chat(chat_request).await?;
 
+    // Avoid partial updates by using DB transaction
     let mut tx = state.db_pool.begin().await?;
+    tracing::trace!("database transaction started");
 
     outputs::create_output(
         &mut *tx,
@@ -101,6 +103,7 @@ async fn try_process_article(
         .ok_or(ProcessArticleError::NotFound)?;
 
     tx.commit().await?;
+    tracing::trace!("database transaction commited");
 
     Ok(())
 }
@@ -116,6 +119,8 @@ fn prepare_chat_request(request: &ProcessingRequest, article: &Article) -> ChatR
         .as_ref()
         .and_then(|context| Message::new(format!("Additional context: {context}")))
     {
+        tracing::trace!("with additional context");
+        tracing::debug!(context_message = context_message.as_str());
         chat_request.push_message(ChatMessage::user(context_message));
     }
 
@@ -142,6 +147,8 @@ fn broadcast_success(state: &SharedAppState) {
         .app_events_broadcaster
         .send_refetch_triggers([RefetchTriggerType::Articles, RefetchTriggerType::Outputs])
         .send_notification(notification);
+
+    tracing::trace!("success broadcasted");
 }
 
 /// Dispatches a failure notification and triggers a data refresh.
@@ -160,4 +167,6 @@ fn broadcast_fail(state: &SharedAppState) {
         .app_events_broadcaster
         .send_refetch_trigger(RefetchTriggerType::Articles)
         .send_notification(notification);
+
+    tracing::trace!("fail broadcasted");
 }

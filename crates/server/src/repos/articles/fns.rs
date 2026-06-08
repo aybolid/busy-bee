@@ -20,7 +20,7 @@ use crate::{
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub async fn get_article_stats<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -38,6 +38,7 @@ pub async fn get_article_stats<'c>(
     );
 
     let row = query.fetch_one(executor).await?;
+    tracing::trace!("got articles stats");
 
     Ok(ArticleStats {
         total: row.0 as usize,
@@ -62,7 +63,7 @@ pub async fn get_article_stats<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
 pub async fn mark_article_as_pending<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -80,7 +81,16 @@ pub async fn mark_article_as_pending<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "article marked as pending"
+            } else {
+                "article to mark not found"
+            }
+        );
+    })
 }
 
 /// Transitions an article's status to `error` and records the specific failure reason.
@@ -93,7 +103,7 @@ pub async fn mark_article_as_pending<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(skip_all, fields(article_id = %id.as_hyphenated(), reason = error_reason.as_str()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(article_id = %id.as_hyphenated(), reason = error_reason.as_str()), err(Debug))]
 pub async fn mark_article_as_error<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -113,7 +123,16 @@ pub async fn mark_article_as_error<'c>(
     .bind(error_reason)
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "article marked as error"
+            } else {
+                "article to mark not found"
+            }
+        );
+    })
 }
 
 /// Transitions an article's status to `processed`.
@@ -129,7 +148,7 @@ pub async fn mark_article_as_error<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update fails.
-#[tracing::instrument(skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
 pub async fn mark_article_as_processed<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -147,7 +166,16 @@ pub async fn mark_article_as_processed<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "article marked as processed"
+            } else {
+                "article to mark not found"
+            }
+        );
+    })
 }
 
 /// Counts the total number of articles stored in the database.
@@ -156,7 +184,7 @@ pub async fn mark_article_as_processed<'c>(
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
     let query = sqlx::query_scalar("SELECT COUNT(*) FROM articles;");
 
@@ -164,6 +192,7 @@ pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Re
         .fetch_one(executor)
         .await
         .map(|count: i64| count as usize)
+        .inspect(|count| tracing::trace!(count, "got articles count"))
 }
 
 /// Retrieves a paginated list of articles.
@@ -174,7 +203,7 @@ pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Re
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
 /// rows cannot be decoded into [`Article`] instances.
-#[tracing::instrument(skip_all, err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 #[allow(clippy::cast_possible_wrap)]
 pub async fn get_articles<'c>(
     executor: impl DatabaseExecutor<'c>,
@@ -192,7 +221,10 @@ pub async fn get_articles<'c>(
     .bind(limit)
     .bind(offset);
 
-    query.fetch_all(executor).await
+    query
+        .fetch_all(executor)
+        .await
+        .inspect(|_| tracing::trace!("articles fetched from db"))
 }
 
 /// Fetches a single article by its unique identifier.
@@ -204,14 +236,23 @@ pub async fn get_articles<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or decoding fails.
-#[tracing::instrument(skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
 pub async fn get_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
 ) -> sqlx::Result<Option<Article>> {
     let query = sqlx::query_as("SELECT * FROM articles WHERE id = ?;").bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|article| {
+        tracing::trace!(
+            "{}",
+            if article.is_some() {
+                "article fetched from db"
+            } else {
+                "article not found"
+            }
+        );
+    })
 }
 
 /// Deletes an article from the database by its unique identifier.
@@ -227,7 +268,7 @@ pub async fn get_article_by_id<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(article_id = %id.as_hyphenated()), err(Debug))]
 pub async fn delete_article_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: ArticleId,
@@ -242,7 +283,16 @@ pub async fn delete_article_by_id<'c>(
     )
     .bind(id);
 
-    query.fetch_optional(executor).await
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "article deleted"
+            } else {
+                "article to delete not found"
+            }
+        );
+    })
 }
 
 /// Performs a bulk insert of multiple articles into the database.
@@ -254,7 +304,7 @@ pub async fn delete_article_by_id<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the batch execution fails.
-#[tracing::instrument(skip_all, fields(rss_feed_id = %rss_feed_id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(rss_feed_id = %rss_feed_id.as_hyphenated()), err(Debug))]
 pub async fn create_articles_bulk<'c>(
     executor: impl DatabaseExecutor<'c>,
     articles: &NonEmpty<Vec<ReadabilityArticle>>,
@@ -296,7 +346,10 @@ pub async fn create_articles_bulk<'c>(
 
     let query = query_builder.build();
 
-    query.execute(executor).await
+    query
+        .execute(executor)
+        .await
+        .inspect(|result| tracing::trace!(count = result.rows_affected(), "articles created"))
 }
 
 /// Checks whether an article with the specified canonical URL already exists.
@@ -308,7 +361,7 @@ pub async fn create_articles_bulk<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(skip_all, fields(url = %url), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(url = %url), err(Debug))]
 pub async fn check_article_exists_by_url<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &str,
@@ -316,5 +369,8 @@ pub async fn check_article_exists_by_url<'c>(
     let query =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM articles WHERE url = ?);").bind(url);
 
-    query.fetch_one(executor).await
+    query
+        .fetch_one(executor)
+        .await
+        .inspect(|exists| tracing::trace!(exists, "checked article by url"))
 }

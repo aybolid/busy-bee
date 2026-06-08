@@ -196,7 +196,6 @@ async fn read_rss_feed_item(
     // Prevent duplicate processing by checking the DB first
     // FIXME: TOCTOU
     if articles::check_article_exists_by_url(&state.app_state.db_pool, &link).await? {
-        tracing::trace!("this article was processed before");
         return Ok(None);
     }
 

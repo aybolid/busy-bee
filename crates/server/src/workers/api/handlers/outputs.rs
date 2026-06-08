@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// Retrieves a paginated list of processing outputs.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn get_outputs(
     State(state): State<SharedAppState>,
     Query(pagination): Query<Pagination>,
@@ -33,7 +33,7 @@ pub async fn get_outputs(
 }
 
 /// Retrieves a specific processing output by its unique ID.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn get_output(
     State(state): State<SharedAppState>,
     ReqPath(output_id): ReqPath<OutputId>,
@@ -46,7 +46,7 @@ pub async fn get_output(
 }
 
 /// Deletes a specific output by its unique ID.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(state))]
 pub async fn delete_output(
     State(state): State<SharedAppState>,
     ReqPath(output_id): ReqPath<OutputId>,
