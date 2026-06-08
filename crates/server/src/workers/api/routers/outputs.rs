@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{delete, get},
+    routing::{delete, get, patch},
 };
 
 use crate::{app::state::SharedAppState, workers::api::handlers::outputs};
@@ -11,7 +11,8 @@ pub fn router() -> Router<SharedAppState> {
         "/{output_id}",
         Router::new()
             .route("/", get(outputs::get_output))
-            .route("/", delete(outputs::delete_output)),
+            .route("/", delete(outputs::delete_output))
+            .route("/", patch(outputs::update_output)),
     );
 
     Router::new().nest("/outputs", router)

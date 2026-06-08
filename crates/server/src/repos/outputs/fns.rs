@@ -15,7 +15,7 @@ use crate::{
 ///
 /// * [`Output`] if the record exists.
 /// * [`None`] if no record matches the given ID.
-#[tracing::instrument(level = "trace", skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn get_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
@@ -127,7 +127,7 @@ pub async fn create_output<'c>(
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(level = "trace", skip_all, fields(output_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn delete_output_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: OutputId,
@@ -149,6 +149,75 @@ pub async fn delete_output_by_id<'c>(
                 "output deleted"
             } else {
                 "output to delete not found"
+            }
+        );
+    })
+}
+
+/// Represents the data required to update an existing AI output.
+///
+/// This struct uses the builder pattern to allow selective updating
+/// of the output's fields.
+#[derive(Debug)]
+pub struct OutputUpdateData<'a> {
+    id: OutputId,
+    text: Option<&'a OutputText>,
+}
+
+impl<'a> OutputUpdateData<'a> {
+    /// Creates a new [`OutputUpdateData`] instance for the specified ID.
+    ///
+    /// By default, no fields are configured for an update.
+    pub fn new(id: OutputId) -> Self {
+        Self { id, text: None }
+    }
+
+    /// Sets the new text for the output record.
+    pub fn text(mut self, text: Option<&'a OutputText>) -> Self {
+        self.text = text;
+        self
+    }
+}
+
+/// Updates an existing output record in the database.
+///
+/// This function applies the changes specified in the [`OutputUpdateData`] payload.
+/// Any fields set to `None` in the payload will retain their current values
+/// in the database using the `COALESCE` sql function.
+///
+/// # Returns
+///
+/// * `Some(Output)` containing the updated record if the update succeeded.
+/// * `None` if no record matching the ID was found.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database update query fails.
+#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
+pub async fn update_output_by_id<'c, 'a>(
+    executor: impl DatabaseExecutor<'c>,
+    data: &OutputUpdateData<'a>,
+) -> sqlx::Result<Option<Output>> {
+    let query = sqlx::query_as(
+        "
+        UPDATE outputs
+        SET
+            text = COALESCE(?, outputs.text)
+        WHERE
+            id = ?
+        RETURNING *;
+        ",
+    )
+    .bind(data.text)
+    .bind(data.id);
+
+    query.fetch_optional(executor).await.inspect(|output| {
+        tracing::trace!(
+            "{}",
+            if output.is_some() {
+                "output updated"
+            } else {
+                "output to update not found"
             }
         );
     })

@@ -8,11 +8,11 @@ use crate::{
     app::state::SharedAppState,
     repos::{
         Pagination,
-        outputs::{self, OutputId},
+        outputs::{self, OutputId, OutputText, OutputUpdateData},
     },
     workers::api::{
         err::{HandlerError, HandlerResult},
-        req::ReqPath,
+        req::{ReqJson, ReqPath},
         resp::{Metadata, data, data_with_meta},
     },
 };
@@ -56,4 +56,26 @@ pub async fn delete_output(
         .ok_or_else(|| HandlerError::not_found("output not found"))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Request JSON containing the data to update an output with.
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateOutputJson {
+    text: Option<OutputText>,
+}
+
+/// Updates a specific output by its unique ID using [`UpdateOutputJson`].
+#[tracing::instrument(skip(state))]
+pub async fn update_output(
+    State(state): State<SharedAppState>,
+    ReqPath(output_id): ReqPath<OutputId>,
+    ReqJson(json): ReqJson<UpdateOutputJson>,
+) -> HandlerResult<impl IntoResponse> {
+    let update_data = OutputUpdateData::new(output_id).text(json.text.as_ref());
+
+    let output = outputs::update_output_by_id(&state.db_pool, &update_data)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("output not found"))?;
+
+    Ok(data(output))
 }

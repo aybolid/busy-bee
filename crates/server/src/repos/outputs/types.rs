@@ -46,7 +46,18 @@ impl OutputId {
 ///
 /// By wrapping `NonEmpty<TrimmedString>`, it guarantees that empty or whitespace-only
 /// outputs cannot be constructed or stored in the database.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, sqlx::Type)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    sqlx::Type,
+)]
 #[sqlx(transparent)]
 pub struct OutputText(pub NonEmpty<TrimmedString>);
 
