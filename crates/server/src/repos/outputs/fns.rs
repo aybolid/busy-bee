@@ -202,7 +202,8 @@ pub async fn update_output_by_id<'c, 'a>(
         "
         UPDATE outputs
         SET
-            text = COALESCE(?, outputs.text)
+            text = COALESCE(?, outputs.text),
+            updated_at = CURRENT_TIMESTAMP
         WHERE
             id = ?
         RETURNING *;

@@ -73,7 +73,8 @@ pub async fn mark_article_as_pending<'c>(
         UPDATE articles
         SET
             status = 'pending',
-            error_reason = NULL
+            error_reason = NULL,
+            updated_at = CURRENT_TIMESTAMP
         WHERE
             id = ? AND status != 'pending'
         RETURNING id;
@@ -114,7 +115,8 @@ pub async fn mark_article_as_error<'c>(
         UPDATE articles
         SET
             status = 'error',
-            error_reason = ?
+            error_reason = ?,
+            updated_at = CURRENT_TIMESTAMP
         WHERE
             id = ?
         RETURNING id;
@@ -158,7 +160,8 @@ pub async fn mark_article_as_processed<'c>(
         UPDATE articles
         SET
             status = 'processed',
-            error_reason = NULL
+            error_reason = NULL,
+            updated_at = CURRENT_TIMESTAMP
         WHERE
             id = ? AND status = 'pending'
         RETURNING id;

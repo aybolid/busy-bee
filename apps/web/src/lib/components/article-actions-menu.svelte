@@ -1,5 +1,5 @@
 <script>
-    import DeleteArticleAlertDialog from "./delete-article-alert-dialog.svelte";
+    import DeleteArticleDialog from "./delete-article-dialog.svelte";
     import ProcessArticleFormDialog from "./process-article-form-dialog.svelte";
     import ExternalLink from "./ui/icons/external-link.svelte";
     import Trash from "./ui/icons/trash.svelte";
@@ -9,8 +9,8 @@
     import MenuLabel from "./ui/menu/menu-label.svelte";
     import Menu from "./ui/menu/menu.svelte";
 
-    /** @type {import('svelte').ComponentProps<typeof Menu> & { article: import('$lib/api/articles').Article, withoutView?: boolean }} */
-    const { article, withoutView = false, ...props } = $props();
+    /** @type {import('svelte').ComponentProps<typeof Menu> & { article: import('$lib/api/articles').Article, withoutView?: boolean, onDelete?: () => Promise<void> | void }} */
+    const { article, withoutView = false, onDelete, ...props } = $props();
 </script>
 
 <Menu {...props}>
@@ -32,14 +32,14 @@
                 </ProcessArticleFormDialog>
             {/if}
             {#if article.status !== "pending"}
-                <DeleteArticleAlertDialog articleId={article.id}>
+                <DeleteArticleDialog articleId={article.id} onSuccess={onDelete}>
                     {#snippet trigger(props)}
                         <MenuActionItem button keepOpen variant="destructive" {...props}>
                             <Trash />
                             <span>Delete</span>
                         </MenuActionItem>
                     {/snippet}
-                </DeleteArticleAlertDialog>
+                </DeleteArticleDialog>
             {/if}
         </MenuGroup>
     </MenuContent>

@@ -12,6 +12,7 @@
     import Popover from "$lib/components/ui/popover/popover.svelte";
     import PopoverContent from "$lib/components/ui/popover/popover-content.svelte";
     import ArticleActionsMenu from "$lib/components/article-actions-menu.svelte";
+    import { goto } from "$app/navigation";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -70,7 +71,7 @@
             {/if}
         </div>
 
-        <ArticleActionsMenu article={article.data} withoutView>
+        <ArticleActionsMenu article={article.data} withoutView onDelete={() => goto("/articles")}>
             {#snippet trigger(props)}
                 <Action button size="sm" variant="outline" {...props}>
                     <EllipsisVertical />

@@ -25,16 +25,6 @@ CREATE TABLE rss_feeds (
   )
 ) WITHOUT ROWID;
 
-CREATE TRIGGER trigger_rss_feeds_updated_at AFTER
-UPDATE ON rss_feeds FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
-UPDATE rss_feeds
-SET
-  updated_at = CURRENT_TIMESTAMP
-WHERE
-  id = NEW.id;
-
-END;
-
 CREATE TABLE articles (
   id BLOB NOT NULL PRIMARY KEY,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,16 +72,6 @@ CREATE TABLE articles (
   )
 ) WITHOUT ROWID;
 
-CREATE TRIGGER trigger_articles_updated_at AFTER
-UPDATE ON articles FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
-UPDATE articles
-SET
-  updated_at = CURRENT_TIMESTAMP
-WHERE
-  id = NEW.id;
-
-END;
-
 CREATE TABLE outputs (
   id BLOB NOT NULL PRIMARY KEY,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -105,13 +85,3 @@ CREATE TABLE outputs (
   model TEXT NOT NULL,
   usage TEXT NOT NULL -- JSON
 ) WITHOUT ROWID;
-
-CREATE TRIGGER trigger_outputs_updated_at AFTER
-UPDATE ON outputs FOR EACH ROW WHEN OLD.updated_at = NEW.updated_at BEGIN
-UPDATE outputs
-SET
-  updated_at = CURRENT_TIMESTAMP
-WHERE
-  id = NEW.id;
-
-END;

@@ -53,7 +53,8 @@ pub async fn mark_rss_feed_as_healthy<'c>(
         UPDATE rss_feeds
         SET
             status = 'healthy',
-            error_reason = NULL
+            error_reason = NULL,
+            updated_at = CURRENT_TIMESTAMP
         WHERE
             id = ?
         RETURNING id;
@@ -94,7 +95,8 @@ pub async fn mark_rss_feed_as_error<'c>(
             UPDATE rss_feeds
             SET
                 status = 'error',
-                error_reason = ?
+                error_reason = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE
                 id = ?
             RETURNING id;
