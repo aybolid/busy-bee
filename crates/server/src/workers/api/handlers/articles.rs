@@ -8,7 +8,7 @@ use crate::{
     app::state::SharedAppState,
     repos::{
         Pagination,
-        articles::{self, ArticleErrorReason, ArticleId},
+        articles::{self, ArticleErrorReason, ArticleId, ArticleIds},
     },
     workers::{
         api::{
@@ -112,4 +112,20 @@ pub async fn process_article(
     } else {
         Ok(StatusCode::ACCEPTED)
     }
+}
+
+/// JSON payload containing IDs of articles to delete.
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkDeleteArticlesJson {
+    ids: ArticleIds,
+}
+
+/// Bulk deletes articles using their IDs.
+pub async fn bulk_delete_articles(
+    State(state): State<SharedAppState>,
+    ReqJson(json): ReqJson<BulkDeleteArticlesJson>,
+) -> HandlerResult<impl IntoResponse> {
+    articles::bulk_delete_articles(&state.db_pool, &json.ids).await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

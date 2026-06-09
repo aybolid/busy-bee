@@ -1,5 +1,5 @@
 use sqlx::QueryBuilder;
-use types::NonEmpty;
+use types::{NonEmpty, NonEmptyMaxLength};
 
 use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
@@ -373,4 +373,55 @@ pub async fn check_article_exists_by_url<'c>(
         .fetch_one(executor)
         .await
         .inspect(|exists| tracing::trace!(exists, "checked article by url"))
+}
+
+/// A validated collection of [`ArticleId`]s used for safe bulk operations.
+///
+/// This struct wraps a standard [`Vec`] but ensures at the type level that the
+/// collection is neither empty nor exceeds a predetermined maximum length
+/// ([`u8::MAX`]).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+pub struct ArticleIds(NonEmptyMaxLength<{ u8::MAX as usize }, Vec<ArticleId>>);
+
+impl std::ops::Deref for ArticleIds {
+    type Target = NonEmptyMaxLength<{ u8::MAX as usize }, Vec<ArticleId>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Performs a bulk deletion of multiple articles by their unique identifiers.
+///
+/// This constructs a single `DELETE` statement with an `IN (?, ?, ...)` clause
+/// using a [`QueryBuilder`]. The operation is protected from bind limit errors
+/// because the `ids` parameter uses the bounded [`ArticleIds`] type.
+///
+/// # Returns
+///
+/// Returns a [`DatabaseQueryResult`] containing execution metadata, such as
+/// the total number of rows actually deleted.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the batch execution fails.
+#[tracing::instrument(level = "trace", skip_all, fields(ids_len = ids.len()), err(Debug))]
+pub async fn bulk_delete_articles<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    ids: &ArticleIds,
+) -> sqlx::Result<DatabaseQueryResult> {
+    let mut query_builder = QueryBuilder::new("DELETE FROM articles WHERE id IN (");
+
+    let mut separated = query_builder.separated(", ");
+    for id in ids.inner() {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(") AND status != 'pending'");
+
+    let query = query_builder.build();
+
+    query
+        .execute(executor)
+        .await
+        .inspect(|result| tracing::trace!(count = result.rows_affected(), "articles deleted"))
 }

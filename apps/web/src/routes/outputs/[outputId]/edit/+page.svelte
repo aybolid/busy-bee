@@ -12,7 +12,7 @@
     import Editor from "$lib/editor/editor.svelte";
     import EditorContent from "$lib/editor/editor-content.svelte";
     import EditorToolbar from "$lib/editor/editor-toolbar.svelte";
-    import { beforeNavigate, goto } from "$app/navigation";
+    import { beforeNavigate } from "$app/navigation";
     import { getGlobalContext } from "$lib/global-context";
     import Spinner from "$lib/components/ui/spinner.svelte";
     import { toaster } from "$lib/components/toaster/store";

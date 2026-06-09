@@ -127,3 +127,23 @@ export async function processArticle(ky, payload) {
         json: processArticleJsonSchema.parse(payload.json),
     });
 }
+
+export const bulkDeleteArticlesJsonSchema = z
+    .object({
+        ids: z.array(articleIdSchema).min(1).max(255),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof bulkDeleteArticlesJsonSchema>} BulkDeleteArticlesJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ json: BulkDeleteArticlesJson }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function bulkDeleteArticles(ky, payload) {
+    await ky.post(`articles/bulk/delete`, {
+        json: bulkDeleteArticlesJsonSchema.parse(payload.json),
+    });
+}

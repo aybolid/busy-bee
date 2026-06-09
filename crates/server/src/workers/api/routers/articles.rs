@@ -16,6 +16,10 @@ pub fn router() -> Router<SharedAppState> {
                 .route("/", get(articles::get_article))
                 .route("/", delete(articles::delete_article))
                 .route("/process", post(articles::process_article)),
+        )
+        .nest(
+            "/bulk",
+            Router::new().route("/delete", post(articles::bulk_delete_articles)),
         );
 
     Router::new().nest("/articles", router)

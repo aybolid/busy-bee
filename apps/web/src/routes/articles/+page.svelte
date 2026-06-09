@@ -48,6 +48,8 @@
     import { getRssFeedsQueryOptions } from "$lib/query/rss-feeds";
     import { toaster } from "$lib/components/toaster/store";
     import ArticleActionsMenu from "$lib/components/article-actions-menu.svelte";
+    import Trash from "$lib/components/ui/icons/trash.svelte";
+    import BulkDeleteArticlesDialog from "$lib/components/bulk-delete-articles-dialog.svelte";
 
     dayjs.extend(relative);
 
@@ -127,6 +129,31 @@
         return () => {
             clearTimeout(refreshTimeout);
         };
+    });
+
+    let selection = /** @type {Array<import('$lib/api/articles').ArticleId>} */ ($state([]));
+
+    const allSelected = $derived.by(() => {
+        if (!articles.data?.data.length || articles.data.data.length === 0) {
+            return false;
+        }
+        return articles.data.data.length === selection.length;
+    });
+
+    /** @type {import('svelte/elements').ChangeEventHandler<HTMLInputElement>} */
+    function toggleAllSelection(e) {
+        if (e.currentTarget.checked) {
+            // Actions are not allowed for pending articles
+            selection =
+                articles.data?.data.filter((a) => a.status !== "pending").map((a) => a.id) ?? [];
+        } else {
+            selection = [];
+        }
+    }
+
+    $effect(() => {
+        articles.dataUpdatedAt;
+        selection = [];
     });
 
     /**
@@ -232,10 +259,45 @@
     {/if}
 </div>
 
+{#if selection.length !== 0}
+    <StickyBar position="top" class="mb-4 w-full justify-between">
+        <Badge variant="ghost">
+            {selection.length} selected
+        </Badge>
+        <div class="flex items-center gap-2">
+            <BulkDeleteArticlesDialog
+                articleIds={selection}
+                onSuccess={() => {
+                    selection = [];
+                }}
+            >
+                {#snippet trigger(props)}
+                    <Action button size="xs" variant="destructive" {...props}>
+                        <Trash />
+                        <span>Delete</span>
+                    </Action>
+                {/snippet}
+            </BulkDeleteArticlesDialog>
+            <Action button size="xs">
+                <span>Process</span>
+            </Action>
+        </div>
+    </StickyBar>
+{/if}
+
 <TableContainer class="mb-8">
     <Table>
         <TableHeader>
             <TableRow>
+                <TableHead class="sticky left-0 bg-muted/80 backdrop-blur-xs">
+                    <div class="grid place-items-center w-6">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onchange={toggleAllSelection}
+                        />
+                    </div>
+                </TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Feed</TableHead>
@@ -251,7 +313,7 @@
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 10}
+            {@const colspan = 11}
 
             {#if articles.isPending}
                 <TableRow>
@@ -286,6 +348,16 @@
                     {@const feedUrl = feed ? new URL(feed.url) : null}
 
                     <TableRow>
+                        <TableCell class="sticky left-0 bg-background/80 backdrop-blur-xs">
+                            <div class="grid place-items-center">
+                                <input
+                                    type="checkbox"
+                                    bind:group={selection}
+                                    value={article.id}
+                                    disabled={article.status === "pending"}
+                                />
+                            </div>
+                        </TableCell>
                         <TableCell>
                             <Action anchor href="/articles/{article.id}" variant="link">
                                 {#if article.favicon}

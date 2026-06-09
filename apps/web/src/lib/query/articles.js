@@ -1,4 +1,5 @@
 import {
+    bulkDeleteArticles,
     deleteArticle,
     getArticle,
     getArticles,
@@ -76,6 +77,18 @@ export function createProcessArticleMutation() {
 
     return createMutation(() => ({
         mutationKey: ["articles", "process"],
+        mutationFn,
+    }));
+}
+
+export function createBulkDeleteArticlesMutation() {
+    /** @param {Parameters<typeof bulkDeleteArticles>} args */
+    async function mutationFn(args) {
+        return bulkDeleteArticles(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["articles", "bulk", "delete"],
         mutationFn,
     }));
 }
