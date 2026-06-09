@@ -15,7 +15,7 @@ use crate::{
     app::state::SharedAppState,
     workers::api::{
         handlers::{handle_panic, not_found},
-        routers::{articles, notifications, outputs, rss_feeds},
+        routers::{articles, notifications, outputs, rss_feeds, system_prompts},
     },
 };
 
@@ -57,7 +57,8 @@ fn create_api_router(state: SharedAppState) -> Router {
         .merge(notifications::router())
         .merge(rss_feeds::router())
         .merge(articles::router())
-        .merge(outputs::router());
+        .merge(outputs::router())
+        .merge(system_prompts::router());
 
     let global_middleware = (
         SetRequestIdLayer::new(X_REQUEST_ID, MakeRequestUuid),

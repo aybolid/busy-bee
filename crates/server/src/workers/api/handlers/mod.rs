@@ -7,6 +7,7 @@ pub mod articles;
 pub mod notifications;
 pub mod outputs;
 pub mod rss_feeds;
+pub mod system_prompts;
 
 /// 404 fallback handler.
 #[allow(clippy::unused_async)]

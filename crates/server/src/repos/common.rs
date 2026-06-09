@@ -1,4 +1,4 @@
-use std::num::NonZeroU8;
+use std::num::{NonZeroU8, NonZeroU32};
 
 /// Defines pagination parameters for querying collections of items.
 #[derive(serde::Deserialize, Debug, Clone, Copy)]
@@ -26,5 +26,30 @@ impl Pagination {
             self.limit,
             (self.page_index * usize::from(self.limit.get())) as i64,
         )
+    }
+}
+
+/// Number used for data versioning in the database.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    sqlx::Type,
+)]
+#[sqlx(transparent)]
+pub struct VersionNumber(pub NonZeroU32);
+
+impl std::ops::Deref for VersionNumber {
+    type Target = NonZeroU32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
