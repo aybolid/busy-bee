@@ -1,6 +1,7 @@
 import z from "zod";
 import { articleIdSchema } from "./articles";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
+import { NUMBER_FORMAT } from "$lib/constants";
 
 const outputIdSchema = z.uuidv7().brand("outputId");
 
@@ -12,7 +13,15 @@ const usageSchema = z
         completion_tokens: z.int(),
         total_tokens: z.int(),
     })
-    .strict();
+
+    .strict()
+    .transform((data) => ({
+        ...data,
+        formattedPromptTokens: () => NUMBER_FORMAT.format(data.prompt_tokens),
+        formattedCompletionTokens: () => NUMBER_FORMAT.format(data.completion_tokens),
+        formattedTotalTokens: () => NUMBER_FORMAT.format(data.total_tokens),
+    }))
+    .readonly();
 
 /** @typedef {z.infer<typeof usageSchema>} Usage */
 
@@ -27,7 +36,8 @@ const outputSchema = z
         model: z.string(),
         usage: usageSchema,
     })
-    .strict();
+    .strict()
+    .readonly();
 
 /** @typedef {z.infer<typeof outputSchema>} Output */
 

@@ -1,6 +1,7 @@
 import z from "zod";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
 import { rssFeedIdSchema } from "./rss-feeds";
+import { NUMBER_FORMAT } from "$lib/constants";
 
 export const articleIdSchema = z.uuidv7().brand("articleId");
 
@@ -31,24 +32,39 @@ const baseArticleSchema = {
     url: z.url(),
 };
 
-const articleSchema = z.discriminatedUnion("status", [
-    z
-        .object({ ...baseArticleSchema, status: z.literal("error"), error_reason: z.string() })
-        .strict(),
-    z.object({ ...baseArticleSchema, status: z.enum(["new", "pending", "processed"]) }).strict(),
-]);
+const articleSchema = z
+    .discriminatedUnion("status", [
+        z
+            .object({ ...baseArticleSchema, status: z.literal("error"), error_reason: z.string() })
+            .strict(),
+        z
+            .object({ ...baseArticleSchema, status: z.enum(["new", "pending", "processed"]) })
+            .strict(),
+    ])
+    .readonly();
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
 /** @typedef {Article['status']} ArticleStatus */
 
-const articleStatsSchema = z.object({
-    total: z.int().nonnegative(),
-    new: z.int().nonnegative(),
-    pending: z.int().nonnegative(),
-    processed: z.int().nonnegative(),
-    error: z.int().nonnegative(),
-});
+const articleStatsSchema = z
+    .object({
+        total: z.int().nonnegative(),
+        new: z.int().nonnegative(),
+        pending: z.int().nonnegative(),
+        processed: z.int().nonnegative(),
+        error: z.int().nonnegative(),
+    })
+    .strict()
+    .transform((data) => ({
+        ...data,
+        formattedTotal: () => NUMBER_FORMAT.format(data.total),
+        formattedNew: () => NUMBER_FORMAT.format(data.new),
+        formattedPending: () => NUMBER_FORMAT.format(data.pending),
+        formattedProcessed: () => NUMBER_FORMAT.format(data.processed),
+        formattedError: () => NUMBER_FORMAT.format(data.error),
+    }))
+    .readonly();
 
 /** @typedef {z.infer<typeof articleStatsSchema>} ArticleStats */
 

@@ -1,7 +1,3 @@
-<script module>
-    const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
-</script>
-
 <script>
     import ArticleStatus from "$lib/components/article-status.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
@@ -220,6 +216,7 @@
         {#snippet li(
             /** @type {import('$lib/api/articles').ArticleStatus} */ status,
             /** @type {number} */ count,
+            /** @type {string} */ formattedCount,
             /** @type {string} */ description,
         )}
             {@const value = (count / total) * 100}
@@ -228,7 +225,7 @@
                     <ArticleStatus {status} />
                     <div class="font-semibold text-nowrap tabular-nums">
                         <span>
-                            {NUMBER_FORMAT.format(count)}
+                            {formattedCount}
                         </span>
                         <span class="text-xs font-normal text-muted-foreground">/{total}</span>
                     </div>
@@ -243,16 +240,28 @@
         {/snippet}
 
         <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {@render li("new", articleStats.data.new, "Newly added articles")}
-            {@render li("pending", articleStats.data.pending, "Articles that are being processed")}
+            {@render li(
+                "new",
+                articleStats.data.new,
+                articleStats.data.formattedNew(),
+                "Newly added articles",
+            )}
+            {@render li(
+                "pending",
+                articleStats.data.pending,
+                articleStats.data.formattedPending(),
+                "Articles that are being processed",
+            )}
             {@render li(
                 "processed",
                 articleStats.data.processed,
+                articleStats.data.formattedProcessed(),
                 "Articles that were processed at least once",
             )}
             {@render li(
                 "error",
                 articleStats.data.error,
+                articleStats.data.formattedError(),
                 "Something went wrong during latest processing",
             )}
         </ul>
@@ -345,7 +354,7 @@
 
                 {#each articles.data.data as article (article.id)}
                     {@const feed = feedsMap[article.rss_feed_id]}
-                    {@const feedUrl = feed ? new URL(feed.url) : null}
+                    {@const feedUrl = feed?.parsedUrl()}
 
                     <TableRow>
                         <TableCell class="sticky left-0 bg-background/80 backdrop-blur-xs">

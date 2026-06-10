@@ -1,7 +1,3 @@
-<script module>
-    const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
-</script>
-
 <script>
     import Badge from "./ui/badge.svelte";
     import DialogContent from "./ui/dialog/dialog-content.svelte";
@@ -34,12 +30,12 @@
         </DialogHeader>
 
         <ul class="flex flex-col gap-1">
-            {@render li("Prompt", usage.prompt_tokens)}
-            {@render li("Completion", usage.completion_tokens)}
+            {@render li("Prompt", usage.formattedPromptTokens())}
+            {@render li("Completion", usage.formattedCompletionTokens())}
         </ul>
 
         <div class="text-end text-xs text-muted-foreground">
-            Total used: {NUMBER_FORMAT.format(usage.total_tokens)} tokens
+            Total used: {usage.formattedTotalTokens()} tokens
         </div>
 
         <DialogFooter>
@@ -48,13 +44,12 @@
     </DialogContent>
 </Dialog>
 
-{#snippet li(/** @type {string} */ label, /** @type {number} */ tokens)}
-    {@const formatted = NUMBER_FORMAT.format(tokens)}
+{#snippet li(/** @type {string} */ label, /** @type {string} */ formattedTokens)}
     <li class="flex items-baseline justify-between gap-2">
         <span class="text-muted-foreground">{label}</span>
         <Badge variant="outline">
             <code>
-                {formatted}
+                {formattedTokens}
             </code>
         </Badge>
     </li>

@@ -1,7 +1,3 @@
-<script module>
-    const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
-</script>
-
 <script>
     import { createQuery } from "@tanstack/svelte-query";
     import { getRssFeedsQueryOptions } from "$lib/query/rss-feeds";
@@ -86,7 +82,7 @@
     {:else}
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {#each feeds.data as feed (feed.id)}
-                {@const url = new URL(feed.url)}
+                {@const url = feed.parsedUrl()}
                 <Card class={cn(feed.status === "error" && "ring-2 ring-destructive/30")}>
                     <CardHeader>
                         <div class="flex items-baseline gap-2">
@@ -99,13 +95,13 @@
                             <li class="flex items-baseline justify-between gap-4">
                                 <span class="text-muted-foreground">Max concurrency</span>
                                 <Badge variant="secondary">
-                                    {NUMBER_FORMAT.format(feed.max_concurrent_requests)}
+                                    {feed.formattedMaxConcurrentRequests()}
                                 </Badge>
                             </li>
                             <li class="flex items-baseline justify-between gap-4">
                                 <span class="text-muted-foreground">Fetch interval</span>
                                 <Badge variant="secondary">
-                                    {NUMBER_FORMAT.format(feed.fetch_interval_seconds)}s
+                                    {feed.formattedFetchIntervalSeconds()}
                                 </Badge>
                             </li>
                         </ul>

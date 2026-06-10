@@ -39,6 +39,7 @@
             <nav class="flex gap-2">
                 <Action anchor href="/" variant="link">RSS feeds</Action>
                 <Action anchor href="/articles" variant="link">Articles</Action>
+                <Action anchor href="/prompts" variant="link">Prompts</Action>
                 <Action anchor href="/outputs" variant="link">Outputs</Action>
             </nav>
         </header>

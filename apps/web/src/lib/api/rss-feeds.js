@@ -1,5 +1,6 @@
 import z from "zod";
 import { unwrapData } from "./common";
+import { NUMBER_FORMAT } from "$lib/constants";
 
 export const rssFeedIdSchema = z.uuidv7().brand("rssFeedId");
 
@@ -15,12 +16,21 @@ const baseRssFeedSchema = {
     fetch_interval_seconds: z.int().positive(),
 };
 
-const rssFeedSchema = z.discriminatedUnion("status", [
-    z.object({ ...baseRssFeedSchema, status: z.enum(["healthy", "new"]) }).strict(),
-    z
-        .object({ ...baseRssFeedSchema, status: z.literal("error"), error_reason: z.string() })
-        .strict(),
-]);
+const rssFeedSchema = z
+    .discriminatedUnion("status", [
+        z.object({ ...baseRssFeedSchema, status: z.enum(["healthy", "new"]) }).strict(),
+        z
+            .object({ ...baseRssFeedSchema, status: z.literal("error"), error_reason: z.string() })
+            .strict(),
+    ])
+    .transform((data) => ({
+        ...data,
+        parsedUrl: () => new URL(data.url),
+        formattedMaxConcurrentRequests: () => NUMBER_FORMAT.format(data.max_concurrent_requests),
+        formattedFetchIntervalSeconds: () =>
+            NUMBER_FORMAT.format(data.fetch_interval_seconds) + "s",
+    }))
+    .readonly();
 
 /** @typedef {z.infer<typeof rssFeedSchema>} RssFeed */
 
