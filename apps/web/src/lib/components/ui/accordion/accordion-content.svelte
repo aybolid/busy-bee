@@ -18,10 +18,7 @@
         {...props}
         data-slot="accordion-content"
         transition:slide={{ duration: 100 }}
-        class={cn(
-            "overflow-hidden pt-0 pb-2.5 text-sm [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
-            props.class,
-        )}
+        class={cn("overflow-hidden pt-0 pb-2.5 text-sm [&_p:not(:last-child)]:mb-4", props.class)}
     >
         {@render children?.()}
     </div>

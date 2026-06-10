@@ -1,4 +1,5 @@
 import z from "zod";
+import { unwrapData } from "./common";
 
 export const systemPromptIdSchema = z.uuidv7().brand("systemPromptId");
 
@@ -21,3 +22,26 @@ export const systemPromptSchema = z
     .readonly();
 
 /** @typedef {z.infer<typeof systemPromptSchema>} SystemPrompt */
+
+export const createSystemPromptJsonSchema = z
+    .object({
+        title: z.string().trim().min(1).max(255),
+        text: z.string().trim().min(1),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof createSystemPromptJsonSchema>} CreateSystemPromptJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ json: CreateSystemPromptJson }} payload Request payload.
+ *
+ * @returns {Promise<SystemPrompt>}
+ */
+export async function createSystemPrompt(ky, payload) {
+    const json = await ky.post(`system_prompts`, {
+        json: createSystemPromptJsonSchema.parse(payload.json),
+    });
+
+    return unwrapData(systemPromptSchema).parse(json);
+}

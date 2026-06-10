@@ -2,9 +2,6 @@
     import { toaster } from "./store";
     import Toast from "./toast.svelte";
 
-    /** @type {{ children: import('svelte').Snippet }} */
-    const { children } = $props();
-
     /** @type {HTMLDivElement} */
     let container;
 
@@ -24,8 +21,6 @@
         }
     });
 </script>
-
-{@render children()}
 
 <div
     bind:this={container}

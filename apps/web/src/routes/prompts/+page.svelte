@@ -5,6 +5,8 @@
     import AccordionTrigger from "$lib/components/ui/accordion/accordion-trigger.svelte";
     import AccordionContent from "$lib/components/ui/accordion/accordion-content.svelte";
     import AccordionChevron from "$lib/components/ui/accordion/accordion-chevron.svelte";
+    import Action from "$lib/components/ui/action.svelte";
+    import Plus from "$lib/components/ui/icons/plus.svelte";
 
     // /** @type {import('./$types').PageProps} */
     // const props = $props();
@@ -22,7 +24,14 @@
                 <AccordionChevron />
             </AccordionTrigger>
         </AccordionHeader>
-        <AccordionContent class="p-4"></AccordionContent>
+        <AccordionContent class="p-4">
+            <div class="flex justify-end">
+                <Action anchor href="/prompts/new/system">
+                    <Plus />
+                    <span>System prompt</span>
+                </Action>
+            </div>
+        </AccordionContent>
     </AccordionItem>
     <AccordionItem>
         <AccordionHeader>

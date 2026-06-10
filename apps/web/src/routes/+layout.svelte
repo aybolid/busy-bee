@@ -34,21 +34,21 @@
 </svelte:head>
 
 <QueryClientProvider client={data.queryClient}>
-    <Toaster>
-        <header class="mx-auto max-w-7xl px-4 pt-16">
-            <nav class="flex gap-2">
-                <Action anchor href="/" variant="link">RSS feeds</Action>
-                <Action anchor href="/articles" variant="link">Articles</Action>
-                <Action anchor href="/prompts" variant="link">Prompts</Action>
-                <Action anchor href="/outputs" variant="link">Outputs</Action>
-            </nav>
-        </header>
+    <header class="mx-auto max-w-7xl px-4 pt-16">
+        <nav class="flex gap-2">
+            <Action anchor href="/" variant="link">RSS feeds</Action>
+            <Action anchor href="/articles" variant="link">Articles</Action>
+            <Action anchor href="/prompts" variant="link">Prompts</Action>
+            <Action anchor href="/outputs" variant="link">Outputs</Action>
+        </nav>
+    </header>
 
-        <main class="mx-auto max-w-7xl px-4 py-8">
-            {@render children()}
-        </main>
+    <main class="mx-auto max-w-7xl px-4 py-8">
+        {@render children()}
+    </main>
 
-        <footer class="mx-auto max-w-7xl px-4 pb-16"></footer>
-    </Toaster>
+    <footer class="mx-auto max-w-7xl px-4 pb-16"></footer>
+
+    <Toaster />
     <SvelteQueryDevtools />
 </QueryClientProvider>

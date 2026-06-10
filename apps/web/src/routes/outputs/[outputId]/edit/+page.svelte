@@ -18,6 +18,12 @@
     import { toaster } from "$lib/components/toaster/store";
     import { getApiError } from "$lib/api/error";
     import { isHTTPError } from "ky";
+    import { createForm } from "@tanstack/svelte-form";
+    import z from "zod";
+    import { updateOutputJsonSchema } from "$lib/api/outputs";
+    import FieldGroup from "$lib/components/ui/field/field-group.svelte";
+    import Field from "$lib/components/ui/field/field.svelte";
+    import FieldError from "$lib/components/ui/field/field-error.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -45,39 +51,6 @@
         }
     }
 
-    const updateMutation = createUpdateOutputMutation();
-
-    function updateOutput() {
-        const text = editorInstance.getMarkdown();
-        if (text.trim().length === 0) {
-            toaster.push("Output text should no be empty", { props: { variant: "destructive" } });
-            return;
-        }
-
-        updateMutation.mutate([props.data.ky, { params: { id: outputId }, json: { text } }], {
-            onError: (err) => {
-                let description = err.message;
-
-                if (isHTTPError(err)) {
-                    const apiError = getApiError(err);
-                    if (apiError) {
-                        description = apiError.message;
-                    }
-                }
-
-                toaster.push("Failed to save changes", {
-                    description,
-                    props: { variant: "destructive" },
-                });
-            },
-            onSuccess: () => {
-                toaster.push("Changes saved");
-                isDirty = false;
-                void invalidateOutputsQueries(queryClient);
-            },
-        });
-    }
-
     beforeNavigate(({ cancel }) => {
         if (isDirty) {
             const shouldLeave = confirm(
@@ -88,6 +61,54 @@
             }
         }
     });
+
+    const updateMutation = createUpdateOutputMutation();
+
+    const form = createForm(() => ({
+        defaultValues: {
+            text: "",
+        },
+        validators: {
+            onSubmit: z.object({
+                text: updateOutputJsonSchema.shape.text.nonoptional(),
+            }),
+        },
+        onSubmit: async ({ value, formApi }) => {
+            await updateMutation.mutateAsync(
+                [props.data.ky, { params: { id: outputId }, json: { text: value.text } }],
+                {
+                    onError: (err) => {
+                        let description = err.message;
+
+                        if (isHTTPError(err)) {
+                            const apiError = getApiError(err);
+
+                            if (apiError) {
+                                if (apiError.kind === "validation") {
+                                    formApi.setErrorMap({
+                                        onSubmit: { fields: { text: apiError } },
+                                    });
+                                    return;
+                                }
+
+                                description = apiError.message;
+                            }
+                        }
+
+                        toaster.push("Failed to save changes", {
+                            description,
+                            props: { variant: "destructive" },
+                        });
+                    },
+                    onSuccess: () => {
+                        toaster.push("Changes saved");
+                        isDirty = false;
+                        void invalidateOutputsQueries(queryClient);
+                    },
+                },
+            );
+        },
+    }));
 </script>
 
 <svelte:window onbeforeunload={handleBeforeUnload} />
@@ -97,32 +118,60 @@
 {:else if output.isError}
     <ErrorAlert error={output.error} />
 {:else if output.isSuccess}
-    <div class="space-y-8">
-        <Editor
-            options={{
-                content: output.data.text,
-                editorProps: { attributes: { class: "focus:outline-none" } },
-                onCreate: ({ editor }) => {
-                    initalDoc = editor.state.doc;
-                    editorInstance = editor;
-                },
-                onUpdate: ({ editor }) => (isDirty = !editor.state.doc.eq(initalDoc)),
-            }}
-        >
-            {#snippet children({ editor })}
-                <EditorToolbar {editor} position="top" class="z-20" />
-                <EditorContent {editor} class="mx-auto prose max-w-4xl prose-app" />
-            {/snippet}
-        </Editor>
+    <form
+        class="space-y-8"
+        onsubmit={(e) => {
+            e.preventDefault();
+            form.setFieldValue("text", editorInstance.getMarkdown());
+            form.handleSubmit();
+        }}
+    >
+        <FieldGroup>
+            <form.Field name="text">
+                {#snippet children(field)}
+                    {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
+                    <Field data-invalid={isInvalid}>
+                        <Editor
+                            options={{
+                                content: output.data.text,
+                                onBlur: field.handleBlur,
+                                editorProps: {
+                                    attributes: {
+                                        id: field.name,
+                                        name: field.name,
+                                    },
+                                },
+                                onCreate: ({ editor }) => {
+                                    initalDoc = editor.state.doc;
+                                    editorInstance = editor;
+                                },
+                                onUpdate: ({ editor }) =>
+                                    (isDirty = !editor.state.doc.eq(initalDoc)),
+                            }}
+                        >
+                            {#snippet children({ editor })}
+                                <EditorContent {editor} aria-invalid={isInvalid}>
+                                    <EditorToolbar {editor} position="top" class="z-20 w-full" />
+                                </EditorContent>
+                            {/snippet}
+                        </Editor>
+
+                        {#if isInvalid}
+                            <FieldError errors={field.state.meta.errors} />
+                        {/if}
+                    </Field>
+                {/snippet}
+            </form.Field>
+        </FieldGroup>
 
         <StickyBar class="gap-2">
             <Action anchor variant="outline" href="/outputs/{outputId}">Cancel</Action>
-            <Action button disabled={!isDirty || updateMutation.isPending} onclick={updateOutput}>
-                {#if updateMutation.isPending}
+            <Action button type="submit" disabled={!isDirty || form.state.isSubmitting}>
+                {#if form.state.isSubmitting}
                     <Spinner />
                 {/if}
                 <span>Save</span>
             </Action>
         </StickyBar>
-    </div>
+    </form>
 {/if}

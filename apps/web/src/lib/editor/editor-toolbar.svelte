@@ -105,9 +105,7 @@
         {/each}
     </div>
 
-    <Separator orientation="vertical" />
-
-    <div>
+    <div class="ml-auto">
         <Action
             button
             size="icon"
