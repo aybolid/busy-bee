@@ -150,7 +150,12 @@
                                 initalDoc = editor.state.doc;
                                 editorInstance = editor;
                             },
-                            onUpdate: ({ editor }) => (isDirty = !editor.state.doc.eq(initalDoc)),
+                            onUpdate: ({ editor }) => {
+                                // It is possible that editor was not inited yet
+                                if (initalDoc) {
+                                    isDirty = !editor.state.doc.eq(initalDoc);
+                                }
+                            },
                         }}
                     >
                         {#snippet children({ editor })}
