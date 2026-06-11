@@ -47,3 +47,14 @@ export async function createSystemPrompt(ky, payload) {
 
     return unwrapData(systemPromptSchema).parse(json);
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ *
+ * @returns {Promise<Array<SystemPrompt>>}
+ */
+export async function getSystemPrompts(ky) {
+    const json = await ky.get(`system_prompts`).json();
+
+    return unwrapData(z.array(systemPromptSchema)).parse(json);
+}

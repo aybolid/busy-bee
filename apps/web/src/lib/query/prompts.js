@@ -1,5 +1,5 @@
-import { createSystemPrompt } from "$lib/api/prompts";
-import { createMutation } from "@tanstack/svelte-query";
+import { createSystemPrompt, getSystemPrompts } from "$lib/api/prompts";
+import { createMutation, queryOptions } from "@tanstack/svelte-query";
 
 export function createCreateSystemPromptMutation() {
     /** @param {Parameters<typeof createSystemPrompt>} args */
@@ -11,6 +11,16 @@ export function createCreateSystemPromptMutation() {
         mutationKey: ["system_prompts", "create"],
         mutationFn,
     }));
+}
+
+/**
+ * @param {Parameters<typeof getSystemPrompts>} args `getSystemPrompts` function arguments.
+ */
+export function getSystemPromptsQueryOptions(...args) {
+    return queryOptions({
+        queryKey: ["system_prompts"],
+        queryFn: () => getSystemPrompts(...args),
+    });
 }
 
 /**
