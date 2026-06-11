@@ -13,7 +13,7 @@ pub struct CreateSystemPromptJson {
     text: SystemPromptText,
 }
 
-/// Creates a new RSS feed configuration.
+/// Creates a new system prompt.
 #[tracing::instrument(skip(state))]
 pub async fn create_system_prompt(
     State(state): State<SharedAppState>,
@@ -23,4 +23,14 @@ pub async fn create_system_prompt(
         system_prompts::create_system_prompt(&state.db_pool, &json.title, &json.text).await?;
 
     Ok(data(prompt))
+}
+
+/// Retrieves a complete list of all system prompts.
+#[tracing::instrument(skip(state))]
+pub async fn get_system_prompts(
+    State(state): State<SharedAppState>,
+) -> HandlerResult<impl IntoResponse> {
+    let prompts = system_prompts::get_system_prompts(&state.db_pool).await?;
+
+    Ok(data(prompts))
 }

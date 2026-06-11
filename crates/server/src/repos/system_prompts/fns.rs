@@ -34,3 +34,28 @@ pub async fn create_system_prompt<'c>(
         .await
         .inspect(|_| tracing::trace!("system prompt created"))
 }
+
+/// Retrieves all system prompts from the database.
+///
+/// The returned prompts are ordered chronologically by their creation time ([`SystemPrompt::created_at`]).
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database query fails or if the resulting
+/// rows cannot be decoded into [`SystemPrompt`] instances.
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
+pub async fn get_system_prompts<'c>(
+    executor: impl DatabaseExecutor<'c>,
+) -> sqlx::Result<Vec<SystemPrompt>> {
+    let query = sqlx::query_as(
+        "
+        SELECT * FROM system_prompts
+        ORDER BY created_at;
+        ",
+    );
+
+    query
+        .fetch_all(executor)
+        .await
+        .inspect(|_| tracing::trace!("system prompts fetched from db"))
+}
