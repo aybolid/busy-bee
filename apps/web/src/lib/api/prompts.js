@@ -39,9 +39,11 @@ export const createSystemPromptJsonSchema = z
  * @returns {Promise<SystemPrompt>}
  */
 export async function createSystemPrompt(ky, payload) {
-    const json = await ky.post(`system_prompts`, {
-        json: createSystemPromptJsonSchema.parse(payload.json),
-    });
+    const json = await ky
+        .post(`system_prompts`, {
+            json: createSystemPromptJsonSchema.parse(payload.json),
+        })
+        .json();
 
     return unwrapData(systemPromptSchema).parse(json);
 }

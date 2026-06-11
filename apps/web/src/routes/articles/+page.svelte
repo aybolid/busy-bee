@@ -269,7 +269,7 @@
 </div>
 
 {#if selection.length !== 0}
-    <StickyBar position="top" class="mb-4 w-full justify-between">
+    <StickyBar position="top" class="mb-4 w-full justify-between" transition>
         <Badge variant="ghost">
             {selection.length} selected
         </Badge>

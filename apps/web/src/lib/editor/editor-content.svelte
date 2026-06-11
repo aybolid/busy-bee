@@ -28,5 +28,13 @@
         .tiptap:focus {
             outline: none;
         }
+
+        .tiptap p.is-editor-empty:first-child::before {
+            color: var(--color-muted-foreground);
+            content: attr(data-placeholder);
+            float: left;
+            height: 0;
+            pointer-events: none;
+        }
     }
 </style>

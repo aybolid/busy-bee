@@ -16,7 +16,7 @@ pub async fn create_system_prompt<'c>(
 ) -> sqlx::Result<SystemPrompt> {
     let query = sqlx::query_as(
         "
-        INSERT INTO rss_feeds (
+        INSERT INTO system_prompts (
             id,
             title,
             text

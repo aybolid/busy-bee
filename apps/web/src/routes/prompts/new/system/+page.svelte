@@ -4,7 +4,7 @@
     import Editor from "$lib/editor/editor.svelte";
     import EditorContent from "$lib/editor/editor-content.svelte";
     import EditorToolbar from "$lib/editor/editor-toolbar.svelte";
-    import { beforeNavigate } from "$app/navigation";
+    import { beforeNavigate, goto } from "$app/navigation";
     import Input from "$lib/components/ui/input.svelte";
     import FieldGroup from "$lib/components/ui/field/field-group.svelte";
     import { createForm } from "@tanstack/svelte-form";
@@ -12,9 +12,18 @@
     import FieldLabel from "$lib/components/ui/field/field-label.svelte";
     import FieldError from "$lib/components/ui/field/field-error.svelte";
     import { createSystemPromptJsonSchema } from "$lib/api/prompts";
+    import {
+        createCreateSystemPromptMutation,
+        invalidateSystemPromptsQueries,
+    } from "$lib/query/prompts";
+    import { toaster } from "$lib/components/toaster/store";
+    import { isHTTPError } from "ky";
+    import { getApiError } from "$lib/api/error";
+    import Spinner from "$lib/components/ui/spinner.svelte";
+    import Plus from "$lib/components/ui/icons/plus.svelte";
 
-    // /** @type {import('./$types').PageProps} */
-    // const props = $props();
+    /** @type {import('./$types').PageProps} */
+    const props = $props();
 
     /** @type {import('@tiptap/core').Editor} */
     let editorInstance;
@@ -41,9 +50,7 @@
         }
     });
 
-    function createSystemPrompt() {
-        console.log(editorInstance.getMarkdown());
-    }
+    const createMutation = createCreateSystemPromptMutation();
 
     const form = createForm(() => ({
         defaultValues: {
@@ -51,6 +58,39 @@
             text: "",
         },
         validators: { onSubmit: createSystemPromptJsonSchema },
+        onSubmit: async ({ value, formApi }) => {
+            await createMutation.mutateAsync(
+                [props.data.ky, { json: { text: value.text, title: value.title } }],
+                {
+                    onSuccess: async () => {
+                        isDirty = false;
+                        await goto("/prompts");
+                        void invalidateSystemPromptsQueries(props.data.queryClient);
+                    },
+                    onError: (err) => {
+                        let description = err.message;
+
+                        if (isHTTPError(err)) {
+                            const apiError = getApiError(err);
+                            if (apiError) {
+                                if (apiError.kind === "validation" && apiError.source) {
+                                    formApi.setErrorMap({
+                                        onSubmit: { fields: { [apiError.source]: apiError } },
+                                    });
+                                    return;
+                                }
+                                description = apiError.message;
+                            }
+                        }
+
+                        toaster.push("Failed to create system prompt", {
+                            description,
+                            props: { variant: "destructive" },
+                        });
+                    },
+                },
+            );
+        },
     }));
 </script>
 
@@ -130,10 +170,12 @@
 
     <StickyBar class="gap-2">
         <Action anchor variant="outline" href="/prompts">Cancel</Action>
-        <Action button type="submit" onclick={createSystemPrompt}>
-            <!-- {#if updateMutation.isPending}
+        <Action button type="submit" disabled={!isDirty || form.state.isSubmitting}>
+            {#if form.state.isSubmitting}
                 <Spinner />
-            {/if} -->
+            {:else}
+                <Plus />
+            {/if}
             <span>Create</span>
         </Action>
     </StickyBar>
