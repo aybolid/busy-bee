@@ -20,7 +20,7 @@ pub async fn get_rss_feeds<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Res
     let query = sqlx::query_as(
         "
         SELECT * FROM rss_feeds
-        ORDER BY created_at;
+        ORDER BY created_at DESC;
         ",
     );
 

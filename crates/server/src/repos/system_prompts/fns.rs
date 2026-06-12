@@ -50,7 +50,7 @@ pub async fn get_system_prompts<'c>(
     let query = sqlx::query_as(
         "
         SELECT * FROM system_prompts
-        ORDER BY created_at;
+        ORDER BY created_at DESC;
         ",
     );
 
