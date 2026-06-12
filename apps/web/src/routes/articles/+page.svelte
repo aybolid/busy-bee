@@ -418,7 +418,7 @@
                         <TableCell>
                             {#if article.published_time}
                                 <Badge variant="secondary">
-                                    {dayjs(article.published_time).format("MMM DD, YYYY, HH:mm")}
+                                    {article.formattedPublishedTime()}
                                 </Badge>
                             {:else}
                                 <span class="text-muted-foreground">--</span>
@@ -426,7 +426,7 @@
                         </TableCell>
                         <TableCell>
                             <Badge variant="secondary">
-                                {dayjs(article.created_at).format("MMM DD, YYYY, HH:mm")}
+                                {article.formattedCreatedAt()}
                             </Badge>
                         </TableCell>
                         <TableCell>
@@ -436,7 +436,7 @@
                                     ? "ghost"
                                     : "secondary"}
                             >
-                                {dayjs(article.updated_at).format("MMM DD, YYYY, HH:mm")}
+                                {article.formattedUpdatedAt()}
                             </Badge>
                         </TableCell>
                         <TableCell>

@@ -1,6 +1,6 @@
 import z from "zod";
 import { unwrapData } from "./common";
-import { NUMBER_FORMAT } from "$lib/constants";
+import { formatDate, formatNumber } from "$lib/formats";
 
 export const rssFeedIdSchema = z.uuidv7().brand("rssFeedId");
 
@@ -26,9 +26,10 @@ const rssFeedSchema = z
     .transform((data) => ({
         ...data,
         parsedUrl: () => new URL(data.url),
-        formattedMaxConcurrentRequests: () => NUMBER_FORMAT.format(data.max_concurrent_requests),
-        formattedFetchIntervalSeconds: () =>
-            NUMBER_FORMAT.format(data.fetch_interval_seconds) + "s",
+        formattedMaxConcurrentRequests: () => formatNumber(data.max_concurrent_requests),
+        formattedFetchIntervalSeconds: () => formatNumber(data.fetch_interval_seconds) + "s",
+        formattedCreatedAt: () => formatDate(data.created_at),
+        formattedUpdatedAt: () => formatDate(data.updated_at),
     }))
     .readonly();
 

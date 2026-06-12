@@ -1,7 +1,7 @@
 import z from "zod";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
 import { rssFeedIdSchema } from "./rss-feeds";
-import { NUMBER_FORMAT } from "$lib/constants";
+import { formatDate, formatNumber } from "$lib/formats";
 
 export const articleIdSchema = z.uuidv7().brand("articleId");
 
@@ -41,6 +41,14 @@ const articleSchema = z
             .object({ ...baseArticleSchema, status: z.enum(["new", "pending", "processed"]) })
             .strict(),
     ])
+    .transform((data) => ({
+        ...data,
+        formattedCreatedAt: () => formatDate(data.created_at),
+        formattedUpdatedAt: () => formatDate(data.updated_at),
+        formattedPublishedTime: () =>
+            data.published_time ? formatDate(data.published_time) : null,
+        formattedModifiedTime: () => (data.modified_time ? formatDate(data.modified_time) : null),
+    }))
     .readonly();
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
@@ -58,11 +66,11 @@ const articleStatsSchema = z
     .strict()
     .transform((data) => ({
         ...data,
-        formattedTotal: () => NUMBER_FORMAT.format(data.total),
-        formattedNew: () => NUMBER_FORMAT.format(data.new),
-        formattedPending: () => NUMBER_FORMAT.format(data.pending),
-        formattedProcessed: () => NUMBER_FORMAT.format(data.processed),
-        formattedError: () => NUMBER_FORMAT.format(data.error),
+        formattedTotal: () => formatNumber(data.total),
+        formattedNew: () => formatNumber(data.new),
+        formattedPending: () => formatNumber(data.pending),
+        formattedProcessed: () => formatNumber(data.processed),
+        formattedError: () => formatNumber(data.error),
     }))
     .readonly();
 

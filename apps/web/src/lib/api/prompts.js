@@ -1,5 +1,6 @@
 import z from "zod";
 import { unwrapData } from "./common";
+import { formatDate } from "$lib/formats";
 
 export const systemPromptIdSchema = z.uuidv7().brand("systemPromptId");
 
@@ -19,6 +20,12 @@ export const systemPromptSchema = z
         version: systemPromptVersionSchema,
     })
     .strict()
+    .transform((data) => ({
+        ...data,
+        formattedCreatedAt: () => formatDate(data.created_at),
+        formattedUpdatedAt: () => formatDate(data.updated_at),
+        formattedVersion: () => `Version ${data.version}`,
+    }))
     .readonly();
 
 /** @typedef {z.infer<typeof systemPromptSchema>} SystemPrompt */

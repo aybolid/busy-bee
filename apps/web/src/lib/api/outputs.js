@@ -1,7 +1,7 @@
 import z from "zod";
 import { articleIdSchema } from "./articles";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
-import { NUMBER_FORMAT } from "$lib/constants";
+import { formatDate, formatNumber } from "$lib/formats";
 
 const outputIdSchema = z.uuidv7().brand("outputId");
 
@@ -17,9 +17,9 @@ const usageSchema = z
     .strict()
     .transform((data) => ({
         ...data,
-        formattedPromptTokens: () => NUMBER_FORMAT.format(data.prompt_tokens),
-        formattedCompletionTokens: () => NUMBER_FORMAT.format(data.completion_tokens),
-        formattedTotalTokens: () => NUMBER_FORMAT.format(data.total_tokens),
+        formattedPromptTokens: () => formatNumber(data.prompt_tokens),
+        formattedCompletionTokens: () => formatNumber(data.completion_tokens),
+        formattedTotalTokens: () => formatNumber(data.total_tokens),
     }))
     .readonly();
 
@@ -37,6 +37,11 @@ const outputSchema = z
         usage: usageSchema,
     })
     .strict()
+    .transform((data) => ({
+        ...data,
+        formattedCreatedAt: () => formatDate(data.created_at),
+        formattedUpdatedAt: () => formatDate(data.updated_at),
+    }))
     .readonly();
 
 /** @typedef {z.infer<typeof outputSchema>} Output */

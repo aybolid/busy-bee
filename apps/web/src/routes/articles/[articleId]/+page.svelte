@@ -49,7 +49,7 @@
             {/if}
             {#if article.data.published_time}
                 <Badge variant="secondary">
-                    {dayjs(article.data.published_time).format("MMM DD, YYYY, HH:mm")}
+                    {article.data.formattedPublishedTime()}
                 </Badge>
             {/if}
 

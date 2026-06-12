@@ -35,7 +35,7 @@
     <StickyBar>
         <div class="flex flex-wrap gap-2">
             <Badge variant="secondary">
-                {dayjs(output.data.created_at).format("MMM DD, YYYY, HH:mm")}
+                {output.data.formattedCreatedAt()}
             </Badge>
         </div>
 

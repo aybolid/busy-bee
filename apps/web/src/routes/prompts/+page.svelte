@@ -18,7 +18,6 @@
     import EmptyDescription from "$lib/components/ui/empty/empty-description.svelte";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
     import Badge from "$lib/components/ui/badge.svelte";
-    import dayjs from "dayjs";
     import SystemPromptActionsMenu from "$lib/components/system-prompt-actions-menu.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
@@ -51,13 +50,14 @@
                 <TableHead>Text</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
+                <TableHead>Version</TableHead>
                 <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
                     <!-- Actions -->
                 </TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 5}
+            {@const colspan = 6}
             {#if systemPrompts.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -95,9 +95,11 @@
                 {#each systemPrompts.data as prompt (prompt.id)}
                     <TableRow>
                         <TableCell>
-                            <p class="line-clamp-2 w-48 text-wrap whitespace-normal">
-                                {prompt.title}
-                            </p>
+                            <Action anchor href="/prompts/system/{prompt.id}" variant="link">
+                                <span class="max-w-48 truncate">
+                                    {prompt.title}
+                                </span>
+                            </Action>
                         </TableCell>
                         <TableCell>
                             {@const source = prompt.text.slice(0, 250)}
@@ -107,7 +109,7 @@
                         </TableCell>
                         <TableCell>
                             <Badge variant="secondary">
-                                {dayjs(prompt.created_at).format("MMM DD, YYYY, HH:mm")}
+                                {prompt.formattedCreatedAt()}
                             </Badge>
                         </TableCell>
                         <TableCell>
@@ -117,7 +119,12 @@
                                     ? "ghost"
                                     : "secondary"}
                             >
-                                {dayjs(prompt.updated_at).format("MMM DD, YYYY, HH:mm")}
+                                {prompt.formattedUpdatedAt()}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <Badge>
+                                {prompt.formattedVersion()}
                             </Badge>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">

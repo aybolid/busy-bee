@@ -215,7 +215,7 @@
                         </TableCell>
                         <TableCell>
                             <Badge variant="secondary">
-                                {dayjs(output.created_at).format("MMM DD, YYYY, HH:mm")}
+                                {output.formattedCreatedAt()}
                             </Badge>
                         </TableCell>
                         <TableCell>
@@ -225,7 +225,7 @@
                                     ? "ghost"
                                     : "secondary"}
                             >
-                                {dayjs(output.updated_at).format("MMM DD, YYYY, HH:mm")}
+                                {output.formattedUpdatedAt()}
                             </Badge>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
