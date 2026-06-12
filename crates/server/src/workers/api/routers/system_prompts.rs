@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 
 use crate::{app::state::SharedAppState, workers::api::handlers::system_prompts};
@@ -14,7 +14,8 @@ pub fn router() -> Router<SharedAppState> {
             "/{system_prompt_id}",
             Router::new()
                 .route("/", delete(system_prompts::delete_system_prompt))
-                .route("/", get(system_prompts::get_system_prompt)),
+                .route("/", get(system_prompts::get_system_prompt))
+                .route("/", patch(system_prompts::update_system_prompt)),
         );
 
     Router::new().nest("/system_prompts", router)

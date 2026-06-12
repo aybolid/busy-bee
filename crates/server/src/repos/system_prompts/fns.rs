@@ -1,6 +1,9 @@
 use crate::{
     infra::db::DatabaseExecutor,
-    repos::system_prompts::{SystemPrompt, SystemPromptId, SystemPromptText, SystemPromptTitle},
+    repos::{
+        VersionNumber,
+        system_prompts::{SystemPrompt, SystemPromptId, SystemPromptText, SystemPromptTitle},
+    },
 };
 
 /// Creates a newly submitted system prompt in the database.
@@ -122,6 +125,94 @@ pub async fn delete_system_prompt_by_id<'c>(
                 "system prompt deleted"
             } else {
                 "system prompt to delete not found"
+            }
+        );
+    })
+}
+
+/// Represents the data required to update an existing system prompt.
+///
+/// This struct uses the builder pattern to allow selective updating
+/// of the prompts's fields.
+#[derive(Debug)]
+pub struct SystemPromptUpdateData<'a> {
+    id: SystemPromptId,
+    version: VersionNumber,
+    title: Option<&'a SystemPromptTitle>,
+    text: Option<&'a SystemPromptText>,
+}
+
+impl<'a> SystemPromptUpdateData<'a> {
+    /// Creates a new [`SystemPromptUpdateData`] instance for the specified ID and the expected version.
+    ///
+    /// By default, no fields are configured for an update.
+    pub fn new(id: SystemPromptId, version: VersionNumber) -> Self {
+        Self {
+            id,
+            version,
+            text: None,
+            title: None,
+        }
+    }
+
+    /// Sets the new title for the record.
+    pub fn title(mut self, title: Option<&'a SystemPromptTitle>) -> Self {
+        self.title = title;
+        self
+    }
+
+    /// Sets the new text for the record.
+    pub fn text(mut self, text: Option<&'a SystemPromptText>) -> Self {
+        self.text = text;
+        self
+    }
+}
+
+/// Updates an existing system prompt record in the database.
+///
+/// This function applies the changes specified in the [`SystemPromptUpdateData`] payload.
+/// Any fields set to `None` in the payload will retain their current values
+/// in the database using the `COALESCE` sql function.
+///
+/// # Returns
+///
+/// * `Some(SystemPrompt)` containing the updated record if the update succeeded.
+/// * `None` if no record matching the ID and the expected version was found.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database update query fails.
+#[tracing::instrument(level = "trace", skip(executor), err(Debug))]
+pub async fn update_system_prompt_by_id<'c, 'a>(
+    executor: impl DatabaseExecutor<'c>,
+    data: &SystemPromptUpdateData<'a>,
+) -> sqlx::Result<Option<SystemPrompt>> {
+    let query = sqlx::query_as(
+        "
+        UPDATE system_prompts
+        SET
+            title = COALESCE(?, system_prompts)
+            text = COALESCE(?, outputs.text),
+            version = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE
+            id = ? AND version = ?
+        RETURNING *;
+        ",
+    )
+    .bind(data.title)
+    .bind(data.text)
+    .bind(data.version.get() + 1)
+    .bind(data.id)
+    .bind(data.version);
+
+    query.fetch_optional(executor).await.inspect(|output| {
+        tracing::trace!(
+            "{}",
+            if output.is_some() {
+                "system prompt updated"
+            } else {
+                "system prompt to update not found"
             }
         );
     })
