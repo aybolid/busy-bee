@@ -59,3 +59,39 @@ pub async fn get_system_prompts<'c>(
         .await
         .inspect(|_| tracing::trace!("system prompts fetched from db"))
 }
+
+/// Deletes a system prompt from the database by its unique identifier.
+///
+/// # Returns
+///
+/// Returns [`SystemPromptId`] if the feed was found and successfully deleted,
+/// or [`None`] if no feed with that ID existed.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database deletion operation fails.
+#[tracing::instrument(level = "trace", skip_all, fields(system_prompt_id = %id.as_hyphenated()), err(Debug))]
+pub async fn delete_system_prompt_by_id<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: SystemPromptId,
+) -> sqlx::Result<Option<SystemPromptId>> {
+    let query = sqlx::query_scalar(
+        "
+        DELETE FROM system_prompts
+        WHERE id = ?
+        RETURNING id;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await.inspect(|id| {
+        tracing::trace!(
+            "{}",
+            if id.is_some() {
+                "system prompt deleted"
+            } else {
+                "system prompt to delete not found"
+            }
+        );
+    })
+}

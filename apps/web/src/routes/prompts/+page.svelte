@@ -19,6 +19,9 @@
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
     import Badge from "$lib/components/ui/badge.svelte";
     import dayjs from "dayjs";
+    import SystemPromptActionsMenu from "$lib/components/system-prompt-actions-menu.svelte";
+    import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
+    import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -32,10 +35,12 @@
 
 <div class="flex justify-between items-baseline gap-4">
     <h2 class="text-2xl font-semibold">System</h2>
-    <Action anchor href="/prompts/new/system">
-        <Plus />
-        <span>System prompt</span>
-    </Action>
+    {#if systemPrompts.isSuccess && systemPrompts.data.length > 0}
+        <Action anchor href="/prompts/new/system">
+            <Plus />
+            <span>System prompt</span>
+        </Action>
+    {/if}
 </div>
 
 <TableContainer class="mt-8">
@@ -46,10 +51,13 @@
                 <TableHead>Text</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
+                <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
+                    <!-- Actions -->
+                </TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 4}
+            {@const colspan = 5}
             {#if systemPrompts.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -73,6 +81,12 @@
                                         There are no outputs to display.
                                     </EmptyDescription>
                                 </EmptyHeader>
+                                <EmptyContent>
+                                    <Action anchor href="/prompts/new/system">
+                                        <Plus />
+                                        <span>System prompt</span>
+                                    </Action>
+                                </EmptyContent>
                             </Empty>
                         </TableCell>
                     </TableRow>
@@ -105,6 +119,16 @@
                             >
                                 {dayjs(prompt.updated_at).format("MMM DD, YYYY, HH:mm")}
                             </Badge>
+                        </TableCell>
+                        <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
+                            <SystemPromptActionsMenu systemPrompt={prompt}>
+                                {#snippet trigger(props)}
+                                    <Action button size="icon-sm" variant="outline" {...props}>
+                                        <EllipsisVertical />
+                                        <span class="sr-only">Prompt actions</span>
+                                    </Action>
+                                {/snippet}
+                            </SystemPromptActionsMenu>
                         </TableCell>
                     </TableRow>
                 {/each}

@@ -68,8 +68,6 @@ pub async fn delete_rss_feed(
     State(state): State<SharedAppState>,
     ReqPath(rss_feed_id): ReqPath<RssFeedId>,
 ) -> HandlerResult<impl IntoResponse> {
-    tracing::debug!(rss_feed_id = %rss_feed_id.as_hyphenated());
-
     rss_feeds::delete_rss_feed_by_id(&state.db_pool, rss_feed_id)
         .await?
         .ok_or_else(|| HandlerError::not_found("rss feed not found"))?;

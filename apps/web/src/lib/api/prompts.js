@@ -58,3 +58,13 @@ export async function getSystemPrompts(ky) {
 
     return unwrapData(z.array(systemPromptSchema)).parse(json);
 }
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: SystemPromptId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function deleteSystemPrompt(ky, payload) {
+    await ky.delete(`system_prompts/${payload.params.id}`);
+}

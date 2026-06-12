@@ -1,4 +1,4 @@
-import { createSystemPrompt, getSystemPrompts } from "$lib/api/prompts";
+import { createSystemPrompt, deleteSystemPrompt, getSystemPrompts } from "$lib/api/prompts";
 import { createMutation, queryOptions } from "@tanstack/svelte-query";
 
 export function createCreateSystemPromptMutation() {
@@ -30,4 +30,16 @@ export async function invalidateSystemPromptsQueries(queryClient) {
     await queryClient.invalidateQueries({
         queryKey: ["system_prompts"],
     });
+}
+
+export function createDeleteSystemPromptMutation() {
+    /** @param {Parameters<typeof deleteSystemPrompt>} args */
+    async function mutationFn(args) {
+        return deleteSystemPrompt(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["system_prompts", "delete"],
+        mutationFn,
+    }));
 }
