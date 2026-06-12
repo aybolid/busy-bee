@@ -12,7 +12,9 @@ pub fn router() -> Router<SharedAppState> {
         .route("/", get(system_prompts::get_system_prompts))
         .nest(
             "/{system_prompt_id}",
-            Router::new().route("/", delete(system_prompts::delete_system_prompt)),
+            Router::new()
+                .route("/", delete(system_prompts::delete_system_prompt))
+                .route("/", get(system_prompts::get_system_prompt)),
         );
 
     Router::new().nest("/system_prompts", router)

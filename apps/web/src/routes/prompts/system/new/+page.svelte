@@ -118,7 +118,7 @@
                         onchange={(e) => field.handleChange(e.currentTarget.value)}
                         aria-invalid={isInvalid}
                         placeholder="Title"
-                        class="text-3xl! font-bold h-fit"
+                        class="text-4xl! font-bold h-fit"
                         autocomplete="off"
                     />
                     {#if isInvalid}

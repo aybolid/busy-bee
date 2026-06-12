@@ -40,6 +40,17 @@ pub async fn get_system_prompts(
     Ok(data(prompts))
 }
 
+/// Retrieves a system prompt by ID.
+#[tracing::instrument(skip(state))]
+pub async fn get_system_prompt(
+    State(state): State<SharedAppState>,
+    ReqPath(system_prompt_id): ReqPath<SystemPromptId>,
+) -> HandlerResult<impl IntoResponse> {
+    let prompt = system_prompts::get_system_prompt(&state.db_pool, system_prompt_id).await?;
+
+    Ok(data(prompt))
+}
+
 /// Deletes a specific system prompt by its unique ID.
 #[tracing::instrument(skip(state))]
 pub async fn delete_system_prompt(

@@ -35,6 +35,37 @@ pub async fn create_system_prompt<'c>(
         .inspect(|_| tracing::trace!("system prompt created"))
 }
 
+/// Retrieves system prompt by ID from the database.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database query fails or if the resulting
+/// row cannot be decoded into [`SystemPrompt`] instance.
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
+pub async fn get_system_prompt<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    id: SystemPromptId,
+) -> sqlx::Result<Option<SystemPrompt>> {
+    let query = sqlx::query_as(
+        "
+        SELECT * FROM system_prompts
+        WHERE id = ?;
+        ",
+    )
+    .bind(id);
+
+    query.fetch_optional(executor).await.inspect(|prompt| {
+        tracing::trace!(
+            "{}",
+            if prompt.is_some() {
+                "system prompt fetched from db"
+            } else {
+                "system prompt not found"
+            }
+        );
+    })
+}
+
 /// Retrieves all system prompts from the database.
 ///
 /// The returned prompts are ordered chronologically by their creation time ([`SystemPrompt::created_at`]).

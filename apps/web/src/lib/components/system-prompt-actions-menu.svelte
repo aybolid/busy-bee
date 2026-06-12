@@ -20,6 +20,9 @@
                     View
                 </MenuActionItem>
             {/if}
+            <MenuActionItem anchor href="/prompts/system/{systemPrompt.id}/edit">
+                Edit
+            </MenuActionItem>
             <DeleteSystemPromptDialog systemPromptId={systemPrompt.id} onSuccess={onDelete}>
                 {#snippet trigger(props)}
                     <MenuActionItem button keepOpen variant="destructive" {...props}>

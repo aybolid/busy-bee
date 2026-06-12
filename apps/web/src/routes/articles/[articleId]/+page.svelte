@@ -38,6 +38,7 @@
             </div>
         {/if}
         <h1>{article.data.title}</h1>
+        <hr />
         {@html article.data.content}
     </article>
 

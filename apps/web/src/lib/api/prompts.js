@@ -63,6 +63,18 @@ export async function getSystemPrompts(ky) {
  * @param {import('ky').KyInstance} ky `KyInstance` to use.
  * @param {{ params: { id: SystemPromptId } }} payload Request payload.
  *
+ * @returns {Promise<SystemPrompt>}
+ */
+export async function getSystemPrompt(ky, payload) {
+    const json = await ky.get(`system_prompts/${payload.params.id}`).json();
+
+    return unwrapData(systemPromptSchema).parse(json);
+}
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: SystemPromptId } }} payload Request payload.
+ *
  * @returns {Promise<void>}
  */
 export async function deleteSystemPrompt(ky, payload) {

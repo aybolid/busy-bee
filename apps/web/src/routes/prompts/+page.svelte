@@ -36,7 +36,7 @@
 <div class="flex justify-between items-baseline gap-4">
     <h2 class="text-2xl font-semibold">System</h2>
     {#if systemPrompts.isSuccess && systemPrompts.data.length > 0}
-        <Action anchor href="/prompts/new/system">
+        <Action anchor href="/prompts/system/new">
             <Plus />
             <span>System prompt</span>
         </Action>
@@ -82,7 +82,7 @@
                                     </EmptyDescription>
                                 </EmptyHeader>
                                 <EmptyContent>
-                                    <Action anchor href="/prompts/new/system">
+                                    <Action anchor href="/prompts/system/new">
                                         <Plus />
                                         <span>System prompt</span>
                                     </Action>
