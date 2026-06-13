@@ -54,7 +54,9 @@ const articleSchema = z
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
-export const articleStatusSchema = z.enum(["error", "new", "pending", "processed"]);
+export const ARTICLE_STATUSES = /** @type {const} */ (["error", "new", "pending", "processed"]);
+
+export const articleStatusSchema = z.enum(ARTICLE_STATUSES);
 
 /** @typedef {z.infer<typeof articleStatusSchema>} ArticleStatus */
 
