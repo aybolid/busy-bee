@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 use types::{NonEmptyMaxLength, TrimmedString};
 
-use crate::repos::articles::ArticleId;
+use crate::repos::{articles::ArticleId, system_prompts::SystemPromptId};
 
 /// Additional user-provided context used during article processing.
 ///
@@ -45,6 +45,8 @@ impl std::fmt::Display for ProcessingUserContext {
 pub struct ProcessingRequest {
     /// The unique identifier of the article to process.
     pub article_id: ArticleId,
+    /// The unique identifier of the system prompt to use.
+    pub system_prompt_id: SystemPromptId,
     /// Optional instructions or context from the user.
     pub context: Option<ProcessingUserContext>,
 }

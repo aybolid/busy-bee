@@ -16,7 +16,7 @@
     /**
      * @typedef {Object} Props
      * @property {import('$lib/api/outputs').OutputId} outputId
-     * @property {() => Promise<void>} [onSuccess]
+     * @property {() => Promise<void> | void} [onSuccess]
      */
 
     /** @type {Omit<import('$lib/components/ui/alert-dialog/alert-dialog.svelte').AlertDialogProps, 'children' | 'ref'> & Props} */

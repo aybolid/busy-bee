@@ -9,6 +9,7 @@ use crate::{
     repos::{
         Pagination,
         articles::{self, ArticleErrorReason, ArticleId, ArticleIds},
+        system_prompts::SystemPromptId,
     },
     workers::{
         api::{
@@ -75,6 +76,7 @@ pub async fn get_article_stats(
 /// the processing of an article.
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
+    system_prompt_id: SystemPromptId,
     context: Option<ProcessingUserContext>,
 }
 
@@ -95,6 +97,7 @@ pub async fn process_article(
 
     let request = ProcessingRequest {
         article_id,
+        system_prompt_id: json.system_prompt_id,
         context: json.context,
     };
 

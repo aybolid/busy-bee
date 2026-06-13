@@ -27,6 +27,11 @@
     import { isHTTPError } from "ky";
     import { getApiError } from "$lib/api/error";
     import { toaster } from "./toaster/store";
+    import { createQuery } from "@tanstack/svelte-query";
+    import { getSystemPromptsQueryOptions } from "$lib/query/prompts";
+    import NativeSelect from "./ui/native-select/native-select.svelte";
+    import NativeSelectOption from "./ui/native-select/native-select-option.svelte";
+    import ErrorAlert from "./error-alert.svelte";
 
     /**
      * @typedef {Object} FormProps
@@ -41,18 +46,35 @@
     // svelte-ignore non_reactive_update
     let dialog;
 
+    // TODO: Disable query if dialog is closed
+    const systemPrompts = createQuery(() => getSystemPromptsQueryOptions(ky));
+
     const processMutation = createProcessArticleMutation();
 
     const form = createForm(() => ({
-        defaultValues: { context: "" },
+        defaultValues: {
+            // FIXME: `system_prompt_id` type
+            system_prompt_id: /** @type {*} */ (systemPrompts.data?.[0]?.id),
+            context: "",
+        },
         validators: {
             onSubmit: z.object({
+                system_prompt_id: processArticleJsonSchema.shape.system_prompt_id,
                 context: processArticleJsonSchema.shape.context.nonoptional(),
             }),
         },
         onSubmit: async ({ value, formApi }) => {
             await processMutation.mutateAsync(
-                [ky, { params: { id: articleId }, json: { context: value.context || undefined } }],
+                [
+                    ky,
+                    {
+                        params: { id: articleId },
+                        json: {
+                            system_prompt_id: value.system_prompt_id,
+                            context: value.context || undefined,
+                        },
+                    },
+                ],
                 {
                     onError: (err) => {
                         if (isHTTPError(err)) {
@@ -96,11 +118,52 @@
             }}
         >
             <FieldGroup>
+                <form.Field name="system_prompt_id">
+                    {#snippet children(field)}
+                        {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
+                        <Field data-invalid={isInvalid}>
+                            <FieldLabel for={field.name}>System prompt</FieldLabel>
+                            {#if systemPrompts.isError}
+                                <ErrorAlert
+                                    title="Failed to load system prompts"
+                                    description={systemPrompts.error.message}
+                                />
+                            {:else}
+                                <NativeSelect
+                                    disabled={systemPrompts.isPending}
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onblur={field.handleBlur}
+                                    onchange={(e) => field.handleChange(e.currentTarget.value)}
+                                    aria-invalid={isInvalid}
+                                >
+                                    <NativeSelectOption disabled>
+                                        Select system prompt
+                                    </NativeSelectOption>
+                                    {#if systemPrompts.isSuccess}
+                                        {#each systemPrompts.data as prompt}
+                                            <NativeSelectOption value={prompt.id}>
+                                                {prompt.title}
+                                            </NativeSelectOption>
+                                        {/each}
+                                    {/if}
+                                </NativeSelect>
+                            {/if}
+                            {#if isInvalid}
+                                <FieldError errors={field.state.meta.errors} />
+                            {/if}
+                        </Field>
+                    {/snippet}
+                </form.Field>
+            </FieldGroup>
+
+            <FieldGroup>
                 <form.Field name="context">
                     {#snippet children(field)}
                         {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
                         <Field data-invalid={isInvalid}>
-                            <FieldLabel>Additional context</FieldLabel>
+                            <FieldLabel for={field.name}>Additional context</FieldLabel>
                             <Textarea
                                 id={field.name}
                                 name={field.name}

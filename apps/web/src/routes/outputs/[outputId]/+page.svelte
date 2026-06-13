@@ -6,10 +6,10 @@
     import StickyBar from "$lib/components/ui/sticky-bar.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import { createQuery } from "@tanstack/svelte-query";
-    import dayjs from "dayjs";
     import { getOutputQueryOptions } from "$lib/query/outputs";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
     import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
+    import { goto } from "$app/navigation";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -39,7 +39,7 @@
             </Badge>
         </div>
 
-        <OutputActionsMenu output={output.data} withoutView>
+        <OutputActionsMenu output={output.data} withoutView onDelete={() => goto("/outputs")}>
             {#snippet trigger(props)}
                 <Action button size="sm" variant="outline" {...props}>
                     <EllipsisVertical />

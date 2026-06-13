@@ -9,6 +9,7 @@ use crate::{
     repos::{
         articles::{self, Article, ArticleErrorReason},
         outputs::{self, OutputText},
+        system_prompts,
     },
     workers::article_processing::ProcessingRequest,
 };
@@ -23,6 +24,7 @@ use crate::{
     skip_all,
     fields(
         article_id = %request.article_id.as_hyphenated(),
+        system_prompt_id = %request.system_prompt_id.as_hyphenated(),
         has_context = request.context.is_some(),
     )
 )]
@@ -53,7 +55,10 @@ enum ProcessArticleError {
     Sqlx(#[from] sqlx::Error),
     /// The requested article could not be found in the database.
     #[error("article not found in db")]
-    NotFound,
+    ArticleNotFound,
+    /// The requested system prompt could not be found in the database.
+    #[error("system prompt not found in db")]
+    SystemPromptNotFound,
     /// The external AI service returned an error during text generation.
     #[error(transparent)]
     Chat(#[from] ExecChatError),
@@ -73,9 +78,9 @@ async fn try_process_article(
 ) -> Result<(), ProcessArticleError> {
     let article = articles::get_article_by_id(&state.db_pool, request.article_id)
         .await?
-        .ok_or(ProcessArticleError::NotFound)?;
+        .ok_or(ProcessArticleError::ArticleNotFound)?;
 
-    let chat_request = prepare_chat_request(request, &article);
+    let chat_request = prepare_chat_request(state, request, &article).await?;
     let chat_response = state.ai.exec_chat(chat_request).await?;
 
     // Avoid partial updates by using DB transaction
@@ -94,7 +99,7 @@ async fn try_process_article(
 
     articles::mark_article_as_processed(&mut *tx, article.id)
         .await?
-        .ok_or(ProcessArticleError::NotFound)?;
+        .ok_or(ProcessArticleError::ArticleNotFound)?;
 
     tx.commit().await?;
     tracing::trace!("database transaction commited");
@@ -103,10 +108,16 @@ async fn try_process_article(
 }
 
 /// Constructs the payload to be sent to the AI service.
-fn prepare_chat_request(request: &ProcessingRequest, article: &Article) -> ChatRequest {
-    let mut chat_request = ChatRequest::default().with_system(Message(nonempty_trimmed_string!(
-        "Write a post based on an article"
-    )));
+async fn prepare_chat_request(
+    state: &SharedAppState,
+    request: &ProcessingRequest,
+    article: &Article,
+) -> Result<ChatRequest, ProcessArticleError> {
+    let system_prompt = system_prompts::get_system_prompt(&state.db_pool, request.system_prompt_id)
+        .await?
+        .ok_or(ProcessArticleError::SystemPromptNotFound)?;
+
+    let mut chat_request = ChatRequest::default().with_system(Message::from(system_prompt));
 
     if let Some(context_message) = request
         .context
@@ -122,7 +133,7 @@ fn prepare_chat_request(request: &ProcessingRequest, article: &Article) -> ChatR
         article.readability.text_content.0.clone(),
     )));
 
-    chat_request
+    Ok(chat_request)
 }
 
 /// Dispatches a success notification and triggers a data refresh.

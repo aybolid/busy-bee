@@ -8,8 +8,8 @@
     import Menu from "./ui/menu/menu.svelte";
     import ViewTokenUsageDialog from "./view-token-usage-dialog.svelte";
 
-    /** @type {import('svelte').ComponentProps<typeof Menu> & { output: import('$lib/api/outputs').Output, withoutView?: boolean }} */
-    const { output, withoutView = false, ...props } = $props();
+    /** @type {import('svelte').ComponentProps<typeof Menu> & { output: import('$lib/api/outputs').Output, withoutView?: boolean, onDelete?: () => Promise<void> | void }} */
+    const { output, withoutView = false, onDelete, ...props } = $props();
 </script>
 
 <Menu {...props}>
@@ -30,7 +30,7 @@
                     View article
                 </MenuActionItem>
             {/if}
-            <DeleteOutputDialog outputId={output.id}>
+            <DeleteOutputDialog outputId={output.id} onSuccess={onDelete}>
                 {#snippet trigger(props)}
                     <MenuActionItem button keepOpen variant="destructive" {...props}>
                         <Trash />
