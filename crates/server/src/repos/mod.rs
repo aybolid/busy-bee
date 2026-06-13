@@ -5,4 +5,4 @@ pub mod system_prompts;
 
 mod common;
 
-pub use common::{Pagination, VersionNumber};
+pub use common::{Pagination, SearchString, VersionNumber};

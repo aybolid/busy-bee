@@ -267,7 +267,7 @@ impl ArticleErrorReason {
 
 /// The current status of an [`Article`] within the system.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
-#[serde(tag = "status", content = "error_reason", rename_all = "lowercase")]
+#[serde(tag = "status", content = "error_reason", rename_all = "snake_case")]
 pub enum ArticleStatus {
     /// The article has been newly discovered or registered.
     New,
@@ -275,6 +275,21 @@ pub enum ArticleStatus {
     Pending,
     /// Processing failed. Contains the specific [`ArticleErrorReason`].
     Error(ArticleErrorReason),
+    /// The article was successfully processed.
+    Processed,
+}
+
+/// Tag of the current status of an [`Article`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, sqlx::Type)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(rename_all = "snake_case")]
+pub enum ArticleStatusTag {
+    /// The article has been newly discovered or registered.
+    New,
+    /// The article is currently queued or actively being processed.
+    Pending,
+    /// Processing failed.
+    Error,
     /// The article was successfully processed.
     Processed,
 }

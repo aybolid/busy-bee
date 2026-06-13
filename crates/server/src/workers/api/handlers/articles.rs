@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -7,8 +9,11 @@ use axum::{
 use crate::{
     app::state::SharedAppState,
     repos::{
-        Pagination,
-        articles::{self, ArticleErrorReason, ArticleId, ArticleIds},
+        Pagination, SearchString,
+        articles::{
+            self, ArticleErrorReason, ArticleId, ArticleIds, ArticleStatusTag, GetArticlesFilters,
+        },
+        rss_feeds::RssFeedId,
         system_prompts::SystemPromptId,
     },
     workers::{
@@ -21,14 +26,46 @@ use crate::{
     },
 };
 
+/// Contains search query values supported by [`get_articles`] hanlder.
+#[derive(Debug, serde::Deserialize)]
+pub struct GetArticlesQuery {
+    page_index: usize,
+    limit: NonZeroU8,
+
+    /// An optional text-based search query.
+    query: Option<SearchString>,
+    /// An optional identifier to filter articles by their source.
+    rss_feed_id: Option<RssFeedId>,
+    /// An optional tag to filter articles by their current state.
+    status: Option<ArticleStatusTag>,
+}
+
+impl GetArticlesQuery {
+    pub fn into_structs(self) -> (Pagination, GetArticlesFilters) {
+        (
+            Pagination {
+                page_index: self.page_index,
+                limit: self.limit,
+            },
+            GetArticlesFilters {
+                query: self.query,
+                rss_feed_id: self.rss_feed_id,
+                status: self.status,
+            },
+        )
+    }
+}
+
 /// Retrieves a paginated list of articles.
 #[tracing::instrument(skip(state))]
 pub async fn get_articles(
     State(state): State<SharedAppState>,
-    Query(pagination): Query<Pagination>,
+    Query(query): Query<GetArticlesQuery>,
 ) -> HandlerResult<impl IntoResponse> {
-    let data = articles::get_articles(&state.db_pool, pagination).await?;
-    let count = articles::count_articles(&state.db_pool).await?;
+    let (pagination, filters) = query.into_structs();
+
+    let data = articles::get_articles(&state.db_pool, pagination, &filters).await?;
+    let count = articles::count_articles(&state.db_pool, &filters).await?;
 
     Ok(data_with_meta(
         data,

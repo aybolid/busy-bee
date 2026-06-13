@@ -1,10 +1,12 @@
 use std::num::{NonZeroU8, NonZeroU32};
 
+use types::{LengthBounded, TrimmedString};
+
 /// Defines pagination parameters for querying collections of items.
 #[derive(serde::Deserialize, Debug, Clone, Copy)]
 pub struct Pagination {
-    page_index: usize,
-    limit: NonZeroU8,
+    pub page_index: usize,
+    pub limit: NonZeroU8,
 }
 
 impl Pagination {
@@ -51,5 +53,45 @@ impl std::ops::Deref for VersionNumber {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct SearchString(pub LengthBounded<2, { u8::MAX as usize }, TrimmedString>);
+
+impl std::ops::Deref for SearchString {
+    type Target = LengthBounded<2, { u8::MAX as usize }, TrimmedString>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for SearchString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl SearchString {
+    /// Converts the search string into a safely escaped pattern suitable for use
+    /// in SQL `LIKE` queries.
+    ///
+    /// This method prepares the string for a partial match (e.g., `LIKE '%keyword%'`)
+    /// while protecting against wildcard injection. It performs two main operations:
+    ///
+    /// 1. **Escapes special characters:** Prepend backslashes to `\`, `%`, and `_`
+    ///    so the database treats them as literal characters rather than wildcards.
+    /// 2. **Adds wildcards:** Wraps the entire escaped string in `%` to match the
+    ///    pattern anywhere within a database column.
+    pub fn to_like_pattern(&self) -> String {
+        let escaped = self
+            .to_string()
+            .replace('\\', r"\\")
+            .replace('%', r"\%")
+            .replace('_', r"\_");
+
+        format!("%{escaped}%")
     }
 }

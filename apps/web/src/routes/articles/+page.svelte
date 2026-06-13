@@ -46,6 +46,8 @@
     import ArticleActionsMenu from "$lib/components/article-actions-menu.svelte";
     import Trash from "$lib/components/ui/icons/trash.svelte";
     import BulkDeleteArticlesDialog from "$lib/components/bulk-delete-articles-dialog.svelte";
+    import { ARTICLE_STATUSES } from "$lib/api/articles";
+    import SearchInput from "$lib/components/search-input.svelte";
 
     dayjs.extend(relative);
 
@@ -56,6 +58,9 @@
     const getArticlesSearchParams = $derived({
         page_index: props.data.searchParams.page_index,
         limit: props.data.searchParams.limit,
+        query: props.data.searchParams.query,
+        rss_feed_id: props.data.searchParams.rss_feed_id,
+        status: props.data.searchParams.status,
     });
 
     const articlesQueryOptions = $derived(
@@ -153,19 +158,65 @@
     });
 
     /**
-     * @param {{ limit?: number, pageIndex?: number }} params
+     * @typedef {Object} UpdateParams
+     * @prop {number} [limit]
+     * @prop {number} [pageIndex]
+     * @prop {import('$lib/api/articles').ArticleStatus | null} [status]
+     * @prop {import('$lib/api/rss-feeds').RssFeedId | null} [rssFeedId]
+     * @prop {string} [query]
+     */
+
+    /**
+     * @param {UpdateParams} params
      *
      * @returns {URLSearchParams}
      */
-    function getUpdatedSearchParams({ limit, pageIndex }) {
+    function getUpdatedSearchParams({ limit, pageIndex, status, rssFeedId, query }) {
         const params = new URLSearchParams(page.url.searchParams);
-        params.set("limit", limit?.toString() ?? params.get("limit") ?? "20");
-        if (limit) {
-            // Reset page on limit change
-            params.set("page_index", "0");
-        } else {
-            params.set("page_index", pageIndex?.toString() ?? params.get("page_index") ?? "0");
+
+        if (pageIndex !== undefined) {
+            params.set("page_index", pageIndex.toString());
         }
+
+        let shouldResetPage = false;
+
+        if (limit !== undefined) {
+            shouldResetPage = true;
+            params.set("limit", limit.toString());
+        }
+
+        if (status !== undefined) {
+            shouldResetPage = true;
+            if (status === null) {
+                params.delete("status");
+            } else {
+                params.set("status", status);
+            }
+        }
+
+        if (rssFeedId !== undefined) {
+            shouldResetPage = true;
+            if (rssFeedId === null) {
+                params.delete("rss_feed_id");
+            } else {
+                params.set("rss_feed_id", rssFeedId);
+            }
+        }
+
+        if (query !== undefined) {
+            shouldResetPage = true;
+            const trimmed = query.trim();
+            if (trimmed.length >= 2) {
+                params.set("query", query);
+            } else {
+                params.delete("query");
+            }
+        }
+
+        if (shouldResetPage) {
+            params.delete("page_index");
+        }
+
         return params;
     }
 
@@ -293,6 +344,70 @@
         </div>
     </StickyBar>
 {/if}
+
+<div class="pb-8 flex items-baseline gap-4 justify-between">
+    <SearchInput
+        value={getArticlesSearchParams.query}
+        placeholder="Search"
+        class="max-w-80"
+        onDebouncedInput={(value) => {
+            const searchParams = getUpdatedSearchParams({ query: value });
+            void goto(`/articles?${searchParams.toString()}`, {
+                keepFocus: true,
+                noScroll: true,
+            });
+        }}
+    />
+
+    <div class="flex items-center gap-2">
+        <NativeSelect
+            disabled={articles.isFetching || feeds.isFetching}
+            value={getArticlesSearchParams.rss_feed_id ?? ""}
+            onchange={(e) => {
+                const rssFeedId = /** @type {import('$lib/api/rss-feeds').RssFeedId | null} */ (
+                    e.currentTarget.value || null
+                );
+                const searchParams = getUpdatedSearchParams({ rssFeedId });
+                void goto(`/articles?${searchParams.toString()}`, {
+                    keepFocus: true,
+                    noScroll: true,
+                });
+            }}
+        >
+            <NativeSelectOption value="">Any feed</NativeSelectOption>
+            {#if feeds.isSuccess}
+                {#each feeds.data as feed}
+                    {@const url = feed.parsedUrl()}
+                    <NativeSelectOption value={feed.id}>
+                        {url.hostname}
+                    </NativeSelectOption>
+                {/each}
+            {/if}
+        </NativeSelect>
+
+        <NativeSelect
+            disabled={articles.isFetching}
+            value={getArticlesSearchParams.status ?? ""}
+            onchange={(e) => {
+                const status = /** @type {import('$lib/api/articles').ArticleStatus | null} */ (
+                    e.currentTarget.value || null
+                );
+                const searchParams = getUpdatedSearchParams({ status });
+                void goto(`/articles?${searchParams.toString()}`, {
+                    keepFocus: true,
+                    noScroll: true,
+                });
+            }}
+        >
+            <NativeSelectOption value="">Any status</NativeSelectOption>
+            {#each ARTICLE_STATUSES as status}
+                <NativeSelectOption value={status}>
+                    <ArticleStatus {status} />
+                </NativeSelectOption>
+            {/each}
+        </NativeSelect>
+    </div>
+</div>
 
 <TableContainer class="mb-8">
     <Table>
