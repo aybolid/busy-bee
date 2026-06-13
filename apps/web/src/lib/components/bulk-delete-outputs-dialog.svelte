@@ -1,10 +1,6 @@
 <script>
     import { getGlobalContext } from "$lib/global-context";
-    import {
-        createBulkDeleteArticlesMutation,
-        invalidateArticlesQueries,
-        invalidateArticleStatsQueries,
-    } from "$lib/query/articles";
+    import { createBulkDeleteOutputsMutation, invalidateOutputsQueries } from "$lib/query/outputs";
     import { toaster } from "./toaster/store";
     import AlertDialogCloseAction from "./ui/alert-dialog/alert-dialog-close-action.svelte";
     import AlertDialogContent from "./ui/alert-dialog/alert-dialog-content.svelte";
@@ -19,31 +15,30 @@
 
     /**
      * @typedef {Object} Props
-     * @property {Array<import('$lib/api/articles').ArticleId>} articleIds
+     * @property {Array<import('$lib/api/outputs').OutputId>} outputIds
      * @property {() => Promise<void> | void} [onSuccess]
      */
 
     /** @type {Omit<import('$lib/components/ui/alert-dialog/alert-dialog.svelte').AlertDialogProps, 'children'> & Props} */
-    const { articleIds, onSuccess, ...props } = $props();
+    const { outputIds, onSuccess, ...props } = $props();
     const { ky, queryClient } = getGlobalContext();
 
     /** @type {HTMLDialogElement} */
     // svelte-ignore non_reactive_update
     let dialog;
 
-    const deleteMutation = createBulkDeleteArticlesMutation();
+    const deleteMutation = createBulkDeleteOutputsMutation();
 
-    function deleteArticles() {
-        deleteMutation.mutate([ky, { json: { ids: articleIds } }], {
+    function deleteOutputs() {
+        deleteMutation.mutate([ky, { json: { ids: outputIds } }], {
             onError: (err) =>
-                toaster.push("Failed to delete articles", {
+                toaster.push("Failed to delete outputs", {
                     description: err.message,
                     props: { variant: "destructive" },
                 }),
             onSuccess: async () => {
                 await onSuccess?.();
-                void invalidateArticlesQueries(queryClient);
-                void invalidateArticleStatsQueries(queryClient);
+                void invalidateOutputsQueries(queryClient);
                 dialog.close();
             },
         });
@@ -53,16 +48,16 @@
 <AlertDialog bind:ref={dialog} {...props}>
     <AlertDialogContent size="sm">
         <AlertDialogHeader>
-            <AlertDialogTitle>Delete {articleIds.length} article(s)?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {outputIds.length} output(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-                This action will delete articles and it cannot be undone later.
+                This action will delete outputs and it cannot be undone later.
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
             <AlertDialogCloseAction />
             <AlertDialogContinueAction
                 disabled={deleteMutation.isPending}
-                onclick={deleteArticles}
+                onclick={deleteOutputs}
                 variant="destructive"
             >
                 {#if deleteMutation.isPending}

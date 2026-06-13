@@ -1,4 +1,10 @@
-import { deleteOutput, getOutput, getOutputs, updateOutput } from "$lib/api/outputs";
+import {
+    bulkDeleteOutputs,
+    deleteOutput,
+    getOutput,
+    getOutputs,
+    updateOutput,
+} from "$lib/api/outputs";
 import { createMutation, keepPreviousData, queryOptions } from "@tanstack/svelte-query";
 
 /**
@@ -51,6 +57,18 @@ export function createUpdateOutputMutation() {
 
     return createMutation(() => ({
         mutationKey: ["outputs", "update"],
+        mutationFn,
+    }));
+}
+
+export function createBulkDeleteOutputsMutation() {
+    /** @param {Parameters<typeof bulkDeleteOutputs>} args */
+    async function mutationFn(args) {
+        return bulkDeleteOutputs(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["outputs", "bulk", "delete"],
         mutationFn,
     }));
 }

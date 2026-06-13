@@ -34,6 +34,7 @@
     import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
     import Trash from "$lib/components/ui/icons/trash.svelte";
+    import BulkDeleteOutputsDialog from "$lib/components/bulk-delete-outputs-dialog.svelte";
 
     dayjs.extend(relative);
 
@@ -103,7 +104,7 @@
     /** @type {import('svelte/elements').ChangeEventHandler<HTMLInputElement>} */
     function toggleAllSelection(e) {
         if (e.currentTarget.checked) {
-            selection = outputs.data?.data.map((a) => a.id) ?? [];
+            selection = outputs.data?.data.map((o) => o.id) ?? [];
         } else {
             selection = [];
         }
@@ -169,10 +170,14 @@
             {selection.length} selected
         </Badge>
         <div class="flex items-center gap-2">
-            <Action button size="xs" variant="destructive" {...props}>
-                <Trash />
-                <span>Delete</span>
-            </Action>
+            <BulkDeleteOutputsDialog outputIds={selection}>
+                {#snippet trigger(props)}
+                    <Action button size="xs" variant="destructive" {...props}>
+                        <Trash />
+                        <span>Delete</span>
+                    </Action>
+                {/snippet}
+            </BulkDeleteOutputsDialog>
         </div>
     </StickyBar>
 {/if}

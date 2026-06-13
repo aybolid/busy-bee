@@ -115,3 +115,23 @@ export async function updateOutput(ky, payload) {
 
     return unwrapData(outputSchema).parse(json);
 }
+
+export const bulkDeleteOutputsJsonSchema = z
+    .object({
+        ids: z.array(outputIdSchema).min(1).max(255),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof bulkDeleteOutputsJsonSchema>} BulkDeleteOutputsJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ json: BulkDeleteOutputsJson }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function bulkDeleteOutputs(ky, payload) {
+    await ky.post(`outputs/bulk/delete`, {
+        json: bulkDeleteOutputsJsonSchema.parse(payload.json),
+    });
+}
