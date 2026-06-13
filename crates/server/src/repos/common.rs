@@ -1,10 +1,12 @@
 use std::num::{NonZeroU8, NonZeroU32};
 
+use types::{LengthBounded, TrimmedString};
+
 /// Defines pagination parameters for querying collections of items.
 #[derive(serde::Deserialize, Debug, Clone, Copy)]
 pub struct Pagination {
-    page_index: usize,
-    limit: NonZeroU8,
+    pub page_index: usize,
+    pub limit: NonZeroU8,
 }
 
 impl Pagination {
@@ -51,5 +53,23 @@ impl std::ops::Deref for VersionNumber {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct SearchString(pub LengthBounded<2, { u8::MAX as usize }, TrimmedString>);
+
+impl std::ops::Deref for SearchString {
+    type Target = LengthBounded<2, { u8::MAX as usize }, TrimmedString>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for SearchString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }

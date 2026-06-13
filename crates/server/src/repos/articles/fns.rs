@@ -4,9 +4,10 @@ use types::{NonEmpty, NonEmptyMaxLength};
 use crate::{
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
     repos::{
-        Pagination,
+        Pagination, SearchString,
         articles::{
-            Article, ArticleErrorReason, ArticleId, ReadabilityArticle, types::ArticleStats,
+            Article, ArticleErrorReason, ArticleId, ArticleStatusTag, ReadabilityArticle,
+            types::ArticleStats,
         },
         rss_feeds::RssFeedId,
     },
@@ -181,6 +182,21 @@ pub async fn mark_article_as_processed<'c>(
     })
 }
 
+/// A set of optional filters used to refine the list of retrieved articles.
+///
+/// Because all fields are wrapped in `Option`, any combination of these filters
+/// can be applied. This struct is typically deserialized directly from API query
+/// parameters to dynamically build database queries.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct GetArticlesFilters {
+    /// An optional text-based search query.
+    pub query: Option<SearchString>,
+    /// An optional identifier to filter articles by their source.
+    pub rss_feed_id: Option<RssFeedId>,
+    /// An optional tag to filter articles by their current state.
+    pub status: Option<ArticleStatusTag>,
+}
+
 /// Counts the total number of articles stored in the database.
 ///
 /// # Errors
@@ -188,8 +204,44 @@ pub async fn mark_article_as_processed<'c>(
 /// Returns a [`sqlx::Error`] if the database query fails.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Result<usize> {
-    let query = sqlx::query_scalar("SELECT COUNT(*) FROM articles;");
+pub async fn count_articles<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    filters: &GetArticlesFilters,
+) -> sqlx::Result<usize> {
+    let mut query_builder = QueryBuilder::new("SELECT COUNT(*) FROM articles");
+    let mut has_where = false;
+
+    macro_rules! push_where_or_and {
+        () => {
+            #[allow(unused_assignments)]
+            if has_where {
+                query_builder.push(" AND ");
+            } else {
+                query_builder.push(" WHERE ");
+                has_where = true;
+            }
+        };
+    }
+
+    if let Some(ref q) = filters.query {
+        push_where_or_and!();
+        query_builder.push("title LIKE ");
+        query_builder.push_bind(format!("%{q}%"));
+    }
+
+    if let Some(rss_feed_id) = filters.rss_feed_id {
+        push_where_or_and!();
+        query_builder.push("rss_feed_id = ");
+        query_builder.push_bind(rss_feed_id);
+    }
+
+    if let Some(status) = filters.status {
+        push_where_or_and!();
+        query_builder.push("status = ");
+        query_builder.push_bind(status);
+    }
+
+    let query = query_builder.build_query_scalar();
 
     query
         .fetch_one(executor)
@@ -211,18 +263,49 @@ pub async fn count_articles<'c>(executor: impl DatabaseExecutor<'c>) -> sqlx::Re
 pub async fn get_articles<'c>(
     executor: impl DatabaseExecutor<'c>,
     pagination: Pagination,
+    filters: &GetArticlesFilters,
 ) -> sqlx::Result<Vec<Article>> {
+    let mut query_builder = QueryBuilder::new("SELECT * FROM articles");
+    let mut has_where = false;
+
+    macro_rules! push_where_or_and {
+        () => {
+            #[allow(unused_assignments)]
+            if has_where {
+                query_builder.push(" AND ");
+            } else {
+                query_builder.push(" WHERE ");
+                has_where = true;
+            }
+        };
+    }
+
+    if let Some(ref q) = filters.query {
+        push_where_or_and!();
+        query_builder.push("title LIKE ");
+        query_builder.push_bind(format!("%{q}%"));
+    }
+
+    if let Some(rss_feed_id) = filters.rss_feed_id {
+        push_where_or_and!();
+        query_builder.push("rss_feed_id = ");
+        query_builder.push_bind(rss_feed_id);
+    }
+
+    if let Some(status) = filters.status {
+        push_where_or_and!();
+        query_builder.push("status = ");
+        query_builder.push_bind(status);
+    }
+
     let (limit, offset) = pagination.as_limit_and_offset();
 
-    let query = sqlx::query_as(
-        "
-        SELECT * FROM articles
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?;
-        ",
-    )
-    .bind(limit)
-    .bind(offset);
+    query_builder.push(" ORDER BY created_at DESC LIMIT ");
+    query_builder.push_bind(limit);
+    query_builder.push(" OFFSET ");
+    query_builder.push_bind(offset);
+
+    let query = query_builder.build_query_as();
 
     query
         .fetch_all(executor)
