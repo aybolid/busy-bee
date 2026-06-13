@@ -309,9 +309,9 @@
                 </TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Feed</TableHead>
                 <TableHead>Author</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Published</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
@@ -387,16 +387,6 @@
                             </p>
                         </TableCell>
                         <TableCell>
-                            {#if feeds.isPending || !feedUrl}
-                                Unknown
-                            {:else}
-                                {feedUrl?.hostname}
-                            {/if}
-                        </TableCell>
-                        <TableCell>
-                            {article.byline || "--"}
-                        </TableCell>
-                        <TableCell>
                             {#if article.status === "error"}
                                 <Popover>
                                     {#snippet trigger(props)}
@@ -414,6 +404,16 @@
                             {:else}
                                 <ArticleStatus status={article.status} />
                             {/if}
+                        </TableCell>
+                        <TableCell>
+                            {#if feeds.isPending || !feedUrl}
+                                Unknown
+                            {:else}
+                                {feedUrl?.hostname}
+                            {/if}
+                        </TableCell>
+                        <TableCell>
+                            {article.byline || "--"}
                         </TableCell>
                         <TableCell>
                             {#if article.published_time}
