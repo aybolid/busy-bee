@@ -56,6 +56,9 @@
     const getArticlesSearchParams = $derived({
         page_index: props.data.searchParams.page_index,
         limit: props.data.searchParams.limit,
+        query: props.data.searchParams.query,
+        rss_feed_id: props.data.searchParams.rss_feed_id,
+        status: props.data.searchParams.status,
     });
 
     const articlesQueryOptions = $derived(

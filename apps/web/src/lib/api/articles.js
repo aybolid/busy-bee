@@ -54,7 +54,9 @@ const articleSchema = z
 
 /** @typedef {z.infer<typeof articleSchema>} Article */
 
-/** @typedef {Article['status']} ArticleStatus */
+export const articleStatusSchema = z.enum(["error", "new", "pending", "processed"]);
+
+/** @typedef {z.infer<typeof articleStatusSchema>} ArticleStatus */
 
 const articleStatsSchema = z
     .object({
@@ -80,6 +82,9 @@ const articleStatsSchema = z
 const getArticlesSearchParamsSchema = z
     .object({
         ...paginationSchema.shape,
+        query: z.string().min(2).max(255).optional(),
+        rss_feed_id: rssFeedIdSchema.optional(),
+        status: articleStatusSchema.optional(),
     })
     .strict();
 
