@@ -319,33 +319,7 @@
     {/if}
 </div>
 
-{#if selection.length !== 0}
-    <StickyBar position="top" class="mb-4 w-full justify-between" transition>
-        <Badge variant="ghost">
-            {selection.length} selected
-        </Badge>
-        <div class="flex items-center gap-2">
-            <BulkDeleteArticlesDialog
-                articleIds={selection}
-                onSuccess={() => {
-                    selection = [];
-                }}
-            >
-                {#snippet trigger(props)}
-                    <Action button size="xs" variant="destructive" {...props}>
-                        <Trash />
-                        <span>Delete</span>
-                    </Action>
-                {/snippet}
-            </BulkDeleteArticlesDialog>
-            <Action button size="xs">
-                <span>Process</span>
-            </Action>
-        </div>
-    </StickyBar>
-{/if}
-
-<div class="pb-8 flex items-baseline gap-4 justify-between">
+<div class="pb-4 flex items-baseline gap-4 justify-between">
     <SearchInput
         value={getArticlesSearchParams.query}
         placeholder="Search"
@@ -408,6 +382,32 @@
         </NativeSelect>
     </div>
 </div>
+
+{#if selection.length !== 0}
+    <StickyBar position="top" class="mb-4 w-full justify-between" transition>
+        <Badge variant="ghost">
+            {selection.length} selected
+        </Badge>
+        <div class="flex items-center gap-2">
+            <BulkDeleteArticlesDialog
+                articleIds={selection}
+                onSuccess={() => {
+                    selection = [];
+                }}
+            >
+                {#snippet trigger(props)}
+                    <Action button size="xs" variant="destructive" {...props}>
+                        <Trash />
+                        <span>Delete</span>
+                    </Action>
+                {/snippet}
+            </BulkDeleteArticlesDialog>
+            <Action button size="xs">
+                <span>Process</span>
+            </Action>
+        </div>
+    </StickyBar>
+{/if}
 
 <TableContainer class="mb-8">
     <Table>

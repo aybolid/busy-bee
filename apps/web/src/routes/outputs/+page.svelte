@@ -33,6 +33,7 @@
     import ViewTokenUsageDialog from "$lib/components/view-token-usage-dialog.svelte";
     import OutputActionsMenu from "$lib/components/output-actions-menu.svelte";
     import SvelteMarkdown from "@humanspeak/svelte-markdown";
+    import Trash from "$lib/components/ui/icons/trash.svelte";
 
     dayjs.extend(relative);
 
@@ -90,6 +91,29 @@
         };
     });
 
+    let selection = /** @type {Array<import('$lib/api/outputs').OutputId>} */ ($state([]));
+
+    const allSelected = $derived.by(() => {
+        if (!outputs.data?.data.length || outputs.data.data.length === 0) {
+            return false;
+        }
+        return outputs.data.data.length === selection.length;
+    });
+
+    /** @type {import('svelte/elements').ChangeEventHandler<HTMLInputElement>} */
+    function toggleAllSelection(e) {
+        if (e.currentTarget.checked) {
+            selection = outputs.data?.data.map((a) => a.id) ?? [];
+        } else {
+            selection = [];
+        }
+    }
+
+    $effect(() => {
+        outputs.dataUpdatedAt;
+        selection = [];
+    });
+
     /**
      * @param {{ limit?: number, pageIndex?: number }} params
      *
@@ -115,7 +139,7 @@
     }
 </script>
 
-<div class="flex items-baseline justify-between gap-8">
+<div class="flex items-baseline justify-between gap-8 pb-8">
     <h1 class="text-4xl font-bold">Outputs</h1>
     <div class="flex flex-col items-end gap-1">
         <Action
@@ -139,10 +163,33 @@
     </div>
 </div>
 
-<TableContainer class="my-8">
+{#if selection.length !== 0}
+    <StickyBar position="top" class="mb-4 w-full justify-between" transition>
+        <Badge variant="ghost">
+            {selection.length} selected
+        </Badge>
+        <div class="flex items-center gap-2">
+            <Action button size="xs" variant="destructive" {...props}>
+                <Trash />
+                <span>Delete</span>
+            </Action>
+        </div>
+    </StickyBar>
+{/if}
+
+<TableContainer class="mb-8">
     <Table>
         <TableHeader>
             <TableRow>
+                <TableHead class="sticky left-0 bg-muted/80 backdrop-blur-xs">
+                    <div class="grid place-items-center w-6">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onchange={toggleAllSelection}
+                        />
+                    </div>
+                </TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Context</TableHead>
                 <TableHead>Model</TableHead>
@@ -155,7 +202,7 @@
             </TableRow>
         </TableHeader>
         <TableBody>
-            {@const colspan = 7}
+            {@const colspan = 8}
             {#if outputs.isPending}
                 <TableRow>
                     <TableCell {colspan}>
@@ -186,6 +233,11 @@
 
                 {#each outputs.data.data as output (output.id)}
                     <TableRow>
+                        <TableCell class="sticky left-0 bg-background/80 backdrop-blur-xs">
+                            <div class="grid place-items-center">
+                                <input type="checkbox" bind:group={selection} value={output.id} />
+                            </div>
+                        </TableCell>
                         <TableCell>
                             {@const source = output.text.slice(0, 250)}
                             <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
