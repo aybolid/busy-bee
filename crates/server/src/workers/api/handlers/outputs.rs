@@ -8,7 +8,7 @@ use crate::{
     app::state::SharedAppState,
     repos::{
         Pagination,
-        outputs::{self, OutputId, OutputText, OutputUpdateData},
+        outputs::{self, OutputId, OutputIds, OutputText, OutputUpdateData},
     },
     workers::api::{
         err::{HandlerError, HandlerResult},
@@ -78,4 +78,20 @@ pub async fn update_output(
         .ok_or_else(|| HandlerError::not_found("output not found"))?;
 
     Ok(data(output))
+}
+
+/// JSON payload containing IDs of outputs to delete.
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkDeleteOutputsJson {
+    ids: OutputIds,
+}
+
+/// Bulk deletes outputs using their IDs.
+pub async fn bulk_delete_outputs(
+    State(state): State<SharedAppState>,
+    ReqJson(json): ReqJson<BulkDeleteOutputsJson>,
+) -> HandlerResult<impl IntoResponse> {
+    outputs::bulk_delete_outputs(&state.db_pool, &json.ids).await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
