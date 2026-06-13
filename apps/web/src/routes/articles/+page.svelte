@@ -205,7 +205,8 @@
 
         if (query !== undefined) {
             shouldResetPage = true;
-            if (query) {
+            const trimmed = query.trim();
+            if (trimmed.length >= 2) {
                 params.set("query", query);
             } else {
                 params.delete("query");
