@@ -36,7 +36,17 @@
 
     <StickyBar>
         <div class="flex flex-wrap gap-2">
-            <Badge>Version {prompt.data.version}</Badge>
+            <Badge variant="secondary">
+                {prompt.data.formattedCreatedAt()}
+            </Badge>
+            <Badge
+                variant={prompt.data.created_at.toISOString() ===
+                prompt.data.updated_at.toISOString()
+                    ? "ghost"
+                    : "secondary"}
+            >
+                {prompt.data.formattedUpdatedAt()}
+            </Badge>
         </div>
 
         <SystemPromptActionsMenu

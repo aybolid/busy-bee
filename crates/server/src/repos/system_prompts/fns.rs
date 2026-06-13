@@ -191,8 +191,8 @@ pub async fn update_system_prompt_by_id<'c, 'a>(
         "
         UPDATE system_prompts
         SET
-            title = COALESCE(?, system_prompts)
-            text = COALESCE(?, outputs.text),
+            title = COALESCE(?, system_prompts.title),
+            text = COALESCE(?, system_prompts.text),
             version = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE

@@ -3,6 +3,7 @@ import {
     deleteSystemPrompt,
     getSystemPrompt,
     getSystemPrompts,
+    updateSystemPrompt,
 } from "$lib/api/prompts";
 import { createMutation, queryOptions } from "@tanstack/svelte-query";
 
@@ -55,6 +56,18 @@ export function createDeleteSystemPromptMutation() {
 
     return createMutation(() => ({
         mutationKey: ["system_prompts", "delete"],
+        mutationFn,
+    }));
+}
+
+export function createUpdateSystemPromptMutation() {
+    /** @param {Parameters<typeof updateSystemPrompt>} args */
+    async function mutationFn(args) {
+        return updateSystemPrompt(...args);
+    }
+
+    return createMutation(() => ({
+        mutationKey: ["system_prompts", "update"],
         mutationFn,
     }));
 }

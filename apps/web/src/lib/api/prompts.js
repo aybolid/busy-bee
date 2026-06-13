@@ -87,3 +87,29 @@ export async function getSystemPrompt(ky, payload) {
 export async function deleteSystemPrompt(ky, payload) {
     await ky.delete(`system_prompts/${payload.params.id}`);
 }
+
+export const updateSystemPromptJsonSchema = z
+    .object({
+        version: systemPromptVersionSchema,
+        title: z.string().trim().min(1).max(255).optional(),
+        text: z.string().trim().min(1).optional(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof updateSystemPromptJsonSchema>} UpdateSystemPromptJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: SystemPromptId }, json: UpdateSystemPromptJson }} payload Request payload.
+ *
+ * @returns {Promise<SystemPrompt>}
+ */
+export async function updateSystemPrompt(ky, payload) {
+    const json = await ky
+        .patch(`system_prompts/${payload.params.id}`, {
+            json: updateSystemPromptJsonSchema.parse(payload.json),
+        })
+        .json();
+
+    return unwrapData(systemPromptSchema).parse(json);
+}
