@@ -73,3 +73,25 @@ impl std::fmt::Display for SearchString {
         self.0.fmt(f)
     }
 }
+
+impl SearchString {
+    /// Converts the search string into a safely escaped pattern suitable for use
+    /// in SQL `LIKE` queries.
+    ///
+    /// This method prepares the string for a partial match (e.g., `LIKE '%keyword%'`)
+    /// while protecting against wildcard injection. It performs two main operations:
+    ///
+    /// 1. **Escapes special characters:** Prepend backslashes to `\`, `%`, and `_`
+    ///    so the database treats them as literal characters rather than wildcards.
+    /// 2. **Adds wildcards:** Wraps the entire escaped string in `%` to match the
+    ///    pattern anywhere within a database column.
+    pub fn to_like_pattern(&self) -> String {
+        let escaped = self
+            .to_string()
+            .replace('\\', r"\\")
+            .replace('%', r"\%")
+            .replace('_', r"\_");
+
+        format!("%{escaped}%")
+    }
+}

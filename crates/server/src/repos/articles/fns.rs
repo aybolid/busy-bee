@@ -226,7 +226,7 @@ pub async fn count_articles<'c>(
     if let Some(ref q) = filters.query {
         push_where_or_and!();
         query_builder.push("title LIKE ");
-        query_builder.push_bind(format!("%{q}%"));
+        query_builder.push_bind(q.to_like_pattern());
     }
 
     if let Some(rss_feed_id) = filters.rss_feed_id {
@@ -283,7 +283,7 @@ pub async fn get_articles<'c>(
     if let Some(ref q) = filters.query {
         push_where_or_and!();
         query_builder.push("title LIKE ");
-        query_builder.push_bind(format!("%{q}%"));
+        query_builder.push_bind(q.to_like_pattern());
     }
 
     if let Some(rss_feed_id) = filters.rss_feed_id {
