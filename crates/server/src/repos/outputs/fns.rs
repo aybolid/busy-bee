@@ -1,3 +1,6 @@
+use sqlx::QueryBuilder;
+use types::NonEmptyMaxLength;
+
 use crate::{
     ai::{ModelName, Usage},
     infra::db::{DatabaseExecutor, DatabaseQueryResult},
@@ -222,4 +225,55 @@ pub async fn update_output_by_id<'c, 'a>(
             }
         );
     })
+}
+
+/// A validated collection of [`OutputId`]s used for safe bulk operations.
+///
+/// This struct wraps a standard [`Vec`] but ensures at the type level that the
+/// collection is neither empty nor exceeds a predetermined maximum length
+/// ([`u8::MAX`]).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+pub struct OutputIds(NonEmptyMaxLength<{ u8::MAX as usize }, Vec<OutputId>>);
+
+impl std::ops::Deref for OutputIds {
+    type Target = NonEmptyMaxLength<{ u8::MAX as usize }, Vec<OutputId>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Performs a bulk deletion of multiple outputs by their unique identifiers.
+///
+/// This constructs a single `DELETE` statement with an `IN (?, ?, ...)` clause
+/// using a [`QueryBuilder`]. The operation is protected from bind limit errors
+/// because the `ids` parameter uses the bounded [`OutputIds`] type.
+///
+/// # Returns
+///
+/// Returns a [`DatabaseQueryResult`] containing execution metadata, such as
+/// the total number of rows actually deleted.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the batch execution fails.
+#[tracing::instrument(level = "trace", skip_all, fields(ids_len = ids.len()), err(Debug))]
+pub async fn bulk_delete_outputs<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    ids: &OutputIds,
+) -> sqlx::Result<DatabaseQueryResult> {
+    let mut query_builder = QueryBuilder::new("DELETE FROM outputs WHERE id IN (");
+
+    let mut separated = query_builder.separated(", ");
+    for id in ids.inner() {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(")");
+
+    let query = query_builder.build();
+
+    query
+        .execute(executor)
+        .await
+        .inspect(|result| tracing::trace!(count = result.rows_affected(), "outputs deleted"))
 }
