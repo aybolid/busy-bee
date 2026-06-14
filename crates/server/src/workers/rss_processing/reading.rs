@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use dom_smoothie::Readability;
 use tokio::{sync::Semaphore, task::JoinSet};
-use types::{NonEmpty, nonempty_trimmed_string};
+use types::{NonEmpty, Url, UrlError, nonempty_trimmed_string};
 
 use crate::{
     app::{
@@ -12,6 +12,7 @@ use crate::{
     repos::{
         articles::{self, FromDomSmoothieArticleError, ReadabilityArticle},
         rss_feeds::{self, RssFeedErrorReason},
+        seen_articles::{self},
     },
     workers::rss_processing::config::RssFeedConfig,
 };
@@ -161,6 +162,8 @@ enum ReadFeedItemError {
     Parsing(#[from] ParseReadabilityArticleError),
     #[error(transparent)]
     Task(#[from] tokio::task::JoinError),
+    #[error(transparent)]
+    InvalidUrl(#[from] UrlError),
 }
 
 /// Processes a single RSS feed item.
@@ -186,9 +189,12 @@ async fn read_rss_feed_item(
         return Err(ReadFeedItemError::MissingLink);
     };
 
+    let url = Url::try_new(&link)?;
     // Prevent duplicate processing by checking the DB first
-    // FIXME: TOCTOU
-    if articles::check_article_exists_by_url(&state.app_state.db_pool, &link).await? {
+    if seen_articles::create_seen_article(&state.app_state.db_pool, &url)
+        .await?
+        .is_ignored()
+    {
         return Ok(None);
     }
 
@@ -196,7 +202,7 @@ async fn read_rss_feed_item(
     let permit = state.request_semaphore.acquire().await?;
     let link_response = state
         .http_client
-        .get(&link)
+        .get(url.as_str())
         .send()
         .await?
         .error_for_status()?;
@@ -207,7 +213,7 @@ async fn read_rss_feed_item(
 
     // Article parsing is a CPU-bound task so we need to do it on a separate thread
     // where blocking is acceptable. Otherwise, it will freeze the async executor.
-    let article = tokio::task::spawn_blocking(|| parse_readability_article(html, link)).await??;
+    let article = tokio::task::spawn_blocking(|| parse_readability_article(html, url)).await??;
 
     Ok(Some(article))
 }
@@ -229,11 +235,13 @@ enum ParseReadabilityArticleError {
 /// # Errors
 /// Returns a [`ParseReadabilityArticleError`] if the HTML cannot be processed
 /// or if it fails conversion into the internal domain model.
-#[tracing::instrument(skip(html), err(Debug))]
+#[tracing::instrument(skip_all, fields(url = url.as_str()), err(Debug))]
 fn parse_readability_article(
     html: String,
-    link: String,
+    url: Url,
 ) -> Result<ReadabilityArticle, ParseReadabilityArticleError> {
+    let link = url.to_string();
+
     tracing::trace!("parsing readability article");
     let mut readability = Readability::new(html, Some(&link), None)?;
     let mut article = readability.parse()?;
@@ -245,11 +253,11 @@ fn parse_readability_article(
         article.url = Some(link);
     }
 
-    let readability_artilce =
+    let readability_article =
         ReadabilityArticle::try_from(article).map_err(ParseReadabilityArticleError::from)?;
     tracing::trace!("converted to thread-safe readability article");
 
-    Ok(readability_artilce)
+    Ok(readability_article)
 }
 
 /// Fetches and parses the top-level XML of an RSS feed.

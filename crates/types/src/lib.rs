@@ -11,4 +11,4 @@ pub use length_check::{
     MinLength, NonEmpty, NonEmptyMaxLength,
 };
 pub use trimmed::TrimmedString;
-pub use url::Url;
+pub use url::{Url, UrlError};
