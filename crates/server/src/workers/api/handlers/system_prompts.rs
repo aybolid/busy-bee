@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-/// JSON payload containing data for creating a new system prompt feed.
+/// JSON payload containing data for creating a new system prompt.
 #[derive(Debug, serde::Deserialize)]
 pub struct CreateSystemPromptJson {
     title: SystemPromptTitle,
@@ -51,7 +51,9 @@ pub async fn get_system_prompt(
     State(state): State<SharedAppState>,
     ReqPath(system_prompt_id): ReqPath<SystemPromptId>,
 ) -> HandlerResult<impl IntoResponse> {
-    let prompt = system_prompts::get_system_prompt(&state.db_pool, system_prompt_id).await?;
+    let prompt = system_prompts::get_system_prompt(&state.db_pool, system_prompt_id)
+        .await?
+        .ok_or_else(|| HandlerError::not_found("system prompt not found"))?;
 
     Ok(data(prompt))
 }
@@ -69,7 +71,7 @@ pub async fn delete_system_prompt(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Request JSON containing the data to update an system prompt with.
+/// Request JSON containing the data to update a system prompt with.
 #[derive(Debug, serde::Deserialize)]
 pub struct UpdateSystemPromptJson {
     version: VersionNumber,
