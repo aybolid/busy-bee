@@ -76,7 +76,7 @@
                                 if (apiError.kind === "validation" && apiError.source) {
                                     if (apiError.source === "version") {
                                         toaster.push("Failed to update instruction prompt", {
-                                            description: "Pormpt version mismatch",
+                                            description: "Prompt version mismatch",
                                             props: { variant: "destructive" },
                                         });
                                     } else {
@@ -184,10 +184,8 @@
                 <DialogContinueAction type="submit" disabled={form.state.isSubmitting}>
                     {#if form.state.isSubmitting}
                         <Spinner />
-                    {:else}
-                        <Plus />
                     {/if}
-                    <span>Create</span>
+                    <span>Save</span>
                 </DialogContinueAction>
             </DialogFooter>
         </form>

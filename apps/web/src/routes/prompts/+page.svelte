@@ -189,7 +189,7 @@
             {:else if instructionPrompts.isError}
                 <TableRow>
                     <TableCell {colspan}>
-                        <ErrorAlert error={systemPrompts.error} />
+                        <ErrorAlert error={instructionPrompts.error} />
                     </TableCell>
                 </TableRow>
             {:else if instructionPrompts.isSuccess}
