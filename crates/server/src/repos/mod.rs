@@ -2,6 +2,7 @@ pub mod articles;
 pub mod instruction_prompts;
 pub mod outputs;
 pub mod rss_feeds;
+pub mod seen_articles;
 pub mod system_prompts;
 
 mod common;

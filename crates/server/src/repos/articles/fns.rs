@@ -438,29 +438,6 @@ pub async fn create_articles_bulk<'c>(
         .inspect(|result| tracing::trace!(count = result.rows_affected(), "articles created"))
 }
 
-/// Checks whether an article with the specified canonical URL already exists.
-///
-/// # Returns
-///
-/// Returns `true` if an article with the matching URL exists, otherwise `false`.
-///
-/// # Errors
-///
-/// Returns a [`sqlx::Error`] if the database query fails.
-#[tracing::instrument(level = "trace", skip_all, fields(url = %url), err(Debug))]
-pub async fn check_article_exists_by_url<'c>(
-    executor: impl DatabaseExecutor<'c>,
-    url: &str,
-) -> sqlx::Result<bool> {
-    let query =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM articles WHERE url = ?);").bind(url);
-
-    query
-        .fetch_one(executor)
-        .await
-        .inspect(|exists| tracing::trace!(exists, "checked article by url"))
-}
-
 /// A validated collection of [`ArticleId`]s used for safe bulk operations.
 ///
 /// This struct wraps a standard [`Vec`] but ensures at the type level that the
