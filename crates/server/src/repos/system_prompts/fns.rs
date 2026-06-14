@@ -187,6 +187,7 @@ pub async fn update_system_prompt_by_id<'c, 'a>(
     executor: impl DatabaseExecutor<'c>,
     data: &SystemPromptUpdateData<'a>,
 ) -> sqlx::Result<Option<SystemPrompt>> {
+    // VOLATILE: Changing WHERE clause will break API hanlder logic.
     let query = sqlx::query_as(
         "
         UPDATE system_prompts

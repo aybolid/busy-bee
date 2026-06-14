@@ -189,6 +189,7 @@ pub async fn update_instruction_prompt_by_id<'c, 'a>(
     executor: impl DatabaseExecutor<'c>,
     data: &InstructionPromptUpdateData<'a>,
 ) -> sqlx::Result<Option<InstructionPrompt>> {
+    // VOLATILE: Changing WHERE clause will break API hanlder logic.
     let query = sqlx::query_as(
         "
         UPDATE instruction_prompts
