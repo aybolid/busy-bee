@@ -2,6 +2,21 @@ use types::Url;
 
 use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Represents the outcome of [`create_seen_article`] function.
+pub enum CreateSeenArticleQueryResult {
+    /// New entry was created.
+    Created,
+    /// Entry was ignored due to conflict.
+    Ignored,
+}
+
+impl CreateSeenArticleQueryResult {
+    pub fn is_ignored(self) -> bool {
+        self == Self::Ignored
+    }
+}
+
 /// Attempts to insert a URL into the `seen_articles` ledger.
 ///
 /// This query utilizes an `INSERT OR IGNORE` strategy. If the `Url` already
@@ -15,50 +30,24 @@ use crate::infra::db::{DatabaseExecutor, DatabaseQueryResult};
 ///
 /// # Returns
 ///
-/// Returns a [`sqlx::Result`] containing the [`DatabaseQueryResult`]. If the URL
-/// was newly inserted, `rows_affected` will be `1`. If the URL was ignored due
-/// to a duplicate entry, `rows_affected` will be `0`.
+/// Returns a [`sqlx::Result`] containing the [`CreateSeenArticleQueryResult`].
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
 pub async fn create_seen_article<'c>(
     executor: impl DatabaseExecutor<'c>,
     url: &Url,
-) -> sqlx::Result<DatabaseQueryResult> {
+) -> sqlx::Result<CreateSeenArticleQueryResult> {
     let query = sqlx::query("INSERT OR IGNORE INTO seen_articles (url) VALUES (?);").bind(url);
 
-    query.execute(executor).await.inspect(|result| {
-        tracing::trace!(
-            rows_affected = result.rows_affected(),
-            "created seen article"
-        );
-    })
-}
-
-/// Checks whether a specific URL has already been recorded in the ledger.
-///
-/// This query is highly optimized for performance, utilizing `SQLite`'s
-/// `SELECT EXISTS(...)` pattern. Instead of returning the full row, the database
-/// halts its search the moment a match is found in the index and yields a simple
-/// boolean value.
-///
-/// # Arguments
-///
-/// * `executor` - A database connection or transaction pool.
-/// * `url` - A reference to the parsed `Url` to check.
-///
-/// # Returns
-///
-/// Returns `true` if the URL is present in the `seen_articles` table,
-/// or `false` otherwise.
-#[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn check_if_seen_article<'c>(
-    executor: impl DatabaseExecutor<'c>,
-    url: &Url,
-) -> sqlx::Result<bool> {
-    let query =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM seen_articles WHERE url = ?);").bind(url);
-
     query
-        .fetch_one(executor)
+        .execute(executor)
         .await
-        .inspect(|exists| tracing::trace!(exists, "checked seen article"))
+        .map(|result: DatabaseQueryResult| {
+            if result.rows_affected() == 0 {
+                tracing::trace!("seen article entry already exists");
+                CreateSeenArticleQueryResult::Ignored
+            } else {
+                tracing::trace!("seen article entry created");
+                CreateSeenArticleQueryResult::Created
+            }
+        })
 }

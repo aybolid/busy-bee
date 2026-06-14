@@ -12,7 +12,7 @@ use crate::{
     repos::{
         articles::{self, FromDomSmoothieArticleError, ReadabilityArticle},
         rss_feeds::{self, RssFeedErrorReason},
-        seen_articles,
+        seen_articles::{self},
     },
     workers::rss_processing::config::RssFeedConfig,
 };
@@ -191,11 +191,12 @@ async fn read_rss_feed_item(
 
     let url = Url::try_new(&link)?;
     // Prevent duplicate processing by checking the DB first
-    // FIXME: TOCTOU
-    if seen_articles::check_if_seen_article(&state.app_state.db_pool, &url).await? {
+    if seen_articles::create_seen_article(&state.app_state.db_pool, &url)
+        .await?
+        .is_ignored()
+    {
         return Ok(None);
     }
-    seen_articles::create_seen_article(&state.app_state.db_pool, &url).await?;
 
     tracing::trace!("fetching article html");
     let permit = state.request_semaphore.acquire().await?;
@@ -240,7 +241,9 @@ fn parse_readability_article(
     url: Url,
 ) -> Result<ReadabilityArticle, ParseReadabilityArticleError> {
     // We are passing `types::Url` but actually a string is needed here.
-    // Will take the performace hit to avoid invalid urls being store in DB.
+    //
+    // Will take the performace hit (`ReadabilityArticle::try_from` below will parse URL again)
+    // to avoid invalid urls being store in DB.
     let link = url.to_string();
 
     tracing::trace!("parsing readability article");
