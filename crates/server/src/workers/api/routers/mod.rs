@@ -1,4 +1,5 @@
 pub mod articles;
+pub mod instruction_prompts;
 pub mod notifications;
 pub mod outputs;
 pub mod rss_feeds;

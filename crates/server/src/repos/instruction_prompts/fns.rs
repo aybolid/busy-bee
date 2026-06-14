@@ -2,24 +2,26 @@ use crate::{
     infra::db::DatabaseExecutor,
     repos::{
         VersionNumber,
-        system_prompts::{SystemPrompt, SystemPromptId, SystemPromptText, SystemPromptTitle},
+        instruction_prompts::{
+            InstructionPrompt, InstructionPromptId, InstructionPromptText, InstructionPromptTitle,
+        },
     },
 };
 
-/// Creates a newly submitted system prompt in the database.
+/// Creates an instruction prompt in the database.
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database insert fails.
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn create_system_prompt<'c>(
+pub async fn create_instruction_prompt<'c>(
     executor: impl DatabaseExecutor<'c>,
-    title: &SystemPromptTitle,
-    text: &SystemPromptText,
-) -> sqlx::Result<SystemPrompt> {
+    title: &InstructionPromptTitle,
+    text: &InstructionPromptText,
+) -> sqlx::Result<InstructionPrompt> {
     let query = sqlx::query_as(
         "
-        INSERT INTO system_prompts (
+        INSERT INTO instruction_prompts (
             id,
             title,
             text
@@ -28,30 +30,30 @@ pub async fn create_system_prompt<'c>(
         RETURNING *;
         ",
     )
-    .bind(SystemPromptId::new())
+    .bind(InstructionPromptId::new())
     .bind(title)
     .bind(text);
 
     query
         .fetch_one(executor)
         .await
-        .inspect(|_| tracing::trace!("system prompt created"))
+        .inspect(|_| tracing::trace!("instruction prompt created"))
 }
 
-/// Retrieves system prompt by ID from the database.
+/// Retrieves instruction prompt by ID from the database.
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
-/// row cannot be decoded into [`SystemPrompt`] instance.
+/// row cannot be decoded into [`InstructionPrompt`] instance.
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn get_system_prompt<'c>(
+pub async fn get_instruction_prompt<'c>(
     executor: impl DatabaseExecutor<'c>,
-    id: SystemPromptId,
-) -> sqlx::Result<Option<SystemPrompt>> {
+    id: InstructionPromptId,
+) -> sqlx::Result<Option<InstructionPrompt>> {
     let query = sqlx::query_as(
         "
-        SELECT * FROM system_prompts
+        SELECT * FROM instruction_prompts
         WHERE id = ?;
         ",
     )
@@ -61,29 +63,29 @@ pub async fn get_system_prompt<'c>(
         tracing::trace!(
             "{}",
             if prompt.is_some() {
-                "system prompt fetched from db"
+                "instruction prompt fetched from db"
             } else {
-                "system prompt not found"
+                "instruction prompt not found"
             }
         );
     })
 }
 
-/// Retrieves all system prompts from the database.
+/// Retrieves all instruction prompts from the database.
 ///
-/// The returned prompts are ordered chronologically by their creation time ([`SystemPrompt::created_at`]).
+/// The returned prompts are ordered chronologically by their creation time ([`InstructionPrompt::created_at`]).
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database query fails or if the resulting
-/// rows cannot be decoded into [`SystemPrompt`] instances.
+/// rows cannot be decoded into [`InstructionPrompt`] instances.
 #[tracing::instrument(level = "trace", skip_all, err(Debug))]
-pub async fn get_system_prompts<'c>(
+pub async fn get_instruction_prompts<'c>(
     executor: impl DatabaseExecutor<'c>,
-) -> sqlx::Result<Vec<SystemPrompt>> {
+) -> sqlx::Result<Vec<InstructionPrompt>> {
     let query = sqlx::query_as(
         "
-        SELECT * FROM system_prompts
+        SELECT * FROM instruction_prompts
         ORDER BY created_at DESC;
         ",
     );
@@ -91,27 +93,27 @@ pub async fn get_system_prompts<'c>(
     query
         .fetch_all(executor)
         .await
-        .inspect(|_| tracing::trace!("system prompts fetched from db"))
+        .inspect(|_| tracing::trace!("instruction prompts fetched from db"))
 }
 
-/// Deletes a system prompt from the database by its unique identifier.
+/// Deletes an instruction prompt from the database by its unique identifier.
 ///
 /// # Returns
 ///
-/// Returns [`SystemPromptId`] if the prompt was found and successfully deleted,
+/// Returns [`InstructionPromptId`] if the prompt was found and successfully deleted,
 /// or [`None`] if no feed with that ID existed.
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
 #[tracing::instrument(level = "trace", skip_all, fields(system_prompt_id = %id.as_hyphenated()), err(Debug))]
-pub async fn delete_system_prompt_by_id<'c>(
+pub async fn delete_instruction_prompt_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
-    id: SystemPromptId,
-) -> sqlx::Result<Option<SystemPromptId>> {
+    id: InstructionPromptId,
+) -> sqlx::Result<Option<InstructionPromptId>> {
     let query = sqlx::query_scalar(
         "
-        DELETE FROM system_prompts
+        DELETE FROM instruction_prompts
         WHERE id = ?
         RETURNING id;
         ",
@@ -122,31 +124,31 @@ pub async fn delete_system_prompt_by_id<'c>(
         tracing::trace!(
             "{}",
             if id.is_some() {
-                "system prompt deleted"
+                "instruction prompt deleted"
             } else {
-                "system prompt to delete not found"
+                "instruction prompt to delete not found"
             }
         );
     })
 }
 
-/// Represents the data required to update an existing system prompt.
+/// Represents the data required to update an existing instruction prompt.
 ///
 /// This struct uses the builder pattern to allow selective updating
 /// of the prompts's fields.
 #[derive(Debug)]
-pub struct SystemPromptUpdateData<'a> {
-    id: SystemPromptId,
+pub struct InstructionPromptUpdateData<'a> {
+    id: InstructionPromptId,
     version: VersionNumber,
-    title: Option<&'a SystemPromptTitle>,
-    text: Option<&'a SystemPromptText>,
+    title: Option<&'a InstructionPromptTitle>,
+    text: Option<&'a InstructionPromptText>,
 }
 
-impl<'a> SystemPromptUpdateData<'a> {
-    /// Creates a new [`SystemPromptUpdateData`] instance for the specified ID and the expected version.
+impl<'a> InstructionPromptUpdateData<'a> {
+    /// Creates a new [`InstructionPrompt`] instance for the specified ID and the expected version.
     ///
     /// By default, no fields are configured for an update.
-    pub fn new(id: SystemPromptId, version: VersionNumber) -> Self {
+    pub fn new(id: InstructionPromptId, version: VersionNumber) -> Self {
         Self {
             id,
             version,
@@ -156,43 +158,43 @@ impl<'a> SystemPromptUpdateData<'a> {
     }
 
     /// Sets the new title for the record.
-    pub fn title(mut self, title: Option<&'a SystemPromptTitle>) -> Self {
+    pub fn title(mut self, title: Option<&'a InstructionPromptTitle>) -> Self {
         self.title = title;
         self
     }
 
     /// Sets the new text for the record.
-    pub fn text(mut self, text: Option<&'a SystemPromptText>) -> Self {
+    pub fn text(mut self, text: Option<&'a InstructionPromptText>) -> Self {
         self.text = text;
         self
     }
 }
 
-/// Updates an existing system prompt record in the database.
+/// Updates an existing instruction prompt record in the database.
 ///
-/// This function applies the changes specified in the [`SystemPromptUpdateData`] payload.
+/// This function applies the changes specified in the [`InstructionPromptUpdateData`] payload.
 /// Any fields set to `None` in the payload will retain their current values
 /// in the database using the `COALESCE` sql function.
 ///
 /// # Returns
 ///
-/// * `Some(SystemPrompt)` containing the updated record if the update succeeded.
+/// * `Some(InstructionPrompt)` containing the updated record if the update succeeded.
 /// * `None` if no record matching the ID and the expected version was found.
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database update query fails.
 #[tracing::instrument(level = "trace", skip(executor), err(Debug))]
-pub async fn update_system_prompt_by_id<'c, 'a>(
+pub async fn update_instruction_prompt_by_id<'c, 'a>(
     executor: impl DatabaseExecutor<'c>,
-    data: &SystemPromptUpdateData<'a>,
-) -> sqlx::Result<Option<SystemPrompt>> {
+    data: &InstructionPromptUpdateData<'a>,
+) -> sqlx::Result<Option<InstructionPrompt>> {
     let query = sqlx::query_as(
         "
-        UPDATE system_prompts
+        UPDATE instruction_prompts
         SET
-            title = COALESCE(?, system_prompts.title),
-            text = COALESCE(?, system_prompts.text),
+            title = COALESCE(?, instruction_prompts.title),
+            text = COALESCE(?, instruction_prompts.text),
             version = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE
@@ -210,9 +212,9 @@ pub async fn update_system_prompt_by_id<'c, 'a>(
         tracing::trace!(
             "{}",
             if output.is_some() {
-                "system prompt updated"
+                "instruction prompt updated"
             } else {
-                "system prompt to update not found"
+                "instruction prompt to update not found"
             }
         );
     })
