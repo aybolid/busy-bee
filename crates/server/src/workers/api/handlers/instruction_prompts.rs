@@ -88,27 +88,32 @@ pub async fn update_instruction_prompt(
     ReqPath(instruction_prompt_id): ReqPath<InstructionPromptId>,
     ReqJson(json): ReqJson<UpdateInstructionPromptJson>,
 ) -> HandlerResult<impl IntoResponse> {
-    let prompt_to_update =
-        instruction_prompts::get_instruction_prompt(&state.db_pool, instruction_prompt_id)
-            .await?
-            .ok_or_else(|| HandlerError::not_found("instruction prompt not found"))?;
-
-    // `update_instruction_prompt_by_id` below also checks version so this one is just
-    // for better UX.
-    if prompt_to_update.version != json.version {
-        return Err(HandlerError::validation_with_source(
-            "version mismatch",
-            "version",
-        ));
-    }
-
     let update_data = InstructionPromptUpdateData::new(instruction_prompt_id, json.version)
         .title(json.title.as_ref())
         .text(json.text.as_ref());
 
-    let prompt = instruction_prompts::update_instruction_prompt_by_id(&state.db_pool, &update_data)
-        .await?
-        .ok_or_else(|| HandlerError::not_found("instruction prompt not found"))?;
+    let Some(prompt) =
+        instruction_prompts::update_instruction_prompt_by_id(&state.db_pool, &update_data).await?
+    else {
+        // This branch will be executed if:
+        //
+        // - Prompt with given ID was not found
+        // - There is a version mismatch
+
+        let prompt_with_id_exists =
+            instruction_prompts::get_instruction_prompt(&state.db_pool, instruction_prompt_id)
+                .await?
+                .is_some();
+
+        if prompt_with_id_exists {
+            return Err(HandlerError::validation_with_source(
+                "version mismatch",
+                "version",
+            ));
+        }
+
+        return Err(HandlerError::not_found("instruction prompt not found"));
+    };
 
     Ok(data(prompt))
 }
