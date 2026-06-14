@@ -1,8 +1,11 @@
 <script>
-    import Input from "./ui/input.svelte";
+    import Search from "./ui/icons/search.svelte";
+    import InputGroupAddon from "./ui/input-group/input-group-addon.svelte";
+    import InputGroup from "./ui/input-group/input-group.svelte";
+    import InputGroupInput from "./ui/input-group/input-group-input.svelte";
 
-    /** @type {Omit<import('svelte').ComponentProps<typeof Input>, 'oninput'> & { onDebouncedInput?: (v: string) => void }} */
-    const { onDebouncedInput, ...props } = $props();
+    /** @type {import('svelte').ComponentProps<typeof InputGroup> & { onDebouncedInput?: (v: string) => void, placeholder?: string, value?: string }} */
+    const { onDebouncedInput, placeholder, value, ...props } = $props();
 
     /** @type {ReturnType<typeof setTimeout>} */
     let timer;
@@ -27,4 +30,9 @@
     $effect(() => () => clearTimeout(timer));
 </script>
 
-<Input {...props} oninput={handleInput} />
+<InputGroup {...props}>
+    <InputGroupAddon align="inline-start">
+        <Search />
+    </InputGroupAddon>
+    <InputGroupInput oninput={handleInput} {placeholder} {value} />
+</InputGroup>

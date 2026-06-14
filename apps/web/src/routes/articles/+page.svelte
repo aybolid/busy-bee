@@ -319,7 +319,7 @@
     {/if}
 </div>
 
-<div class="pb-4 flex items-baseline gap-4 justify-between">
+<div class="pb-4 flex items-center gap-4 justify-between">
     <SearchInput
         value={getArticlesSearchParams.query}
         placeholder="Search"

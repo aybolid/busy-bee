@@ -1,0 +1,16 @@
+<script>
+    import Textarea from "../textarea.svelte";
+    import { cn } from "../utils";
+
+    /** @type {import('svelte').ComponentProps<typeof Textarea>} */
+    const props = $props();
+</script>
+
+<Textarea
+    {...props}
+    data-slot="input-group-control"
+    class={cn(
+        "flex-1 resize-none rounded-none border-0 bg-transparent py-2 shadow-none ring-0 focus-visible:ring-0 disabled:bg-transparent aria-invalid:ring-0 dark:bg-transparent dark:disabled:bg-transparent",
+        props.class,
+    )}
+/>
