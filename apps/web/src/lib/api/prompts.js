@@ -113,3 +113,117 @@ export async function updateSystemPrompt(ky, payload) {
 
     return unwrapData(systemPromptSchema).parse(json);
 }
+
+//////////////////////////////////////////
+
+export const instructionPromptIdSchema = z.uuidv7().brand("instructionPromptId");
+
+/** @typedef {z.infer<typeof instructionPromptIdSchema>} InstructionPromptId */
+
+export const instructionPromptVersionSchema = z.int().positive().brand("instructionPromptVersion");
+
+/** @typedef {z.infer<typeof instructionPromptVersionSchema>} InstructionPromptVersion */
+
+export const instructionPromptSchema = z
+    .object({
+        id: instructionPromptIdSchema,
+        created_at: z.coerce.date(),
+        updated_at: z.coerce.date(),
+        title: z.string(),
+        text: z.string(),
+        version: instructionPromptVersionSchema,
+    })
+    .strict()
+    .transform((data) => ({
+        ...data,
+        formattedCreatedAt: () => formatDate(data.created_at),
+        formattedUpdatedAt: () => formatDate(data.updated_at),
+        formattedVersion: () => `Version ${data.version}`,
+    }))
+    .readonly();
+
+/** @typedef {z.infer<typeof instructionPromptSchema>} InstructionPrompt */
+
+export const createInstructionPromptJsonSchema = z
+    .object({
+        title: z.string().trim().min(1).max(255),
+        text: z.string().trim().min(1).max(500),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof createInstructionPromptJsonSchema>} CreateInstructionPromptJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ json: CreateInstructionPromptJson }} payload Request payload.
+ *
+ * @returns {Promise<InstructionPrompt>}
+ */
+export async function createInstructionPrompt(ky, payload) {
+    const json = await ky
+        .post(`instruction_prompts`, {
+            json: createInstructionPromptJsonSchema.parse(payload.json),
+        })
+        .json();
+
+    return unwrapData(instructionPromptSchema).parse(json);
+}
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ *
+ * @returns {Promise<Array<InstructionPrompt>>}
+ */
+export async function getInstructionPrompts(ky) {
+    const json = await ky.get(`instruction_prompts`).json();
+
+    return unwrapData(z.array(instructionPromptSchema)).parse(json);
+}
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: InstructionPromptId } }} payload Request payload.
+ *
+ * @returns {Promise<InstructionPrompt>}
+ */
+export async function getInstructionPrompt(ky, payload) {
+    const json = await ky.get(`instruction_prompts/${payload.params.id}`).json();
+
+    return unwrapData(instructionPromptSchema).parse(json);
+}
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: InstructionPromptId } }} payload Request payload.
+ *
+ * @returns {Promise<void>}
+ */
+export async function deleteInstructionPrompt(ky, payload) {
+    await ky.delete(`instruction_prompts/${payload.params.id}`);
+}
+
+export const updateInstructionPromptJsonSchema = z
+    .object({
+        version: instructionPromptVersionSchema,
+        title: z.string().trim().min(1).max(255).optional(),
+        text: z.string().trim().min(1).max(500).optional(),
+    })
+    .strict();
+
+/** @typedef {z.infer<typeof updateInstructionPromptJsonSchema>} UpdateInstructionPromptJson */
+
+/**
+ * @param {import('ky').KyInstance} ky `KyInstance` to use.
+ * @param {{ params: { id: InstructionPromptId }, json: UpdateInstructionPromptJson }} payload Request payload.
+ *
+ * @returns {Promise<InstructionPrompt>}
+ */
+export async function updateInstructionPrompt(ky, payload) {
+    const json = await ky
+        .patch(`instruction_prompts/${payload.params.id}`, {
+            json: updateSystemPromptJsonSchema.parse(payload.json),
+        })
+        .json();
+
+    return unwrapData(instructionPromptSchema).parse(json);
+}
