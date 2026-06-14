@@ -221,7 +221,7 @@ export const updateInstructionPromptJsonSchema = z
 export async function updateInstructionPrompt(ky, payload) {
     const json = await ky
         .patch(`instruction_prompts/${payload.params.id}`, {
-            json: updateSystemPromptJsonSchema.parse(payload.json),
+            json: updateInstructionPromptJsonSchema.parse(payload.json),
         })
         .json();
 

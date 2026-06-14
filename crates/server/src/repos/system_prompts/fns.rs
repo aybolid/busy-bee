@@ -99,7 +99,7 @@ pub async fn get_system_prompts<'c>(
 /// # Returns
 ///
 /// Returns [`SystemPromptId`] if the prompt was found and successfully deleted,
-/// or [`None`] if no feed with that ID existed.
+/// or [`None`] if no prompt with that ID existed.
 ///
 /// # Errors
 ///

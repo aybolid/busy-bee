@@ -53,7 +53,7 @@ pub async fn get_system_prompt(
 ) -> HandlerResult<impl IntoResponse> {
     let prompt = system_prompts::get_system_prompt(&state.db_pool, system_prompt_id)
         .await?
-        .ok_or_else(|| HandlerError::not_found("system prompt not found"));
+        .ok_or_else(|| HandlerError::not_found("system prompt not found"))?;
 
     Ok(data(prompt))
 }

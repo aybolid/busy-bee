@@ -106,7 +106,7 @@ export function getInstructionPromptsQueryOptions(...args) {
  */
 export function getInstructionPromptQueryOptions(...args) {
     return queryOptions({
-        queryKey: ["system_prompts", args[1]],
+        queryKey: ["instruction_prompts", args[1]],
         queryFn: () => getInstructionPrompt(...args),
     });
 }

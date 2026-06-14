@@ -101,12 +101,12 @@ pub async fn get_instruction_prompts<'c>(
 /// # Returns
 ///
 /// Returns [`InstructionPromptId`] if the prompt was found and successfully deleted,
-/// or [`None`] if no feed with that ID existed.
+/// or [`None`] if no prompt with that ID existed.
 ///
 /// # Errors
 ///
 /// Returns a [`sqlx::Error`] if the database deletion operation fails.
-#[tracing::instrument(level = "trace", skip_all, fields(system_prompt_id = %id.as_hyphenated()), err(Debug))]
+#[tracing::instrument(level = "trace", skip_all, fields(instruction_prompt_id = %id.as_hyphenated()), err(Debug))]
 pub async fn delete_instruction_prompt_by_id<'c>(
     executor: impl DatabaseExecutor<'c>,
     id: InstructionPromptId,
@@ -145,7 +145,7 @@ pub struct InstructionPromptUpdateData<'a> {
 }
 
 impl<'a> InstructionPromptUpdateData<'a> {
-    /// Creates a new [`InstructionPrompt`] instance for the specified ID and the expected version.
+    /// Creates a new [`InstructionPromptUpdateData`] instance for the specified ID and the expected version.
     ///
     /// By default, no fields are configured for an update.
     pub fn new(id: InstructionPromptId, version: VersionNumber) -> Self {

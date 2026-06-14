@@ -55,7 +55,7 @@ pub async fn get_instruction_prompt(
 ) -> HandlerResult<impl IntoResponse> {
     let prompt = instruction_prompts::get_instruction_prompt(&state.db_pool, instruction_prompt_id)
         .await?
-        .ok_or_else(|| HandlerError::not_found("instruction prompt not found"));
+        .ok_or_else(|| HandlerError::not_found("instruction prompt not found"))?;
 
     Ok(data(prompt))
 }
