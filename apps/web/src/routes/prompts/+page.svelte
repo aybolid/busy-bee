@@ -2,7 +2,10 @@
     import Action from "$lib/components/ui/action.svelte";
     import Plus from "$lib/components/ui/icons/plus.svelte";
     import { createQuery } from "@tanstack/svelte-query";
-    import { getSystemPromptsQueryOptions } from "$lib/query/prompts";
+    import {
+        getInstructionPromptsQueryOptions,
+        getSystemPromptsQueryOptions,
+    } from "$lib/query/prompts";
     import Pending from "$lib/components/pending.svelte";
     import ErrorAlert from "$lib/components/error-alert.svelte";
     import TableContainer from "$lib/components/ui/table/table-container.svelte";
@@ -26,13 +29,14 @@
     const props = $props();
 
     const systemPrompts = createQuery(() => getSystemPromptsQueryOptions(props.data.ky));
+    const instructionPrompts = createQuery(() => getInstructionPromptsQueryOptions(props.data.ky));
 </script>
 
 <div class="flex items-baseline justify-between gap-8 pb-8">
     <h1 class="text-4xl font-bold">Prompts</h1>
 </div>
 
-<div class="flex justify-between items-baseline gap-4">
+<div class="flex justify-between items-baseline gap-4 pb-8">
     <h2 class="text-2xl font-semibold">System</h2>
     {#if systemPrompts.isSuccess && systemPrompts.data.length > 0}
         <Action anchor href="/prompts/system/new">
@@ -42,7 +46,7 @@
     {/if}
 </div>
 
-<TableContainer class="mt-8">
+<TableContainer class="mb-8">
     <Table>
         <TableHeader>
             <TableRow>
@@ -78,7 +82,7 @@
                                 <EmptyHeader>
                                     <EmptyTitle>No system prompts</EmptyTitle>
                                     <EmptyDescription>
-                                        There are no outputs to display.
+                                        There are no prompts to display.
                                     </EmptyDescription>
                                 </EmptyHeader>
                                 <EmptyContent>
@@ -136,6 +140,114 @@
                                     </Action>
                                 {/snippet}
                             </SystemPromptActionsMenu>
+                        </TableCell>
+                    </TableRow>
+                {/each}
+            {/if}
+        </TableBody>
+    </Table>
+</TableContainer>
+
+<div class="flex justify-between items-baseline gap-4 pb-8">
+    <h2 class="text-2xl font-semibold">Instruction</h2>
+    {#if instructionPrompts.isSuccess && instructionPrompts.data.length > 0}
+        <Action button>
+            <Plus />
+            <span>Instruction prompt</span>
+        </Action>
+    {/if}
+</div>
+
+<TableContainer class="mb-8">
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Text</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Version</TableHead>
+                <TableHead class="sticky right-0 bg-muted/80 backdrop-blur-xs">
+                    <!-- Actions -->
+                </TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {@const colspan = 6}
+            {#if instructionPrompts.isPending}
+                <TableRow>
+                    <TableCell {colspan}>
+                        <Pending />
+                    </TableCell>
+                </TableRow>
+            {:else if instructionPrompts.isError}
+                <TableRow>
+                    <TableCell {colspan}>
+                        <ErrorAlert error={systemPrompts.error} />
+                    </TableCell>
+                </TableRow>
+            {:else if instructionPrompts.isSuccess}
+                {#if instructionPrompts.data.length === 0}
+                    <TableRow>
+                        <TableCell {colspan}>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyTitle>No instruction prompts</EmptyTitle>
+                                    <EmptyDescription>
+                                        There are no prompts to display.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                                <EmptyContent>
+                                    <Action button>
+                                        <Plus />
+                                        <span>Instruction prompt</span>
+                                    </Action>
+                                </EmptyContent>
+                            </Empty>
+                        </TableCell>
+                    </TableRow>
+                {/if}
+
+                {#each instructionPrompts.data as prompt (prompt.id)}
+                    <TableRow>
+                        <TableCell>
+                            <Action anchor href="/prompts/system/{prompt.id}" variant="link">
+                                <span class="max-w-48 truncate">
+                                    {prompt.title}
+                                </span>
+                            </Action>
+                        </TableCell>
+                        <TableCell>
+                            {@const source = prompt.text.slice(0, 250)}
+                            <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
+                                <SvelteMarkdown {source} isInline />
+                            </p>
+                        </TableCell>
+                        <TableCell>
+                            <Badge variant="secondary">
+                                {prompt.formattedCreatedAt()}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <Badge
+                                variant={prompt.created_at.toISOString() ===
+                                prompt.updated_at.toISOString()
+                                    ? "ghost"
+                                    : "secondary"}
+                            >
+                                {prompt.formattedUpdatedAt()}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <Badge>
+                                {prompt.formattedVersion()}
+                            </Badge>
+                        </TableCell>
+                        <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
+                            <Action button size="icon-sm" variant="outline" {...props}>
+                                <EllipsisVertical />
+                                <span class="sr-only">Prompt actions</span>
+                            </Action>
                         </TableCell>
                     </TableRow>
                 {/each}
