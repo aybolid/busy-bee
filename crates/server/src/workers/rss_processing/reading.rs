@@ -240,10 +240,6 @@ fn parse_readability_article(
     html: String,
     url: Url,
 ) -> Result<ReadabilityArticle, ParseReadabilityArticleError> {
-    // We are passing `types::Url` but actually a string is needed here.
-    //
-    // Will take the performace hit (`ReadabilityArticle::try_from` below will parse URL again)
-    // to avoid invalid urls being store in DB.
     let link = url.to_string();
 
     tracing::trace!("parsing readability article");
