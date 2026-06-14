@@ -24,6 +24,8 @@
     import SystemPromptActionsMenu from "$lib/components/system-prompt-actions-menu.svelte";
     import EllipsisVertical from "$lib/components/ui/icons/ellipsis-vertical.svelte";
     import EmptyContent from "$lib/components/ui/empty/empty-content.svelte";
+    import CreateInstructionPromptFormDialog from "$lib/components/create-instruction-prompt-form-dialog.svelte";
+    import InstructionPromptActionsMenu from "$lib/components/instruction-prompt-actions-menu.svelte";
 
     /** @type {import('./$types').PageProps} */
     const props = $props();
@@ -151,10 +153,14 @@
 <div class="flex justify-between items-baseline gap-4 pb-8">
     <h2 class="text-2xl font-semibold">Instruction</h2>
     {#if instructionPrompts.isSuccess && instructionPrompts.data.length > 0}
-        <Action button>
-            <Plus />
-            <span>Instruction prompt</span>
-        </Action>
+        <CreateInstructionPromptFormDialog>
+            {#snippet trigger(props)}
+                <Action button {...props}>
+                    <Plus />
+                    <span>Instruction prompt</span>
+                </Action>
+            {/snippet}
+        </CreateInstructionPromptFormDialog>
     {/if}
 </div>
 
@@ -198,10 +204,14 @@
                                     </EmptyDescription>
                                 </EmptyHeader>
                                 <EmptyContent>
-                                    <Action button>
-                                        <Plus />
-                                        <span>Instruction prompt</span>
-                                    </Action>
+                                    <CreateInstructionPromptFormDialog>
+                                        {#snippet trigger(props)}
+                                            <Action button {...props}>
+                                                <Plus />
+                                                <span>Instruction prompt</span>
+                                            </Action>
+                                        {/snippet}
+                                    </CreateInstructionPromptFormDialog>
                                 </EmptyContent>
                             </Empty>
                         </TableCell>
@@ -211,16 +221,13 @@
                 {#each instructionPrompts.data as prompt (prompt.id)}
                     <TableRow>
                         <TableCell>
-                            <Action anchor href="/prompts/system/{prompt.id}" variant="link">
-                                <span class="max-w-48 truncate">
-                                    {prompt.title}
-                                </span>
-                            </Action>
+                            <span class="max-w-48 truncate font-medium">
+                                {prompt.title}
+                            </span>
                         </TableCell>
                         <TableCell>
-                            {@const source = prompt.text.slice(0, 250)}
                             <p class="line-clamp-2 w-96 text-xs text-wrap whitespace-normal">
-                                <SvelteMarkdown {source} isInline />
+                                {prompt.text}
                             </p>
                         </TableCell>
                         <TableCell>
@@ -244,10 +251,14 @@
                             </Badge>
                         </TableCell>
                         <TableCell class="sticky right-0 bg-background/80 backdrop-blur-xs">
-                            <Action button size="icon-sm" variant="outline" {...props}>
-                                <EllipsisVertical />
-                                <span class="sr-only">Prompt actions</span>
-                            </Action>
+                            <InstructionPromptActionsMenu instructionPrompt={prompt}>
+                                {#snippet trigger(props)}
+                                    <Action button size="icon-sm" variant="outline" {...props}>
+                                        <EllipsisVertical />
+                                        <span class="sr-only">Prompt actions</span>
+                                    </Action>
+                                {/snippet}
+                            </InstructionPromptActionsMenu>
                         </TableCell>
                     </TableRow>
                 {/each}
