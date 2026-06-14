@@ -28,7 +28,6 @@
     import InputGroupAddon from "./ui/input-group/input-group-addon.svelte";
     import InputGroupText from "./ui/input-group/input-group-text.svelte";
     import { getMaxLengthConstraint } from "$lib/schema-utils";
-    import Plus from "./ui/icons/plus.svelte";
     import Input from "./ui/input.svelte";
     import z from "zod";
 
