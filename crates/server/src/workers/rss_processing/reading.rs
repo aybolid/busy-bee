@@ -257,11 +257,11 @@ fn parse_readability_article(
         article.url = Some(link);
     }
 
-    let readability_artilce =
+    let readability_article =
         ReadabilityArticle::try_from(article).map_err(ParseReadabilityArticleError::from)?;
     tracing::trace!("converted to thread-safe readability article");
 
-    Ok(readability_artilce)
+    Ok(readability_article)
 }
 
 /// Fetches and parses the top-level XML of an RSS feed.
