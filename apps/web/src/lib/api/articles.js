@@ -143,7 +143,7 @@ export async function deleteArticle(ky, payload) {
 export const processArticleJsonSchema = z
     .object({
         system_prompt_id: systemPromptIdSchema,
-        instruction_ids: z.array(instructionPromptIdSchema).min(1).max(255).optional(),
+        instruction_prompt_ids: z.array(instructionPromptIdSchema).min(1).max(255).optional(),
         context: z.string().trim().max(500).optional(),
     })
     .strict();

@@ -8,6 +8,7 @@ use crate::{
     },
     repos::{
         articles::{self, Article, ArticleErrorReason},
+        instruction_prompts,
         outputs::{self, OutputText},
         system_prompts,
     },
@@ -25,6 +26,7 @@ use crate::{
     fields(
         article_id = %request.article_id.as_hyphenated(),
         system_prompt_id = %request.system_prompt_id.as_hyphenated(),
+        has_instructions = request.instruction_prompt_ids.is_some(),
         has_context = request.context.is_some(),
     )
 )]
@@ -54,14 +56,17 @@ enum ProcessArticleError {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     /// The requested article could not be found in the database.
-    #[error("article not found in db")]
+    #[error("article not found")]
     ArticleNotFound,
     /// The requested system prompt could not be found in the database.
-    #[error("system prompt not found in db")]
+    #[error("system prompt not found")]
     SystemPromptNotFound,
     /// The external AI service returned an error during text generation.
     #[error(transparent)]
     Chat(#[from] ExecChatError),
+    /// The requested instruction prompt(s) could not be found in the database.
+    #[error("one or more instruction prompts were not found")]
+    InstructionPromptNotFound,
 }
 
 /// Executes the core logic for processing an article using the AI model.
@@ -118,6 +123,28 @@ async fn prepare_chat_request(
         .ok_or(ProcessArticleError::SystemPromptNotFound)?;
 
     let mut chat_request = ChatRequest::default().with_system(Message::from(system_prompt));
+
+    if let Some(ids) = request.instruction_prompt_ids.as_ref() {
+        tracing::trace!(count = ids.len(), "with additional instructions");
+        let prompts =
+            instruction_prompts::get_instruction_prompts_by_ids(&state.db_pool, ids).await?;
+
+        if prompts.len() != ids.len() {
+            return Err(ProcessArticleError::InstructionPromptNotFound);
+        }
+
+        let mut instructions_message_string = String::from("Additional instructions:\n");
+
+        for prompt in prompts {
+            instructions_message_string.push_str(&prompt.text);
+            instructions_message_string.push_str("\n\n");
+        }
+
+        let message = Message::new(instructions_message_string)
+            .expect("new message from non empty string should not return None");
+
+        chat_request.push_message(ChatMessage::user(message));
+    }
 
     if let Some(context_message) = request
         .context

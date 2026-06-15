@@ -13,6 +13,7 @@ use crate::{
         articles::{
             self, ArticleErrorReason, ArticleId, ArticleIds, ArticleStatusTag, GetArticlesFilters,
         },
+        instruction_prompts::InstructionPromptIds,
         rss_feeds::RssFeedId,
         system_prompts::SystemPromptId,
     },
@@ -109,11 +110,12 @@ pub async fn get_article_stats(
     Ok(data(article_stats))
 }
 
-/// JSON payload containing optional user context for initiating
+/// JSON payload containing data for initiating
 /// the processing of an article.
 #[derive(Debug, serde::Deserialize)]
 pub struct ProcessArticleJson {
     system_prompt_id: SystemPromptId,
+    instruction_prompt_ids: Option<InstructionPromptIds>,
     context: Option<ProcessingUserContext>,
 }
 
@@ -135,6 +137,7 @@ pub async fn process_article(
     let request = ProcessingRequest {
         article_id,
         system_prompt_id: json.system_prompt_id,
+        instruction_prompt_ids: json.instruction_prompt_ids,
         context: json.context,
     };
 

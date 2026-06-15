@@ -39,6 +39,22 @@ impl InstructionPromptId {
     }
 }
 
+/// A validated collection of [`InstructionPromptId`]s.
+///
+/// This struct wraps a standard [`Vec`] but ensures at the type level that the
+/// collection is neither empty nor exceeds a predetermined maximum length
+/// ([`u8::MAX`]).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+pub struct InstructionPromptIds(NonEmptyMaxLength<{ u8::MAX as usize }, Vec<InstructionPromptId>>);
+
+impl std::ops::Deref for InstructionPromptIds {
+    type Target = NonEmptyMaxLength<{ u8::MAX as usize }, Vec<InstructionPromptId>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// A strongly-typed, user-friendly instruction prompt title.
 #[derive(
     Debug,

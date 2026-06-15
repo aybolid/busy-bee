@@ -1,9 +1,12 @@
+use sqlx::QueryBuilder;
+
 use crate::{
     infra::db::DatabaseExecutor,
     repos::{
         VersionNumber,
         instruction_prompts::{
-            InstructionPrompt, InstructionPromptId, InstructionPromptText, InstructionPromptTitle,
+            InstructionPrompt, InstructionPromptId, InstructionPromptIds, InstructionPromptText,
+            InstructionPromptTitle,
         },
     },
 };
@@ -68,6 +71,32 @@ pub async fn get_instruction_prompt<'c>(
                 "instruction prompt not found"
             }
         );
+    })
+}
+
+/// Retrieves instruction prompts by IDs from the database.
+///
+/// # Errors
+///
+/// Returns a [`sqlx::Error`] if the database query fails or if the resulting
+/// rows cannot be decoded into [`InstructionPrompt`] instances.
+#[tracing::instrument(level = "trace", skip_all, err(Debug))]
+pub async fn get_instruction_prompts_by_ids<'c>(
+    executor: impl DatabaseExecutor<'c>,
+    ids: &InstructionPromptIds,
+) -> sqlx::Result<Vec<InstructionPrompt>> {
+    let mut query_builder = QueryBuilder::new("SELECT * FROM instruction_prompts WHERE id IN (");
+
+    let mut separated = query_builder.separated(", ");
+    for id in ids.inner() {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(")");
+
+    let query = query_builder.build_query_as();
+
+    query.fetch_all(executor).await.inspect(|prompts| {
+        tracing::trace!(count = prompts.len(), "instruction prompts fetched from db");
     })
 }
 

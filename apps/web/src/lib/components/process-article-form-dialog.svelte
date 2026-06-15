@@ -83,13 +83,13 @@
         defaultValues: {
             // FIXME: any types
             system_prompt_id: /** @type {*} */ (""),
-            instruction_ids: /** @type {Array<*>} */ ([]),
+            instruction_prompt_ids: /** @type {Array<*>} */ ([]),
             context: "",
         },
         validators: {
             onSubmit: z.object({
                 system_prompt_id: processArticleJsonSchema.shape.system_prompt_id,
-                instruction_ids: z.array(instructionPromptIdSchema).max(255),
+                instruction_prompt_ids: z.array(instructionPromptIdSchema).max(255),
                 context: processArticleJsonSchema.shape.context.nonoptional(),
             }),
         },
@@ -101,8 +101,8 @@
                         params: { id: articleId },
                         json: {
                             system_prompt_id: value.system_prompt_id,
-                            instruction_ids: value.instruction_ids?.length
-                                ? value.instruction_ids
+                            instruction_prompt_ids: value.instruction_prompt_ids?.length
+                                ? value.instruction_prompt_ids
                                 : undefined,
                             context: value.context || undefined,
                         },
@@ -203,7 +203,7 @@
             </FieldGroup>
 
             <FieldGroup>
-                <form.Field name="instruction_ids">
+                <form.Field name="instruction_prompt_ids">
                     {#snippet children(field)}
                         {@const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid}
 
