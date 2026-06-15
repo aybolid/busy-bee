@@ -129,7 +129,7 @@
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            <Badge>
+                            <Badge variant="outline">
                                 {prompt.formattedVersion()}
                             </Badge>
                         </TableCell>
@@ -246,7 +246,7 @@
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            <Badge>
+                            <Badge variant="outline">
                                 {prompt.formattedVersion()}
                             </Badge>
                         </TableCell>

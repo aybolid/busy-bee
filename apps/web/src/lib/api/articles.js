@@ -2,7 +2,7 @@ import z from "zod";
 import { dataWithPaginationMeta, paginationSchema, unwrapData } from "./common";
 import { rssFeedIdSchema } from "./rss-feeds";
 import { formatDate, formatNumber } from "$lib/formats";
-import { systemPromptIdSchema } from "./prompts";
+import { instructionPromptIdSchema, systemPromptIdSchema } from "./prompts";
 
 export const articleIdSchema = z.uuidv7().brand("articleId");
 
@@ -143,6 +143,7 @@ export async function deleteArticle(ky, payload) {
 export const processArticleJsonSchema = z
     .object({
         system_prompt_id: systemPromptIdSchema,
+        instruction_prompt_ids: z.array(instructionPromptIdSchema).min(1).max(255).optional(),
         context: z.string().trim().max(500).optional(),
     })
     .strict();

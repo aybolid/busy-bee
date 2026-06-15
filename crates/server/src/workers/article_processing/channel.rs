@@ -1,7 +1,9 @@
 use tokio::sync::mpsc;
 use types::{NonEmptyMaxLength, TrimmedString};
 
-use crate::repos::{articles::ArticleId, system_prompts::SystemPromptId};
+use crate::repos::{
+    articles::ArticleId, instruction_prompts::InstructionPromptIds, system_prompts::SystemPromptId,
+};
 
 /// Additional user-provided context used during article processing.
 ///
@@ -47,6 +49,8 @@ pub struct ProcessingRequest {
     pub article_id: ArticleId,
     /// The unique identifier of the system prompt to use.
     pub system_prompt_id: SystemPromptId,
+    /// The unique identifiers of the instruction prompts to use.
+    pub instruction_prompt_ids: Option<InstructionPromptIds>,
     /// Optional instructions or context from the user.
     pub context: Option<ProcessingUserContext>,
 }
