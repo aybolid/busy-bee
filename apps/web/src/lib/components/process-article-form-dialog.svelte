@@ -194,6 +194,14 @@
                                     {/if}
                                 </NativeSelect>
                             {/if}
+
+                            {#if systemPrompts.isSuccess && systemPrompts.data.length === 0}
+                                <FieldDescription>
+                                    No system prompts are available. Create one
+                                    <a href="/prompts/system/new">here</a>.
+                                </FieldDescription>
+                            {/if}
+
                             {#if isInvalid}
                                 <FieldError errors={field.state.meta.errors} />
                             {/if}
@@ -271,6 +279,13 @@
                                         {/each}
                                     {/if}
                                 </NativeSelect>
+                            {/if}
+
+                            {#if instructionPrompts.isSuccess && instructionPrompts.data.length === 0}
+                                <FieldDescription>
+                                    No instruction prompts are available. Create one
+                                    <a href="/prompts">here</a>.
+                                </FieldDescription>
                             {/if}
 
                             {#if isInvalid}
